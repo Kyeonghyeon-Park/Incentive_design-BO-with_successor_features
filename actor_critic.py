@@ -12,40 +12,102 @@ import time
 import os
 
 from grid_world import ShouAndDiTaxiGridGame
-from utils import *
 
 # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-"""
-To-do or check list
-1) We have to build the successor feature network
-2) We have to decide the stopping point (In my algorithm, I just train the network a fixed number of times)
-   If we try to find the benefit of the successor feature network, 
-   we have to say that SF network helps the convergence speed or the performance
-"""
+#Class for SF network
+class SF(): 
+    def psi_learning(self, env, psi, epsilon, N, lrn_rate = 0.02):
+        """
+        Args:
+                env (GridWorld): The grid where the algorithm will be applied
+                psi ([[floa]]): Successor feature 
+                epsilon (int) : exploration rate, the probability to take a random path
+                N (int) : number of samples
+                Tmax (int) : the limit of episodes
+
+        Returns:
+                psi ([[float]]) : updated successor features
+                pol (Policy object) : optimal policy according to the psi-learning
+                V ([[float]]) : Values computed during the algorithm ??
+                w_stock ([[float]]) : list successive value of w
+        """
+        phi = self.phi
+        gamma = env.gamma #check where gamma is defined.
+        Tmax = env.max_episode_time 
+        # initialize a policy
+        size = self.size
+
+        pol = Policy(env) #generates policy
+        t = 1
+        alpha = [] #LR?
+        for i1,i2 in enumerate(env.state_actions) : # state_actions define available actions in each state, modify
+            alpha.append([])
+            for j1, j2 in enumerate(i2):
+                alpha[i1].append(0.5)
+
+        # Null or random initialiation?
+        w = np.zeros(len(phi[0][0])) #dimension depends on phi lenght
+        w_stock = []
+        rewards = []
+
+        rang = range(N)
+        for n in rang:
+
+            state = env.reset() # Have to create a reset function for SF. 
+            t_lim = 0
+
+            # show the last episode of a round
+
+            while(t_lim < Tmax):
+
+                greedy = np.random.rand(1) > epsilon
+
+                action = pol.get_action(state) if greedy else np.random.choice(env.state_actions[state]) #check with get_action_dist function #check partial state observation
+
+                # To update alpha
+                idx_action = env.state_actions[state].index(action)
+
+                q_tmp = []
+                prev_state = state
+                state, reward =  env.step( available_agent, joint_action, designer_alpha, buffer, overall_fare, train=True) #env.step(state, action) #check step function 
+                #check if new version has this function and keeps its arguments
+
+                # Compute the next expected Q-values
+                for idx, new_action in enumerate(env.state_actions[state]):
+                    q_tmp.append(np.dot(psi[state][new_action], w))
+
+                q_tmp = np.array(q_tmp)
+                # Select the best action (random among the maximum) for the next step
+                idx_env = np.random.choice(np.flatnonzero(q_tmp == q_tmp.max()))
+               
+
+                # Update the policy
+                pol.update_action(state, env.state_actions[state][idx_env]) #check policy update with partial observation.
+
+                # Update Psi, the successor feature
+                TD_phi = phi[prev_state][action] + gamma*psi[state][pol.get_action(state)] - psi[prev_state][action]
+                psi[prev_state][action] = psi[prev_state][action] + alpha[prev_state][idx_action] * TD_phi
+
+                # Update w by gradient descent
+                err = np.dot(phi[prev_state][action], w) - reward
+                w = w - lrn_rate * phi[prev_state][action] * err / np.log(n+2) # smoothing convergence
+
+                alpha[prev_state][idx_action] = 1./((1/alpha[prev_state][idx_action]) + 1.)
+                t_lim += 1
+            rewards.append(reward * gamma**(t_lim-1))
+            w_stock.append(w)
+
+        return psi, pol, rewards, w_stock
+
+
+
+
+
 
 # %% Define the actor network and the critic network
 class Actor(nn.Module):
-    """
-    Actor network
-    """
     def __init__(self, net_size):
-        """
-        Create a new actor network
-        Build the MLP using the net_size
-
-        Attributes
-        ----------
-        layers : torch.nn.modules.container.ModuleList
-            Container for layers
-        num_layers : int
-            Number of layers except the input layer
-
-        Parameters
-        ----------
-        net_size : list
-            Layer size (list of dimensions)
-        """
         super().__init__()
         self.layers = nn.ModuleList()
         self.num_layers = len(net_size) - 1
@@ -55,49 +117,18 @@ class Actor(nn.Module):
             self.layers.append(fc_i)
 
     def forward(self, x):
-        """
-        Forward
-
-        Parameters
-        ----------
-        x : torch.Tensor
-            Input for the actor network (actor_input)
-
-        Returns
-        -------
-        x : torch.Tensor
-            Return the action probability using softmax
-        """
         for i in range(self.num_layers):
             x = self.layers[i](x)
             if i < self.num_layers - 1:
                 x = F.relu(x)
 
         x = F.softmax(x, dim=-1)
+
         return x
 
 
 class Critic(nn.Module):
-    """
-    Critic network
-    """
     def __init__(self, net_size):
-        """
-        Create a new critic network
-        Build the MLP using the net_size
-
-        Attributes
-        ----------
-        layers : torch.nn.modules.container.ModuleList
-            Container for layers
-        num_layers : int
-            Number of layers except the input layer
-
-        Parameters
-        ----------
-        net_size : list
-            Layer size (list of dimensions)
-        """
         super().__init__()
         self.layers = nn.ModuleList()
         self.num_layers = len(net_size) - 1
@@ -107,19 +138,6 @@ class Critic(nn.Module):
             self.layers.append(fc_i)
 
     def forward(self, x):
-        """
-        Forward
-
-        Parameters
-        ----------
-        x : torch.Tensor
-            Input for the critic network (critic_input)
-
-        Returns
-        -------
-        x : torch.Tensor
-            Return the q value
-        """
         for i in range(self.num_layers):
             x = self.layers[i](x)
             if i < self.num_layers - 1:
@@ -128,94 +146,127 @@ class Critic(nn.Module):
         return x
 
 
+# %% Define the initialization function
 def init_weights(m):
-    """
-    Define the initialization function for the layers
-    Use the kaiming_normal because xavier_normal is not good for ReLU
-
-    Parameters
-    ----------
-    m
-        Type of the layer
-    """
     if type(m) == nn.Linear:
         # torch.nn.init.xavier_normal_(m.weight)
         torch.nn.init.kaiming_normal_(m.weight)
         m.bias.data.fill_(0)
 
 
+# %% Define the actor and critic input generation(conversion) function (categorical data)
+def get_actor_input(observation):
+    # [0, 1, 2, 3 : location / 4, 5, 6 : time]
+    actor_input_numpy = np.zeros(7)
+    location = observation[0]
+    current_time = observation[1]
+    actor_input_numpy[location] = 1
+    if current_time > 2:
+        actor_input_numpy[6] = 1
+    else:
+        actor_input_numpy[4 + current_time] = 1
+    actor_input = torch.FloatTensor(actor_input_numpy).unsqueeze(0)
+
+    return actor_input
+
+
+def get_critic_input(observation, action, mean_action):
+    # [0, 1, 2, 3 : location / 4, 5, 6 : time / 7, 8, 9, 10 : action / 11 : mean action]
+    critic_input_numpy = np.zeros(12)
+    location = observation[0]
+    current_time = observation[1]
+    critic_input_numpy[location] = 1
+    if current_time > 2:
+        critic_input_numpy[6] = 1
+    else:
+        critic_input_numpy[4 + current_time] = 1
+    critic_input_numpy[4] = current_time
+    critic_input_numpy[7 + action] = 1
+    critic_input_numpy[11] = np.min([mean_action, 1])
+    critic_input = torch.FloatTensor(critic_input_numpy).unsqueeze(0)
+
+    return critic_input
+
+
+# %% Define the action distribution generation function given actor network and observation (=pi_network(a_i|o_i))
+def get_action_dist(actor_network, observation):
+    actor_input = get_actor_input(observation)
+    action_prob = actor_network(actor_input)
+    if observation[0] == 0:
+        available_action_torch = torch.tensor([1, 1, 1, 0])
+    elif observation[0] == 1:
+        available_action_torch = torch.tensor([1, 1, 0, 1])
+    elif observation[0] == 2:
+        available_action_torch = torch.tensor([1, 0, 1, 1])
+    else:
+        available_action_torch = torch.tensor([0, 1, 1, 1])
+    action_dist = distributions.Categorical(torch.mul(action_prob, available_action_torch))
+
+    return action_dist
+
+
+# %% draw the graph of outcome (avg reward, ORR, OSC, obj. of train and test)
+def draw_plt(outcome):
+    plt.figure(figsize=(16, 14))
+
+    plt.subplot(2, 2, 1)
+    plt.plot(outcome['train']['avg_reward'], label='Avg reward train')
+    plt.ylim([0, 6])
+    plt.xlabel('Episode', fontsize=20)
+    plt.ylabel('Value', fontsize=20)
+    plt.legend(loc='lower right')
+    plt.grid()
+
+    plt.subplot(2, 2, 2)
+    plt.plot(outcome['test']['avg_reward'], label='Avg reward test')
+    plt.ylim([0, 6])
+    plt.xlabel('Episode', fontsize=20)
+    plt.ylabel('Value', fontsize=20)
+    plt.legend(loc='lower right')
+    plt.grid()
+
+    plt.subplot(2, 2, 3)
+    plt.plot(outcome['train']['ORR'], label='ORR train')
+    plt.plot(outcome['train']['OSC'], label='OSC train')
+    plt.plot(outcome['train']['obj_ftn'], label='Obj train')
+    plt.ylim([0, 1.1])
+    plt.xlabel('Episode', fontsize=20)
+    plt.ylabel('Value', fontsize=20)
+    plt.legend(loc='lower right')
+    plt.grid()
+
+    plt.subplot(2, 2, 4)
+    plt.plot(outcome['test']['ORR'], label='ORR test')
+    plt.plot(outcome['test']['OSC'], label='OSC test')
+    plt.plot(outcome['test']['obj_ftn'], label='Obj test')
+    plt.ylim([0, 1.1])
+    plt.xlabel('Episode', fontsize=20)
+    plt.ylabel('Value', fontsize=20)
+    plt.legend(loc='lower right')
+    plt.grid()
+
+    plt.show()
+
+
+def draw_plt_avg(outcome, moving_avg_length):
+    outcome_avg = {}
+    for i in outcome:
+        outcome_avg[i] = {}
+        for j in outcome[i]:
+            outcome_avg[i][j] = {}
+            measure_avg = []
+            for k in range(len(outcome[i][j])):
+                if k < moving_avg_length - 1:
+                    measure_avg.append(np.average(outcome[i][j][:k + 1]))
+                else:
+                    measure_avg.append(np.average(outcome[i][j][k - moving_avg_length + 1:k + 1]))
+            outcome_avg[i][j] = measure_avg
+    draw_plt(outcome_avg)
+
+
 # %% Define the main body
 class ActorCritic(object):
-    """
-    Define the actor-critic network
-    """
     def __init__(self, args):
-        """
-        Create a new actor-critic network
-
-        Attributes
-        ----------
-        world : grid_world.ShouAndDiTaxiGridGame
-            Define the taxi grid game
-        actor_layer : list
-            Dimension of layers of the actor network
-        critic_layer : list
-            Dimension of layers of the critic network
-        actor : Actor
-            Actor network
-        critic : Critic
-            Critic network
-        update_period : int
-            Period for updating the actor network and the critic network
-        lr_actor : float
-            Learnig rate for the actor network
-        lr_critic : float
-            Learning rate for the critic network
-        actor_loss_type : str
-            "avg" or "max" or "mix"
-            How to calculate the v_observation
-        optimizerA : torch.optim.adam.Adam
-            Optimizer for the actor network
-        optimizerC : torch.optim.adam.Adam
-            Optimizer for the critic network
-        discount_factor : float
-            Discount factor
-        designer_alpha : float
-            Designer's decision (penalty for overcrowded grid)
-        epsilon : float
-            Probability of random action for exploration
-        epsilon_decay : boolean
-            True if epsilon is decayed during the learning
-        buffer : list
-            Buffer
-        buffer_max_size : int
-            Maximum size of the buffer
-            If the size of the buffer becomes bigger than buffer_max_size, erase the oldest data
-        K : int
-            Sample size
-        mean_action_sample_number : int
-            To calculate the mean action at the next observation, we have to sample the value of the mean action
-            Sample size
-        obj_weight : float
-            Weight of the ORR
-            Objective is weighted average of the ORR and (1-OSC)
-        outcome : dict
-            Outcome for previous episodes
-        trained_episode_number : int
-            Trained episode number of the pre-trained network (for learn the trained network more)
-        trained_time : float
-            Trained time of the pre-trained network (for learn the trained network more)
-        max_episode_number : int
-            Maximum episode number for the training
-        actor_target : Actor
-            Target actor network (update per "update_period" episodes)
-        critic_target : Critic
-            Target critic network (update per "update_period" episodes)
-
-        Parameters
-        ----------
-        args : argparse.Namespace
-        """
         # Generate the game
         self.world = ShouAndDiTaxiGridGame()
 
@@ -303,17 +354,8 @@ class ActorCritic(object):
         self.actor_target = copy.deepcopy(self.actor)
         self.critic_target = copy.deepcopy(self.critic)
 
+    # Define the outcome function (add the current result)
     def get_outcome(self, overall_fare, mode):
-        """
-        Define the outcome function (add the current result)
-
-        Parameters
-        ----------
-        overall_fare : np.array
-            (fee, fare)
-        mode : str
-            'train' or 'test'
-        """
         # Order response rate / do not consider no demand case in the game
         total_request = self.world.demand[:, 3].shape[0]
         fulfilled_request = np.sum(self.world.demand[:, 3])
@@ -330,24 +372,8 @@ class ActorCritic(object):
         self.outcome[mode]['obj_ftn'].append(self.obj_weight * self.outcome[mode]['ORR'][-1]
                                              + (1 - self.obj_weight) * (1 - self.outcome[mode]['OSC'][-1]))
 
+    # Define the function that returns locations' agents' number and action distribution
     def get_location_agent_number_and_prob(self, joint_observation, current_time):
-        """
-        Define the function that returns agents' number and action distribution for each location
-
-        Parameters
-        ----------
-        joint_observation : np.array
-            Joint observation of agents
-        current_time : int
-            Agent's current time
-
-        Returns
-        -------
-        agent_num : list
-            List of the number of agents in the grid
-        action_dist_set : list
-            List of the action distribution for each location
-        """
         agent_num = []
         action_dist_set = []
         for loc in range(4):
@@ -357,26 +383,8 @@ class ActorCritic(object):
 
         return agent_num, action_dist_set
 
+    # Define the function for expectation over mean action using sampling
     def get_q_expectation_over_mean_action(self, observation, action, agent_num, action_dist_set):
-        """
-        Define the function for expectation over mean action using sampling
-
-        Parameters
-        ----------
-        observation : np.array
-            Observation of the agent
-        action : int
-            Action of the agent
-        agent_num : list
-            List of the number of agents in the grid
-        action_dist_set : list
-            List of the action distribution for each location
-
-        Returns
-        -------
-        q_observation_action : float
-            Return the q value expectation over mean action
-        """
         q_observation_action = 0
 
         temp_observation = self.world.move_agent(observation, action)
@@ -408,22 +416,8 @@ class ActorCritic(object):
 
         return q_observation_action
 
+    # Define the actor loss function for one sample and agent id
     def calculate_actor_loss(self, sample, agent_id):
-        """
-        Define the actor loss function for one sample and agent id
-
-        Parameters
-        ----------
-        sample : list
-            Sample from the buffer
-        agent_id : int
-            Agent's id
-
-        Returns
-        -------
-        actor_loss : float
-            Return the actor loss for the specific agent
-        """
         observation = sample[0][agent_id]
         action = sample[1][agent_id]
         with torch.no_grad():
@@ -456,22 +450,8 @@ class ActorCritic(object):
 
         return actor_loss
 
+    # Define the critic loss function for one sample and agent id
     def calculate_critic_loss(self, sample, agent_id):
-        """
-        Define the critic loss function for one sample and agent id
-
-        Parameters
-        ----------
-        sample : list
-            Sample from the buffer
-        agent_id : int
-            Agent's id
-
-        Returns
-        -------
-        critic_loss : float
-            Return the actor loss for the specific agent
-        """
         observation = sample[0][agent_id]
         action = sample[1][agent_id]
         reward = sample[2][agent_id]
@@ -503,10 +483,8 @@ class ActorCritic(object):
 
         return critic_loss
 
+    # Define the train function to train the actor network and the critic network
     def train(self):
-        """
-        Define the train function to train the actor network and the critic network
-        """
         self.world.initialize_game(random_grid=False)
         global_time = 0
         overall_fare = np.array([0, 0], 'float')
@@ -528,7 +506,7 @@ class ActorCritic(object):
                     action = action_dist.sample()
                     joint_action.append(action.item())
 
-            # After the step, add (o, a, r, a_bar, o_prime, f) to the replay buffer B (only train)
+            # After the step, add (o, a, r, a_bar, o_prime) to the replay buffer B (only train)
             if len(available_agent) != 0:
                 buffer, overall_fare = self.world.step(available_agent, joint_action, self.designer_alpha, self.buffer,
                                                        overall_fare, train=True)
@@ -569,10 +547,8 @@ class ActorCritic(object):
             self.optimizerA.step()
             self.optimizerC.step()
 
+    # Define the evaluate function to evaluate the trained actor network
     def evaluate(self):
-        """
-        Define the evaluate function to evaluate the trained actor network
-        """
         self.world.initialize_game(random_grid=False)
         global_time = 0
         overall_fare = np.array([0, 0], 'float')
@@ -593,19 +569,43 @@ class ActorCritic(object):
 
         self.get_outcome(overall_fare, mode='test')
 
-    def save_model(self, total_time, PATH, episode):
-        """
-        Define the save function to save the model and the results
+    # Define the outcome visualization functions
+    def print_updated_q(self):
+        np.set_printoptions(precision=2, linewidth=np.inf)
+        for location in range(4):
+            for agent_time in range(3):
+                print("Q at (#", location, ", ", agent_time, ")")
+                for action in range(4):
+                    q = []
+                    for mean_action in np.arange(0.0, 1.1, 0.1):
+                        critic_input = get_critic_input([location, agent_time], action, mean_action)
+                        q_value = self.critic(critic_input)
+                        q.append(q_value.item())
+                    q = np.array(q)
+                    print(q)
 
-        Parameters
-        ----------
-        total_time : float
-            Current learning time
-        PATH : str
-            PATH name
-        episode : int
-            Number of trained episodes
-        """
+    def print_action_distribution(self):
+        for location in range(4):
+            for agent_time in range(3):
+                action_dist = get_action_dist(self.actor, [location, agent_time])
+                print("Action distribution at (#", location, ", ", agent_time, ") : ", action_dist.probs[0].numpy())
+
+    def print_information_per_n_episodes(self, episode, start):
+        print("########################################################################################")
+        print(f"| Episode : {episode:4} | total time : {time.time() - start:5.2f} |")
+        print(
+            f"| train ORR : {self.outcome['train']['ORR'][episode]:5.2f} "
+            f"| train OSC : {self.outcome['train']['OSC'][episode]:5.2f} "
+            f"| train Obj : {self.outcome['train']['obj_ftn'][episode]:5.2f} "
+            f"| train avg reward : {self.outcome['train']['avg_reward'][episode]:5.2f} |")
+        print(
+            f"|  test ORR : {self.outcome['test']['ORR'][episode]:5.2f} "
+            f"|  test OSC : {self.outcome['test']['OSC'][episode]:5.2f} "
+            f"|  test Obj : {self.outcome['test']['obj_ftn'][episode]:5.2f} "
+            f"|  test avg reward : {self.outcome['test']['avg_reward'][episode]:5.2f} |")
+        print("########################################################################################")
+
+    def save_model(self, total_time, PATH, episode):
         if not os.path.isdir(PATH):
             os.makedirs(PATH)
         filename = 'all_' + str(episode) + 'episode.tar'
@@ -635,9 +635,6 @@ class ActorCritic(object):
         }, PATH + filename)
 
     def run(self):
-        """
-        Run the network (train and test)
-        """
         np.random.seed(seed=1234)
         start = time.time()
         for episode in np.arange(self.trained_episode_number, self.max_episode_number):
@@ -649,9 +646,9 @@ class ActorCritic(object):
                 self.critic_target = copy.deepcopy(self.critic)
 
                 with torch.no_grad():
-                    print_updated_q(self.critic)
-                    print_action_distribution(self.actor)
-                print_information_per_n_episodes(self.outcome, episode, start)
+                    self.print_updated_q()
+                    self.print_action_distribution()
+                self.print_information_per_n_episodes(episode, start)
                 draw_plt(self.outcome)
 
             if self.epsilon_decay:

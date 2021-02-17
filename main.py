@@ -4,11 +4,8 @@ import numpy as np
 from actor_critic import *
 
 
-designer_alpha = 0.8  # Given by Bayesian optimization
+designer_alpha = 0.8  # Bayesian optimization으로
 
-"""
-Initial settings for learning
-"""
 parser = argparse.ArgumentParser()
 parser.add_argument('--designer_alpha', default=designer_alpha)
 parser.add_argument('--sample_size', default=8)
@@ -29,22 +26,14 @@ parser.add_argument('--filename', default='')
 
 args = parser.parse_args()
 
-"""
-If you want to learn trained network more, try to do this code
-
-Codes
--------
-args.trained = True
-args.PATH = './weights/a_lr=0.0001_alpha=0.7/'
-args.filename = 'all.tar'
-args.max_episode_number = 3500
-"""
-
-"""
-Try other settings
-
-Samples
--------
+#############
+# if want to learn trained network more, try to do this code
+# args.trained = True
+# args.PATH = './weights/a_lr=0.0001_alpha=0.7/'
+# args.filename = 'all.tar'
+# args.max_episode_number = 3500
+#############
+# try other settings
 # args.trained = True
 # args.PATH = './weights/a_lr=0.0001_alpha=0.5/201031_1823/'
 # args.filename = 'all_3499episode.tar'
@@ -53,20 +42,7 @@ args.designer_alpha = 0.5609
 args.lr_actor = 0.0005
 args.lr_critic = 0.01
 # args.actor_loss_type = "mix"
-"""
-# args.trained = True
-# args.PATH = './weights/a_lr=0.0001_alpha=0.5/201031_1823/'
-# args.filename = 'all_3499episode.tar'
-args.max_episode_number = 5500
-args.designer_alpha = 0.5609
-args.lr_actor = 0.0005
-args.lr_critic = 0.01
-# args.actor_loss_type = "mix"
-
-"""
-Run the model
-"""
-
+#############
 torch.manual_seed(1238)
 model = ActorCritic(args)
 model.run()
