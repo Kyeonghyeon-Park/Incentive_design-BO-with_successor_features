@@ -16,7 +16,28 @@ from actor_critic import ActorCritic
 
 
 #%%
+"""
+To-do or check list
+--------
+Current package is not stable
+Current BO setting is not same as the Shou and Di's paper (I almost use the initial setting of the package) 
+"""
+
 def get_args(alpha):
+    """
+    Build args which is the parameter setting of the actor-critic network
+
+    Parameters
+    ----------
+    alpha : float
+        Designer's decision (penalty for overcrowded grid)
+        BO will decide the proper alpha
+
+    Returns
+    -------
+    args : argparse.Namespace
+        Return the args
+    """
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--designer_alpha', default=alpha)
@@ -40,10 +61,27 @@ def get_args(alpha):
 
 
 def black_box_function(alpha):
+    """
+    Define the black box function which is the f(alpha)
+    We have to get the designer's objective after the algorithm converges
+
+    Parameters
+    ----------
+    alpha : float
+        Designer's decision (penalty for overcrowded grid)
+        BO will decide the proper alpha
+
+    Returns
+    obj_for_BO : float
+        Return the designer's objective for BO which is the average of the obj_ftn
+    -------
+
+    """
     args = get_args(alpha)
     model = ActorCritic(args)
     model.run()
-    return np.average(model.outcome['test']['obj_ftn'][-100:])
+    obj_for_BO = np.average(model.outcome['test']['obj_ftn'][-100:])
+    return obj_for_BO
 
 
 #%%
