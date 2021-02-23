@@ -303,7 +303,7 @@ class ActorCritic(object):
         self.actor_target = copy.deepcopy(self.actor)
         self.critic_target = copy.deepcopy(self.critic)
 
-    def get_outcome(self, overall_fare, mode):
+    def get_outcome(self, overall_rfit, mode):
         """
         Define the outcome function (add the current result)
 
@@ -359,7 +359,7 @@ class ActorCritic(object):
 
         return agent_num, action_dist_set
 
-    def get_q_expectation_over_mean_action(self, observation, action, agent_num, action_dist_set):
+    def get_sf_expectation_over_mean_action(self, observation, action, agent_num, action_dist_set):
         """
         Define the function for expectation over mean action using sampling
 
@@ -376,10 +376,10 @@ class ActorCritic(object):
 
         Returns
         -------
-        q_observation_action : float
-            Return the q value expectation over mean action
+        sf_observation_action : float
+            Return the sf value expectation over mean action
         """
-        q_observation_action = 0
+        sf_observation_action = 0
 
         temp_observation = self.world.move_agent(observation, action)
         temp_location = temp_observation[0]
@@ -406,11 +406,11 @@ class ActorCritic(object):
 
             critic_input = get_critic_input(observation, action, mean_action_sample)
 
-            q_observation_action = q_observation_action + self.critic_target(critic_input) / sample_number
+            sf_observation_action = sf_observation_action + self.critic_target(critic_input) / sample_number
 
-        return q_observation_action
+        return sf_observation_action
 
-    def calculate_actor_loss(self, sample, agent_id):
+    def calculate_actor_loss(self, sample, agent_id): #modified to work with sf instead of Q
         """
         Define the actor loss function for one sample and agent id
 
@@ -428,25 +428,25 @@ class ActorCritic(object):
         """
         observation = sample[0][agent_id]
         action = sample[1][agent_id]
-        with torch.no_grad():
+        with torch.no_grad(): 
             agent_num, action_dist_set = self.get_location_agent_number_and_prob(sample[0], observation[1])
             available_action_set = self.world.get_available_action_from_location(observation[0])
-            q_observation_set = torch.zeros(4)
+            sf_observation_set = torch.zeros(4)
             v_observation_avg = 0
             target_action_dist = get_action_dist(self.actor_target, observation)
             for available_action in available_action_set:
-                q_observation_set[available_action] = self.get_q_expectation_over_mean_action(observation,
+                sf_observation_set[available_action] = self.get_sf_expectation_over_mean_action(observation,
                                                                                               available_action,
                                                                                               agent_num,
                                                                                               action_dist_set)
                 v_observation_avg = v_observation_avg + target_action_dist.probs[0][available_action] \
-                                    * q_observation_set[available_action]
+                                    * sf_observation_set[available_action]
 
-            v_observation_max = max(q_observation_set)
+            v_observation_max = max(sf_observation_set) #advantage function?
 
         action = torch.tensor(action)
         action_dist = get_action_dist(self.actor, observation)
-        q_observation = q_observation_set[action]
+        sf_observation = sf_observation_set[action]
 
         if self.actor_loss_type == "avg":
             v_observation = v_observation_avg
@@ -454,7 +454,7 @@ class ActorCritic(object):
             v_observation = v_observation_max
         else:  # self.actor_loss_type == "mix"
             v_observation = 1/2 * (v_observation_avg + v_observation_max)
-        actor_loss = - (q_observation - v_observation) * action_dist.log_prob(action)
+        actor_loss = - (sf_observation - v_observation) * action_dist.log_prob(action)
 
         return actor_loss
 
@@ -476,33 +476,32 @@ class ActorCritic(object):
         """
         observation = sample[0][agent_id]
         action = sample[1][agent_id]
-        reward = sample[2][agent_id]
+        phi = sample[5][agent_id] #5 is joint feature
         mean_action = sample[3][agent_id]
         next_observation = sample[4][agent_id]
         with torch.no_grad():
             if next_observation[1] != self.world.max_episode_time:
                 available_action_set = self.world.get_available_action_from_location(next_observation[0])
 
-                q_next_observation = []
+                sf_next_observation = []
                 # get each location's agent numbers and action distributions from next_joint_observation
                 agent_num, action_dist_set = self.get_location_agent_number_and_prob(sample[4], next_observation[1])
 
                 # sampling the number which represents the number of agents who want to go to the location of available action
                 for available_action in available_action_set:
-                    q_next_observation_action = self.get_q_expectation_over_mean_action(next_observation,
+                    sf_next_observation_action = self.get_sf_expectation_over_mean_action(next_observation,
                                                                                         available_action,
                                                                                         agent_num, action_dist_set)
-                    q_next_observation.append(q_next_observation_action)
+                    sf_next_observation.append(sf_next_observation_action)
                 # max_q_next_observation = (np.max(q_next_observation)).clone().detach()
-                max_q_next_observation = np.max(q_next_observation)
+                max_sf_next_observation = np.max(sf_next_observation)
             else:
-                max_q_next_observation = 0
+                max_sf_next_observation = 0
             # temporal test
-            max_q_next_observation = 0
+            max_sf_next_observation = 0
         critic_input = get_critic_input(observation, action, mean_action)
-        reward = torch.tensor(reward)
-        #critic_loss = reward + self.discount_factor * max_q_next_observation - self.critic(critic_input)
-        critic_loss = phi + self.discount_factor * max_q_next_observation - self.critic(critic_input) 
+        phi = torch.tensor(phi)
+        critic_loss = phi + self.discount_factor * max_sf_next_observation - self.critic(critic_input) 
         return critic_loss
 
     def train(self): #modify to work with sf
@@ -539,15 +538,13 @@ class ActorCritic(object):
                 buffer, overall_phi = self.world.step(available_agent, joint_action, self.designer_alpha, self.buffer,
                                                        overall_fare, train=True)
                 self.buffer = buffer[-self.buffer_max_size:]
-                print(overall_phi)
             global_time += 1
 
         
         
         # Get outcome of train episode by phi^T * w
         for i in range(len(overall_phi)):
-            print(len(overall_phi))
-            print(overall_phi[i])
+
             phi =  np.array(overall_phi[i])
             phiT = phi.reshape(w.shape)  
             r_fit = np.sum(phiT * w) 
@@ -594,6 +591,9 @@ class ActorCritic(object):
         self.world.initialize_game(random_grid=False)
         global_time = 0
         overall_fare = np.array([0, 0], 'float')
+        overall_phi =  np.zeros(self.world.number_of_agents) #initialize to 0
+        overall_rfit = [] #save reward obtained by phi^T * w
+        w = [1,self.designer_alpha] #weight vector
 
         while global_time is not self.world.max_episode_time:
             available_agent = self.world.get_available_agent(global_time)
@@ -605,11 +605,17 @@ class ActorCritic(object):
                 action = action_dist.sample()  # runtime error if specific probability is too small
                 joint_action.append(action.item())
             if len(available_agent) != 0:
-                buffer, overall_fare = self.world.step(available_agent, joint_action, self.designer_alpha, self.buffer,
+                buffer, overall_phi = self.world.step(available_agent, joint_action, self.designer_alpha, self.buffer,
                                                        overall_fare, train=False)
             global_time += 1
 
-        self.get_outcome(overall_fare, mode='test')
+        for i in range(len(overall_phi)):
+            phi =  np.array(overall_phi[i])
+            phiT = phi.reshape(w.shape)  
+            r_fit = np.sum(phiT * w) 
+            overall_rfit.append(rfit) 
+        
+        self.get_outcome(overall_rfit, mode='test')
 
     def save_model(self, total_time, PATH, episode):
         """
@@ -682,7 +688,7 @@ class ActorCritic(object):
                        + time.strftime('%y%m%d_%H%M', time.localtime(start)) + '/'
                 self.save_model(total_time, PATH, episode)
 
-    #def reset_model(self, total_time, PATH, episode): #function to reset learning
+    #def reset_model(self, total_time, PATH, episode): #function to reset learning but keep SF of previous iteration
 
         # reset successor features and replay buffer
 
