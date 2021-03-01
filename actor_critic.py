@@ -303,7 +303,7 @@ class ActorCritic(object):
         self.actor_target = copy.deepcopy(self.actor)
         self.critic_target = copy.deepcopy(self.critic)
 
-    def get_outcome(self, overall_rfit, mode):
+    def get_outcome(self, overall_fare, mode):
         """
         Define the outcome function (add the current result)
 
@@ -320,14 +320,12 @@ class ActorCritic(object):
         self.outcome[mode]['ORR'].append(fulfilled_request / total_request)
 
         # Overall service charge ratio 
-        # DM replace this with feature signal 
         if overall_fare[1] != 0:
             self.outcome[mode]['OSC'].append(overall_fare[0] / overall_fare[1])
         else:
             self.outcome[mode]['OSC'].append(0)
 
         # Average reward of all agents
-        #DM multiply feature signal with weight vector to get average performance
         self.outcome[mode]['avg_reward'].append((overall_fare[1] - overall_fare[0]) / self.world.number_of_agents)
         self.outcome[mode]['obj_ftn'].append(self.obj_weight * self.outcome[mode]['ORR'][-1]
                                              + (1 - self.obj_weight) * (1 - self.outcome[mode]['OSC'][-1]))
@@ -498,10 +496,13 @@ class ActorCritic(object):
             else:
                 max_sf_next_observation = 0
             # temporal test
-            max_sf_next_observation = 0
+            #max_sf_next_observation = 0
         critic_input = get_critic_input(observation, action, mean_action)
-        phi = torch.tensor(phi)
+        #print(phi)
+        phi = torch.tensor(phi.flatten())
+        #print(phi)
         critic_loss = phi + self.discount_factor * max_sf_next_observation - self.critic(critic_input) 
+        #print(critic_loss)
         return critic_loss
 
     def train(self): #modify to work with sf
@@ -511,10 +512,10 @@ class ActorCritic(object):
         self.world.initialize_game(random_grid=False)
         global_time = 0
         overall_fare = np.array([0, 0], 'float')
-        overall_phi =  np.zeros(self.world.number_of_agents) #initialize to 0
-        overall_rfit = [] #save reward obtained by phi^T * w
+        #overall_phi =  np.zeros(self.world.number_of_agents) #initialize to 0
+        #overall_rfit = [] #save reward obtained by phi^T * w
 
-        w = [1,self.designer_alpha] #weight vector
+        #w = np.array([1,self.designer_alpha]) #weight vector
 
         while global_time is not self.world.max_episode_time:
 
@@ -535,22 +536,26 @@ class ActorCritic(object):
 
             # After the step, add (o, a, r, a_bar, o_prime, f) to the replay buffer B (only train)
             if len(available_agent) != 0:
-                buffer, overall_phi = self.world.step(available_agent, joint_action, self.designer_alpha, self.buffer,
+                buffer, overall_fare = self.world.step(available_agent, joint_action, self.designer_alpha, self.buffer,
                                                        overall_fare, train=True)
                 self.buffer = buffer[-self.buffer_max_size:]
             global_time += 1
 
-        
+        # Get outcome of train episode
+        self.get_outcome(overall_fare, mode='train')        
         
         # Get outcome of train episode by phi^T * w
-        for i in range(len(overall_phi)):
+        #for i in range(len(overall_phi)):
+        #    if  overall_phi[i] == None:
+        #        rfit = overall_phi[i] #appends none to the array
+        #    else:             
+        #        phi =  np.array(overall_phi[i])
+        #        phiT = phi.reshape(w.shape)  
+        #        r_fit = np.sum(phiT * w) 
+            
+        #    overall_rfit.append(rfit) 
 
-            phi =  np.array(overall_phi[i])
-            phiT = phi.reshape(w.shape)  
-            r_fit = np.sum(phiT * w) 
-            overall_rfit.append(rfit) 
-
-        self.get_outcome(overall_rfit,  mode='train') #update using sf fare
+        #self.get_outcome(overall_rfit,  mode='train') #update using sf fare
         
 
         # Update the network
@@ -591,9 +596,9 @@ class ActorCritic(object):
         self.world.initialize_game(random_grid=False)
         global_time = 0
         overall_fare = np.array([0, 0], 'float')
-        overall_phi =  np.zeros(self.world.number_of_agents) #initialize to 0
-        overall_rfit = [] #save reward obtained by phi^T * w
-        w = [1,self.designer_alpha] #weight vector
+        #overall_phi =  np.zeros(self.world.number_of_agents) #initialize to 0
+        #overall_rfit = [] #save reward obtained by phi^T * w
+        #w = [1,self.designer_alpha] #weight vector
 
         while global_time is not self.world.max_episode_time:
             available_agent = self.world.get_available_agent(global_time)
@@ -605,17 +610,11 @@ class ActorCritic(object):
                 action = action_dist.sample()  # runtime error if specific probability is too small
                 joint_action.append(action.item())
             if len(available_agent) != 0:
-                buffer, overall_phi = self.world.step(available_agent, joint_action, self.designer_alpha, self.buffer,
+                buffer, overall_fare = self.world.step(available_agent, joint_action, self.designer_alpha, self.buffer,
                                                        overall_fare, train=False)
             global_time += 1
 
-        for i in range(len(overall_phi)):
-            phi =  np.array(overall_phi[i])
-            phiT = phi.reshape(w.shape)  
-            r_fit = np.sum(phiT * w) 
-            overall_rfit.append(rfit) 
-        
-        self.get_outcome(overall_rfit, mode='test')
+        self.get_outcome(overall_fare, mode='test')
 
     def save_model(self, total_time, PATH, episode):
         """

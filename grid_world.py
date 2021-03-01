@@ -374,8 +374,8 @@ class ShouAndDiTaxiGridGame:
         temp_joint_observation = self.move_available_agent(available_agent, joint_action)
         order_matching = self.match_agent_and_demand(available_agent, temp_joint_observation)
         DS_ratio = self.get_demand_to_supply_ratio(temp_joint_observation)
-        SC_ratio = self.get_service_charge_ratio(designer_alpha, DS_ratio)
-
+        SC_ratio = self.get_service_charge_ratio(designer_alpha, DS_ratio) #returns SC ratio for each grid
+        w = np.array([1,designer_alpha]) # weight vector
         current_joint_observation = copy.deepcopy(self.joint_observation)
 
         overall_joint_action = []
@@ -394,14 +394,20 @@ class ShouAndDiTaxiGridGame:
                     order = self.demand[order_id]
                     next_observation = self.move_with_demand(temp_observation, order)
                     fare = self.fare[order[1], order[2]]
-                    service_charge = SC_ratio[temp_observation[0]]
-                    reward = fare * (1 - service_charge)
+                    service_charge = SC_ratio[temp_observation[0]] #SC ratio for specific grid
+                    reward = fare * (1 - service_charge) #reward calculation
                     demand_to_supply_ratio = DS_ratio[temp_observation[0]]
                     if demand_to_supply_ratio > 1:
                         feature = [fare, 0]
                     else:
                         feature = [fare, - fare * (1 - demand_to_supply_ratio)]
-                    overall_fare = overall_fare + np.array([fare * service_charge, fare])
+                    #this is the reward of the designer     
+                    #overall_fare = overall_fare + np.array([fare * service_charge, fare]) 
+                    phi = np.array(feature) #feature
+                    phiT = phi.reshape(w.shape)  
+                    r_fit = np.sum(phiT * w)  #rewards
+                    # r = fare*(1-sc) -> fare = (1-sc)/r , r = phi*w
+                    overall_fare = overall_fare + np.array([ service_charge*(1 - service_charge)/r_fit, (1 - service_charge)/r_fit]) 
                 else:
                     next_observation = temp_observation
                     reward = 0
@@ -425,7 +431,7 @@ class ShouAndDiTaxiGridGame:
         next_joint_observation = copy.deepcopy(self.joint_observation)
         if train:
             buffer.append([current_joint_observation, overall_joint_action, overall_joint_reward,
-                           overall_joint_mean_action, next_joint_observation, overall_joint_feature])
+                           overall_joint_mean_action, next_joint_observation, np.array(overall_joint_feature)])
 
-        return buffer, overall_joint_feature  #modify here
+        return buffer, overall_fare  
 
