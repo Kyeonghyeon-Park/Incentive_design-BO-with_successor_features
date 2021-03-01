@@ -121,8 +121,8 @@ class Critic(nn.Module):
             Return the q value
         """
         for i in range(self.num_layers):
-            x = self.layers[i](x)
-            if i < self.num_layers - 1:
+            x = self.layers[i](x)     #[12, 64, 32, 16, 2] 
+            if i < self.num_layers - 1: #if 0 < 4
                 x = F.relu(x)
 
         return x
@@ -221,7 +221,7 @@ class ActorCritic(object):
 
         # Generate the actor network and critic network
         self.actor_layer = [7, 32, 16, 8, 4]
-        self.critic_layer = [12, 64, 32, 16, 1]
+        self.critic_layer = [12, 64, 32, 16, 2] #last changes for 2 to match SF DIM
         self.actor = Actor(self.actor_layer)
         self.critic = Critic(self.critic_layer)
 
@@ -375,10 +375,10 @@ class ActorCritic(object):
         Returns
         -------
         sf_observation_action : float
-            Return the sf value expectation over mean action
+            Return the Q value expectation over mean action calculated by SF
         """
         sf_observation_action = 0
-
+        w = np.array([1,self.designer_alpha])
         temp_observation = self.world.move_agent(observation, action)
         temp_location = temp_observation[0]
         temp_time = temp_observation[1]
@@ -403,8 +403,10 @@ class ActorCritic(object):
                     mean_action_sample = 0
 
             critic_input = get_critic_input(observation, action, mean_action_sample)
-
-            sf_observation_action = sf_observation_action + self.critic_target(critic_input) / sample_number
+            # q = psi.T w 
+            psi = np.array(self.critic_target(critic_input))
+            psiT = psi.reshape(w.shape)  
+            sf_observation_action = sf_observation_action + np.sum(psiT * w)/ sample_number
 
         return sf_observation_action
 
@@ -425,6 +427,7 @@ class ActorCritic(object):
             Return the actor loss for the specific agent
         """
         observation = sample[0][agent_id]
+        w = np.array([1,self.designer_alpha])
         action = sample[1][agent_id]
         with torch.no_grad(): 
             agent_num, action_dist_set = self.get_location_agent_number_and_prob(sample[0], observation[1])
@@ -440,7 +443,7 @@ class ActorCritic(object):
                 v_observation_avg = v_observation_avg + target_action_dist.probs[0][available_action] \
                                     * sf_observation_set[available_action]
 
-            v_observation_max = max(sf_observation_set) #advantage function?
+            v_observation_max = max(sf_observation_set) #single value
 
         action = torch.tensor(action)
         action_dist = get_action_dist(self.actor, observation)
@@ -452,7 +455,7 @@ class ActorCritic(object):
             v_observation = v_observation_max
         else:  # self.actor_loss_type == "mix"
             v_observation = 1/2 * (v_observation_avg + v_observation_max)
-        actor_loss = - (sf_observation - v_observation) * action_dist.log_prob(action)
+        actor_loss = - (sf_observation  - v_observation) * action_dist.log_prob(action)
 
         return actor_loss
 
@@ -492,7 +495,7 @@ class ActorCritic(object):
                                                                                         agent_num, action_dist_set)
                     sf_next_observation.append(sf_next_observation_action)
                 # max_q_next_observation = (np.max(q_next_observation)).clone().detach()
-                max_sf_next_observation = np.max(sf_next_observation)
+                max_sf_next_observation = np.max(sf_next_observation) #CHECK THIS
             else:
                 max_sf_next_observation = 0
             # temporal test
@@ -502,7 +505,7 @@ class ActorCritic(object):
         phi = torch.tensor(phi.flatten())
         #print(phi)
         critic_loss = phi + self.discount_factor * max_sf_next_observation - self.critic(critic_input) 
-        #print(critic_loss)
+
         return critic_loss
 
     def train(self): #modify to work with sf
@@ -585,7 +588,8 @@ class ActorCritic(object):
             self.optimizerA.zero_grad()
             self.optimizerC.zero_grad()
             actor_loss.backward()
-            critic_loss.backward()
+            #critic_loss.backward() changed to return [1,2]
+            critic_loss.backward(torch.Tensor([[1, 1]])) #[1,2]
             self.optimizerA.step()
             self.optimizerC.step()
 
@@ -672,7 +676,7 @@ class ActorCritic(object):
                 self.critic_target = copy.deepcopy(self.critic)
 
                 with torch.no_grad():
-                    print_updated_q(self.critic)
+                    print_updated_q(self.critic, self.designer_alpha)
                     print_action_distribution(self.actor)
                 print_information_per_n_episodes(self.outcome, episode, start)
                 draw_plt(self.outcome)

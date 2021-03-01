@@ -177,7 +177,7 @@ def draw_plt_avg(outcome, moving_avg_length):
     draw_plt(outcome_avg)
 
 
-def print_updated_q(critic):
+def print_updated_q(critic, designer_alpha): #modified
     """
     Print the q value for all locations, times, actions and some mean actions
     To do : get the value of the number of locations and the episode length from the world setting
@@ -187,6 +187,7 @@ def print_updated_q(critic):
     critic : actor_critic.Critic
         Critic network
     """
+    w = np.array([1,designer_alpha])
     np.set_printoptions(precision=2, linewidth=np.inf)
     for location in range(4):
         for agent_time in range(3):
@@ -195,7 +196,10 @@ def print_updated_q(critic):
                 q = []
                 for mean_action in np.arange(0.0, 1.1, 0.1):
                     critic_input = get_critic_input([location, agent_time], action, mean_action)
-                    q_value = critic(critic_input)
+                    # q = psi.T w 
+                    psi = np.array(critic(critic_input))
+                    psiT = psi.reshape(w.shape)  
+                    q_value =  np.sum(psiT * w)
                     q.append(q_value.item())
                 q = np.array(q)
                 print(q)

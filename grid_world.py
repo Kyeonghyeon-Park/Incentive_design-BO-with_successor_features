@@ -402,12 +402,14 @@ class ShouAndDiTaxiGridGame:
                     else:
                         feature = [fare, - fare * (1 - demand_to_supply_ratio)]
                     #this is the reward of the designer     
-                    #overall_fare = overall_fare + np.array([fare * service_charge, fare]) 
+                    overall_fare = overall_fare + np.array([fare * service_charge, fare]) 
                     phi = np.array(feature) #feature
                     phiT = phi.reshape(w.shape)  
                     r_fit = np.sum(phiT * w)  #rewards
                     # r = fare*(1-sc) -> fare = (1-sc)/r , r = phi*w
-                    overall_fare = overall_fare + np.array([ service_charge*(1 - service_charge)/r_fit, (1 - service_charge)/r_fit]) 
+                    #print('real r: ',  reward , 'calculated r', r_fit)
+                    #overall_fare = overall_fare + np.array([ service_charge*(1 - service_charge)/r_fit, (1 - service_charge)/r_fit]) 
+
                 else:
                     next_observation = temp_observation
                     reward = 0
