@@ -16,13 +16,6 @@ from utils import *
 
 # device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
-"""
-To-do or check list
-1) We have to build the successor feature network
-2) We have to decide the stopping point (In my algorithm, I just train the network a fixed number of times)
-   If we try to find the benefit of the successor feature network, 
-   we have to say that SF network helps the convergence speed or the performance
-"""
 
 # %% Define the actor network and the critic network
 class Actor(nn.Module):
@@ -357,7 +350,7 @@ class ActorCritic(object):
 
         return agent_num, action_dist_set
 
-    def get_sf_expectation_over_mean_action(self, observation, action, agent_num, action_dist_set):
+    def get_sf_expectation_over_mean_action(self, observation, action, agent_num, action_dist_set): #changed to return q and sf value
         """
         Define the function for expectation over mean action using sampling
 
@@ -408,7 +401,7 @@ class ActorCritic(object):
             psiT = psi.reshape(w.shape)  
             sf_observation_action = sf_observation_action + np.sum(psiT * w)/ sample_number
 
-        return sf_observation_action
+        return sf_observation_action, psi #returns both q and psi value.
 
     def calculate_actor_loss(self, sample, agent_id): #modified to work with sf instead of Q
         """
@@ -436,7 +429,7 @@ class ActorCritic(object):
             v_observation_avg = 0
             target_action_dist = get_action_dist(self.actor_target, observation)
             for available_action in available_action_set:
-                sf_observation_set[available_action] = self.get_sf_expectation_over_mean_action(observation,
+                sf_observation_set[available_action], psi = self.get_sf_expectation_over_mean_action(observation,
                                                                                               available_action,
                                                                                               agent_num,
                                                                                               action_dist_set)
@@ -476,6 +469,7 @@ class ActorCritic(object):
             Return the actor loss for the specific agent
         """
         observation = sample[0][agent_id]
+        
         action = sample[1][agent_id]
         phi = sample[5][agent_id] #5 is joint feature
         mean_action = sample[3][agent_id]
@@ -483,19 +477,21 @@ class ActorCritic(object):
         with torch.no_grad():
             if next_observation[1] != self.world.max_episode_time:
                 available_action_set = self.world.get_available_action_from_location(next_observation[0])
-
+                psi_next_observation = []    
                 sf_next_observation = []
                 # get each location's agent numbers and action distributions from next_joint_observation
                 agent_num, action_dist_set = self.get_location_agent_number_and_prob(sample[4], next_observation[1])
 
                 # sampling the number which represents the number of agents who want to go to the location of available action
                 for available_action in available_action_set:
-                    sf_next_observation_action = self.get_sf_expectation_over_mean_action(next_observation,
+                    sf_next_observation_action, psi = self.get_sf_expectation_over_mean_action(next_observation,
                                                                                         available_action,
                                                                                         agent_num, action_dist_set)
                     sf_next_observation.append(sf_next_observation_action)
+                    psi_next_observation.append(psi)
                 # max_q_next_observation = (np.max(q_next_observation)).clone().detach()
-                max_sf_next_observation = np.max(sf_next_observation) #CHECK THIS
+                max_position = np.argmax(sf_next_observation)   #finds position of argmax
+                max_sf_next_observation = psi_next_observation[max_position]  #finds psi that has biggest Q
             else:
                 max_sf_next_observation = 0
             # temporal test
