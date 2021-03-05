@@ -45,7 +45,7 @@ def get_critic_input(observation, action, mean_action):
     observation : np.array
         (location, time)
     action : int
-    mean_action : int
+    mean_action : float
 
     Returns
     -------
@@ -67,6 +67,47 @@ def get_critic_input(observation, action, mean_action):
     critic_input = torch.FloatTensor(critic_input_numpy).unsqueeze(0)
 
     return critic_input
+
+
+def get_psi_input(observation, action, mean_action):
+    """
+    Define the psi input generation function which is same as the get_critic_input
+    [0, 1, 2, 3 : location / 4, 5, 6 : time / 7, 8, 9, 10 : action / 11 : mean action]
+
+    Parameters
+    ----------
+    observation : np.array
+    action : int
+    mean_action : float
+
+    Returns
+    -------
+    psi_input : torch.Tensor
+        Return the converted input for the psi network (successor feature)
+    """
+    psi_input = get_critic_input(observation, action, mean_action)
+    return psi_input
+
+
+def get_q(psi_network, w):
+    """
+    Get q value using psi and w
+
+    Parameters
+    ----------
+    psi_network : torch.Tensor
+    w : numpy.array
+
+    Returns
+    -------
+    q_value : float
+    """
+    psi = np.array(psi_network)
+    psiT = psi.reshape(w.shape)
+    q = np.dot(psiT, w)
+    q_value = q.item()
+
+    return q_value
 
 
 def get_action_dist(actor_network, observation):
@@ -98,6 +139,72 @@ def get_action_dist(actor_network, observation):
     action_dist = distributions.Categorical(torch.mul(action_prob, available_action_torch))
 
     return action_dist
+
+
+def check_results_in_console(file):
+    """
+    For easily check the previous results
+
+    Examples
+    --------
+    file = 'C:/Users/ParkKH/Dropbox/KAIST/03. 연구/Reward structure design/Experiment/BO and MFRL/weights/a_lr=0.0001_alpha=0.3197/201031_1436/all_5499episode.tar'
+    data = check_results_in_console(file)
+    outcome = data['outcome']
+    draw_plt_avg(outcome, 10)
+
+    Parameters
+    ----------
+    file : str
+        Link of the result file
+
+    Returns
+    -------
+    data : dict
+        Return the results
+    """
+    data = torch.load(file)
+    return data
+
+
+def load_previous_networks():
+    """
+    For easily check and modify the previous networks in console
+
+    Returns
+    -------
+    previous_networks : list
+    """
+    previous_networks = torch.load('./weights_and_networks/previous_networks.tar')
+    return previous_networks
+
+
+def save_previous_networks(previous_networks):
+    """
+    Save previous networks at the location
+
+    Parameters
+    ----------
+    previous_networks : list
+    """
+    torch.save({
+        'previous_networks': previous_networks,
+    }, './weights_and_networks/previous_networks.tar')
+
+
+def delete_recent_previous_networks(previous_networks):
+    """
+    For easily drop the last elements([w, actor, psi]) of previous networks
+
+    Parameters
+    ----------
+    previous_networks : list
+
+    Returns
+    -------
+    previous_networks : list
+    """
+    previous_networks = previous_networks[:len(previous_networks)-1, :, :]
+    return previous_networks
 
 
 def draw_plt(outcome):
@@ -187,7 +294,6 @@ def print_updated_q(critic):
     critic : actor_critic.Critic
         Critic network
     """
-    np.set_printoptions(precision=2, linewidth=np.inf)
     for location in range(4):
         for agent_time in range(3):
             print("Q at (#", location, ", ", agent_time, ")")
@@ -198,7 +304,37 @@ def print_updated_q(critic):
                     q_value = critic(critic_input)
                     q.append(q_value.item())
                 q = np.array(q)
-                print(q)
+                with np.printoptions(formatter={'float': '{: 0.2f}'.format}, sign=' ', linewidth=np.inf):
+                    print(q)
+
+
+def print_updated_q_using_psi(psi_network, designer_alpha):
+    """
+    Using psi(successor feature network),
+    print the q value for all locations, times, actions and some mean actions
+
+    Parameters
+    ----------
+    psi_network : actor_psi.Psi
+        Successor feature network
+    designer_alpha : float
+        Designer's decision (or penalty level)
+    """
+    w = np.array([1, designer_alpha])
+
+    for location in range(4):
+        for agent_time in range(3):
+            print("Q(=psi*w) at (#", location, ", ", agent_time, ")")
+            for action in range(4):
+                q = []
+                for mean_action in np.arange(0.0, 1.1, 0.1):
+                    psi_input = get_psi_input([location, agent_time], action, mean_action)
+                    psi = psi_network(psi_input)
+                    q_value = get_q(psi, w)
+                    q.append(q_value)
+                q = np.array(q)
+                with np.printoptions(formatter={'float': '{: 0.2f}'.format}, sign=' ', linewidth=np.inf):
+                    print(q)
 
 
 def print_action_distribution(actor):
@@ -211,10 +347,11 @@ def print_action_distribution(actor):
     actor : actor_critic.Actor
         Actor network
     """
-    for location in range(4):
-        for agent_time in range(3):
-            action_dist = get_action_dist(actor, [location, agent_time])
-            print("Action distribution at (#", location, ", ", agent_time, ") : ", action_dist.probs[0].numpy())
+    with np.printoptions(formatter={'float': '{: 0.2f}'.format}, sign=' ', linewidth=np.inf):
+        for location in range(4):
+            for agent_time in range(3):
+                action_dist = get_action_dist(actor, [location, agent_time])
+                print("Action distribution at (#", location, ", ", agent_time, ") : ", action_dist.probs[0].numpy())
 
 
 def print_information_per_n_episodes(outcome, episode, start):

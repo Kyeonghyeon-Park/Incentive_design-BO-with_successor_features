@@ -374,7 +374,7 @@ class ShouAndDiTaxiGridGame:
         temp_joint_observation = self.move_available_agent(available_agent, joint_action)
         order_matching = self.match_agent_and_demand(available_agent, temp_joint_observation)
         DS_ratio = self.get_demand_to_supply_ratio(temp_joint_observation)
-        SC_ratio = self.get_service_charge_ratio(designer_alpha, DS_ratio)
+        SC_ratio = self.get_service_charge_ratio(designer_alpha, DS_ratio)  # Return the SC ratio for each grid
 
         current_joint_observation = copy.deepcopy(self.joint_observation)
 
@@ -394,8 +394,8 @@ class ShouAndDiTaxiGridGame:
                     order = self.demand[order_id]
                     next_observation = self.move_with_demand(temp_observation, order)
                     fare = self.fare[order[1], order[2]]
-                    service_charge = SC_ratio[temp_observation[0]]
-                    reward = fare * (1 - service_charge)
+                    service_charge = SC_ratio[temp_observation[0]]  # SC ratio for specific grid
+                    reward = fare * (1 - service_charge)  # Reward calculation
                     demand_to_supply_ratio = DS_ratio[temp_observation[0]]
                     if demand_to_supply_ratio > 1:
                         feature = [fare, 0]
