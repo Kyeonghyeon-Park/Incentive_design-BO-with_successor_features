@@ -174,7 +174,8 @@ def load_previous_networks():
     -------
     previous_networks : list
     """
-    previous_networks = torch.load('./weights_and_networks/previous_networks.tar')
+    previous_networks_dict = torch.load('./weights_and_networks/previous_networks.tar')
+    previous_networks = previous_networks_dict['previous_networks']
     return previous_networks
 
 
@@ -203,7 +204,7 @@ def delete_recent_previous_networks(previous_networks):
     -------
     previous_networks : list
     """
-    previous_networks = previous_networks[:len(previous_networks)-1, :, :]
+    previous_networks = previous_networks[:len(previous_networks)-1]
     return previous_networks
 
 

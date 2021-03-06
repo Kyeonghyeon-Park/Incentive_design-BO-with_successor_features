@@ -281,22 +281,22 @@ class ActorPsi(object):
         if args.reuse_actor_and_psi:
             assert len(self.previous_networks) != 0, "There is no previous network"
             if args.reuse_type_and_alpha['type'] == "recent":
-                self.actor.load_state_dict(self.previous_networks[-1, 1])
-                self.psi.load_state_dict(self.previous_networks[-1, 2])
-                self.previous_information = 'Reuse recent network, alpha:'+str(self.previous_networks[-1, 0])
+                self.actor.load_state_dict(self.previous_networks[-1][1])
+                self.psi.load_state_dict(self.previous_networks[-1][2])
+                self.previous_information = 'Reuse recent network, alpha:'+str(self.previous_networks[-1][0])
             elif args.reuse_type_and_alpha['type'] == "nearest":
                 alphas = self.previous_networks[:, 0]
                 idx = min(range(len(alphas)), key=lambda i: abs(alphas[i]-self.designer_alpha))
-                self.actor.load_state_dict(self.previous_networks[idx, 1])
-                self.psi.load_state_dict(self.previous_networks[idx, 2])
-                self.previous_information = 'Reuse nearest network, alpha:'+str(self.previous_networks[idx, 0])
+                self.actor.load_state_dict(self.previous_networks[idx][1])
+                self.psi.load_state_dict(self.previous_networks[idx][2])
+                self.previous_information = 'Reuse nearest network, alpha:'+str(self.previous_networks[idx][0])
             else:  # args.reuse_type_and_w['type'] == "specific"
-                alphas = self.previous_networks[:, 0]
+                alphas = [item[0] for item in self.previous_networks]
                 assert args.reuse_type_and_alpha['alpha'] in alphas, "Chosen alpha is not in the previous network"
                 idx = alphas.index(args.reuse_type_and_alpha['alpha'])
-                self.actor.load_state_dict(self.previous_networks[idx, 1])
-                self.psi.load_state_dict(self.previous_networks[idx, 2])
-                self.previous_information = 'Reuse specific network, alpha:'+str(self.previous_networks[idx, 0])
+                self.actor.load_state_dict(self.previous_networks[idx][1])
+                self.psi.load_state_dict(self.previous_networks[idx][2])
+                self.previous_information = 'Reuse specific network, alpha:'+str(self.previous_networks[idx][0])
             print(self.previous_information)
 
         # Learn the network more
