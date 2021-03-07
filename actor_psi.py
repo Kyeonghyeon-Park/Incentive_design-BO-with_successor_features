@@ -285,7 +285,7 @@ class ActorPsi(object):
                 self.psi.load_state_dict(self.previous_networks[-1][2])
                 self.previous_information = 'Reuse recent network, alpha:'+str(self.previous_networks[-1][0])
             elif args.reuse_type_and_alpha['type'] == "nearest":
-                alphas = self.previous_networks[:, 0]
+                alphas = [item[0] for item in self.previous_networks]
                 idx = min(range(len(alphas)), key=lambda i: abs(alphas[i]-self.designer_alpha))
                 self.actor.load_state_dict(self.previous_networks[idx][1])
                 self.psi.load_state_dict(self.previous_networks[idx][2])

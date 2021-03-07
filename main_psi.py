@@ -92,7 +92,7 @@ parser.add_argument('--obj_weight', default=0.6)
 
 # Parameters for reusing previous networks
 parser.add_argument('--reuse_actor_and_psi', default=True)
-parser.add_argument('--reuse_type_and_alpha', default={'type': "recent", 'alpha': 0})
+parser.add_argument('--reuse_type_and_alpha', default={'type': "nearest", 'alpha': 0})
 
 # Parameters for learn the network more
 parser.add_argument('--learn_more', default=False)
@@ -126,7 +126,7 @@ args.lr_actor = 0.0005
 args.lr_critic = 0.01
 # args.actor_loss_type = "mix"
 """
-args.designer_alpha = 0.65
+args.designer_alpha = 0.8
 
 """
 Run the model
