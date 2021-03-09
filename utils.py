@@ -211,6 +211,7 @@ def delete_recent_previous_networks(previous_networks):
 def draw_plt(outcome):
     """
     Draw the graph of outcome (avg reward, ORR, OSC, obj. of train and test)
+    Cannot be used in new version
 
     Parameters
     ----------
@@ -262,6 +263,7 @@ def draw_plt_avg(outcome, moving_avg_length):
     """
     Draw the moving average graph of outcome (avg reward, ORR, OSC, obj. of train and test)
     If the number of episodes are less than the window size, average all previous episodes (the number of episodes)
+    Cannot be used in new version
 
     Parameters
     ----------
@@ -274,7 +276,6 @@ def draw_plt_avg(outcome, moving_avg_length):
     for i in outcome:
         outcome_avg[i] = {}
         for j in outcome[i]:
-            outcome_avg[i][j] = {}
             measure_avg = []
             for k in range(len(outcome[i][j])):
                 if k < moving_avg_length - 1:
@@ -283,6 +284,103 @@ def draw_plt_avg(outcome, moving_avg_length):
                     measure_avg.append(np.average(outcome[i][j][k - moving_avg_length + 1:k + 1]))
             outcome_avg[i][j] = measure_avg
     draw_plt(outcome_avg)
+
+
+def draw_plt_test(outcome, episode):
+    """
+    Draw the graph of outcome (avg reward, ORR, OSC, obj. of train and test)
+
+    Parameters
+    ----------
+    outcome : dict
+        Outcome for previous episodes
+    episode : int
+    """
+
+    # x축 만들기
+    episode = episode + 1
+    x_axis = np.linspace(0, episode, num=episode, endpoint=False)
+
+    result = {}
+    for i in outcome:
+        result[i] = {}
+        for j in outcome[i]:
+            values = np.array(outcome[i][j])
+            means = np.mean(values, axis=0)
+            stds = np.std(values, axis=0)
+            result[i][j] = {'mean': means,
+                            'std': stds, }
+
+    plt.figure(figsize=(16, 14))
+
+    plt.subplot(2, 2, 1)
+    mean = result['train']['avg_reward']['mean']
+    std = result['train']['avg_reward']['std']
+    plt.plot(x_axis, mean, label='Avg reward train', color=(0, 0, 1))
+    plt.fill_between(x_axis, mean - std, mean + std, color=(0.75, 0.75, 1))
+    plt.ylim([0, 6])
+    plt.xlabel('Episode', fontsize=20)
+    plt.ylabel('Value', fontsize=20)
+    plt.title('Train(average reward)', fontdict={'fontsize': 24})
+    plt.legend(loc='lower right', fontsize=20)
+    plt.grid()
+
+    plt.subplot(2, 2, 2)
+    mean = result['test']['avg_reward']['mean']
+    std = result['test']['avg_reward']['std']
+    plt.plot(x_axis, mean, label='Avg reward test', color=(0, 0, 1))
+    plt.fill_between(x_axis, mean - std, mean + std, color=(0.75, 0.75, 1))
+    plt.ylim([0, 6])
+    plt.xlabel('Episode', fontsize=20)
+    plt.ylabel('Value', fontsize=20)
+    plt.title('Test(average reward)', fontdict={'fontsize': 24})
+    plt.legend(loc='lower right', fontsize=20)
+    plt.grid()
+
+    plt.subplot(2, 2, 3)
+    mean = result['train']['ORR']['mean']
+    std = result['train']['ORR']['std']
+    plt.plot(x_axis, mean, label='ORR train', color=(0, 0, 1))
+    plt.fill_between(x_axis, mean - std, mean + std, color=(0.75, 0.75, 1))
+    mean = result['train']['OSC']['mean']
+    std = result['train']['OSC']['std']
+    plt.plot(x_axis, mean, label='OSC train', color=(1, 0, 0))
+    plt.fill_between(x_axis, mean - std, mean + std, color=(1, 0.75, 0.75))
+    mean = result['train']['obj_ftn']['mean']
+    std = result['train']['obj_ftn']['std']
+    plt.plot(x_axis, mean, label='Obj train', color=(0, 1, 0))
+    plt.fill_between(x_axis, mean - std, mean + std, color=(0.75, 1, 0.75))
+    plt.ylim([0, 1.1])
+    plt.xlabel('Episode', fontsize=20)
+    plt.ylabel('Value', fontsize=20)
+    plt.title('Train(objective)', fontdict={'fontsize': 24})
+    plt.legend(loc='lower right', fontsize=20)
+    plt.grid()
+
+    plt.subplot(2, 2, 4)
+    mean = result['test']['ORR']['mean']
+    std = result['test']['ORR']['std']
+    plt.plot(x_axis, mean, label='ORR test', color=(0, 0, 1))
+    plt.fill_between(x_axis, mean - std, mean + std, color=(0.75, 0.75, 1))
+
+    mean = result['test']['OSC']['mean']
+    std = result['test']['OSC']['std']
+    plt.plot(x_axis, mean, label='OSC test', color=(1, 0, 0))
+    plt.fill_between(x_axis, mean - std, mean + std, color=(1, 0.75, 0.75))
+
+    mean = result['test']['obj_ftn']['mean']
+    std = result['test']['obj_ftn']['std']
+    plt.plot(x_axis, mean, label='Obj test', color=(0, 1, 0))
+    plt.fill_between(x_axis, mean - std, mean + std, color=(0.75, 1, 0.75))
+
+    plt.ylim([0, 1.1])
+    plt.xlabel('Episode', fontsize=20)
+    plt.ylabel('Value', fontsize=20)
+    plt.title('Test(objective)', fontdict={'fontsize': 24})
+    plt.legend(loc='lower right', fontsize=20)
+    plt.grid()
+
+    plt.show()
 
 
 def print_updated_q(critic):
@@ -355,29 +453,41 @@ def print_action_distribution(actor):
                 print("Action distribution at (#", location, ", ", agent_time, ") : ", action_dist.probs[0].numpy())
 
 
-def print_information_per_n_episodes(outcome, episode, start):
+def print_information_per_n_episodes(outcome, overall_time, episode):
     """
     Print the outcome of learned network per n episodes
+    Printed outcome of test will be the mean of results
 
     Parameters
     ----------
     outcome : dict
         Outcome for previous episodes
+    overall_time : dict
+        Overall time for previous episodes
     episode : int
         Current episode
-    start : float
-        Time when start
     """
-    print("########################################################################################")
-    print(f"| Episode : {episode:4} | total time : {time.time() - start:5.2f} |")
+    train_time = np.sum(overall_time['train'][:episode])
+    test_time = np.sum(overall_time['test'][:episode])
+    total_time = np.sum(overall_time['total'][:episode])
+
+    result = {}
+    for i in outcome:
+        result[i] = {}
+        for j in outcome[i]:
+            values = [item[episode] for item in outcome[i][j]]
+            result[i][j] = np.mean(values)
+    print("############################################################################################")
+    print(f"| Episode : {episode:4} "
+          f"| train time : {train_time:5.2f} | test time : {test_time:5.2f} | total time : {total_time:5.2f} |")
     print(
-        f"| train ORR : {outcome['train']['ORR'][episode]:5.2f} "
-        f"| train OSC : {outcome['train']['OSC'][episode]:5.2f} "
-        f"| train Obj : {outcome['train']['obj_ftn'][episode]:5.2f} "
-        f"| train avg reward : {outcome['train']['avg_reward'][episode]:5.2f} |")
+        f"| train ORR : {result['train']['ORR']:5.4f} "
+        f"| train OSC : {result['train']['OSC']:5.4f} "
+        f"| train avg reward : {result['train']['avg_reward']:5.4f} "
+        f"| train Obj : {result['train']['obj_ftn']:5.4f} |")
     print(
-        f"|  test ORR : {outcome['test']['ORR'][episode]:5.2f} "
-        f"|  test OSC : {outcome['test']['OSC'][episode]:5.2f} "
-        f"|  test Obj : {outcome['test']['obj_ftn'][episode]:5.2f} "
-        f"|  test avg reward : {outcome['test']['avg_reward'][episode]:5.2f} |")
-    print("########################################################################################")
+        f"|  test ORR : {result['test']['ORR']:5.4f} "
+        f"|  test OSC : {result['test']['OSC']:5.4f} "
+        f"|  test avg reward : {result['test']['avg_reward']:5.4f} "
+        f"|  test Obj : {result['test']['obj_ftn']:5.4f} |")
+    print("############################################################################################")

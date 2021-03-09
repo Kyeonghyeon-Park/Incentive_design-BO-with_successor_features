@@ -48,6 +48,9 @@ max_episode_number : int
 obj_weight : float
     Weight of the ORR
     Objective is weighted average of the ORR and (1-OSC)
+test_size : int
+    Number of evaluations for testing
+    We should take mean for getting performance
 reuse_actor_and_psi : boolean
     True if we want to reuse the actor network and the psi network for initialization
     If true and there is no previous network, network is random initialized
@@ -85,14 +88,17 @@ parser.add_argument('--epsilon_decay', default=True)
 parser.add_argument('--buffer_max_size', default=50)
 parser.add_argument('--sample_size', default=8)
 parser.add_argument('--mean_action_sample_number', default=5)
-parser.add_argument('--max_episode_number', default=5500)
+parser.add_argument('--max_episode_number', default=2500)
 
 # Parameters for the outcome and objective
 parser.add_argument('--obj_weight', default=0.6)
 
+# Parameters for the testing
+parser.add_argument('--test_size', default=30)
+
 # Parameters for reusing previous networks
-parser.add_argument('--reuse_actor_and_psi', default=True)
-parser.add_argument('--reuse_type_and_alpha', default={'type': "nearest", 'alpha': 0})
+parser.add_argument('--reuse_actor_and_psi', default=False)
+parser.add_argument('--reuse_type_and_alpha', default={'type': "specific", 'alpha': 1})
 
 # Parameters for learn the network more
 parser.add_argument('--learn_more', default=False)
@@ -126,7 +132,7 @@ args.lr_actor = 0.0005
 args.lr_critic = 0.01
 # args.actor_loss_type = "mix"
 """
-args.designer_alpha = 0.8
+args.designer_alpha = 1
 
 """
 Run the model
@@ -135,5 +141,12 @@ Run the model
 torch.manual_seed(1238)
 model = ActorPsi(args)
 model.run()
-f_alpha = np.average(model.outcome['test']['obj_ftn'][-100:])
-print(f_alpha)
+
+# for j in model.outcome['test']:
+#     values = np.array(model.outcome['test'][j])
+#     means = np.mean(values, axis=0)
+#     print(f"{j}: {means[-1]:.2f}")
+#
+# for k in model.overall_time:
+#     total_times = np.sum(overall_time[])
+#     print()

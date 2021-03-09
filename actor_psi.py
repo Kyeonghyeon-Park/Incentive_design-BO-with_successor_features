@@ -203,14 +203,21 @@ class ActorPsi(object):
         trained_episode_number : int
             Trained episode number of the pre-trained network (for learn the trained network more)
             This is not the episode number of previous alpha (w)
+        ####################################
         trained_time : float
             Trained time of the pre-trained network (for learn the trained network more)
             This is not the trained time of previous alpha (w)
+        ####################################
+        overall_time : dict
+            Dict of cumulative time: train, test, total
         max_episode_number : int
             Maximum episode number for the training
         obj_weight : float
             Weight of the ORR
             Objective is weighted average of the ORR and (1-OSC)
+        test_size : int
+            Number of evaluations for testing
+            We should take mean for getting performance
         outcome : dict
             Outcome for previous episodes
         previous_networks : list
@@ -258,13 +265,26 @@ class ActorPsi(object):
         self.K = args.sample_size
         self.mean_action_sample_number = args.mean_action_sample_number
         self.trained_episode_number = 0
-        self.trained_time = 0
+        self.overall_time = {'train': [],
+                             'test': [],
+                             'total': [],
+                             }
+        # self.trained_time = 0
         self.max_episode_number = args.max_episode_number
 
         # Parameters and instances for the outcome and objective
         self.obj_weight = args.obj_weight
-        self.outcome = {'train': {'ORR': [], 'OSC': [], 'avg_reward': [], 'obj_ftn': []},
-                        'test': {'ORR': [], 'OSC': [], 'avg_reward': [], 'obj_ftn': []}
+        self.test_size = args.test_size
+        self.outcome = {'train': {'ORR': [[] for i in range(1)],
+                                  'OSC': [[] for i in range(1)],
+                                  'avg_reward': [[] for i in range(1)],
+                                  'obj_ftn': [[] for i in range(1)],
+                                  },
+                        'test': {'ORR': [[] for i in range(self.test_size)],
+                                 'OSC': [[] for i in range(self.test_size)],
+                                 'avg_reward': [[] for i in range(self.test_size)],
+                                 'obj_ftn': [[] for i in range(self.test_size)],
+                                 },
                         }
 
         # Parameters and instances for reusing previous networks
@@ -283,20 +303,20 @@ class ActorPsi(object):
             if args.reuse_type_and_alpha['type'] == "recent":
                 self.actor.load_state_dict(self.previous_networks[-1][1])
                 self.psi.load_state_dict(self.previous_networks[-1][2])
-                self.previous_information = 'Reuse recent network, alpha:'+str(self.previous_networks[-1][0])
+                self.previous_information = 'Reuse recent network, alpha='+str(self.previous_networks[-1][0])
             elif args.reuse_type_and_alpha['type'] == "nearest":
                 alphas = [item[0] for item in self.previous_networks]
                 idx = min(range(len(alphas)), key=lambda i: abs(alphas[i]-self.designer_alpha))
                 self.actor.load_state_dict(self.previous_networks[idx][1])
                 self.psi.load_state_dict(self.previous_networks[idx][2])
-                self.previous_information = 'Reuse nearest network, alpha:'+str(self.previous_networks[idx][0])
+                self.previous_information = 'Reuse nearest network, alpha='+str(self.previous_networks[idx][0])
             else:  # args.reuse_type_and_w['type'] == "specific"
                 alphas = [item[0] for item in self.previous_networks]
                 assert args.reuse_type_and_alpha['alpha'] in alphas, "Chosen alpha is not in the previous network"
                 idx = alphas.index(args.reuse_type_and_alpha['alpha'])
                 self.actor.load_state_dict(self.previous_networks[idx][1])
                 self.psi.load_state_dict(self.previous_networks[idx][2])
-                self.previous_information = 'Reuse specific network, alpha:'+str(self.previous_networks[idx][0])
+                self.previous_information = 'Reuse specific network, alpha='+str(self.previous_networks[idx][0])
             print(self.previous_information)
 
         # Learn the network more
@@ -321,18 +341,22 @@ class ActorPsi(object):
             self.K = data['parameters']['sample_size']
             self.mean_action_sample_number = data['parameters']['mean_action_sample_number']
             self.trained_episode_number = data['parameters']['max_episode_number']
-            self.trained_time = data['total_time']
+            self.overall_time = data['overall_time']
+            # self.trained_time = data['total_time']
             self.max_episode_number = args.max_episode_number
             self.obj_weight = data['parameters']['obj_weight']
+            self.test_size = data['parameters']['test_size']
             self.outcome = data['outcome']
 
         # Build target networks
         self.actor_target = copy.deepcopy(self.actor)
         self.psi_target = copy.deepcopy(self.psi)
 
-    def get_outcome(self, overall_fare, mode):
+    def get_outcome(self, overall_fare, mode, idx=0):
         """
         Define the outcome function (add the current result)
+        Outcome will be saved in the list which is for the specific test
+        idx is always 0 for the training because there is no multiple outcomes for the training
 
         Parameters
         ----------
@@ -340,22 +364,24 @@ class ActorPsi(object):
             (fee, fare)
         mode : str
             'train' or 'test'
+        idx : int
+            Test number (outcome will be saved in the list which is for the test number)
         """
         # Order response rate / do not consider no demand case in the game
         total_request = self.world.demand[:, 3].shape[0]
         fulfilled_request = np.sum(self.world.demand[:, 3])
-        self.outcome[mode]['ORR'].append(fulfilled_request / total_request)
+        self.outcome[mode]['ORR'][idx].append(fulfilled_request / total_request)
 
         # Overall service charge ratio
         if overall_fare[1] != 0:
-            self.outcome[mode]['OSC'].append(overall_fare[0] / overall_fare[1])
+            self.outcome[mode]['OSC'][idx].append(overall_fare[0] / overall_fare[1])
         else:
-            self.outcome[mode]['OSC'].append(0)
+            self.outcome[mode]['OSC'][idx].append(0)
 
         # Average reward of all agents
-        self.outcome[mode]['avg_reward'].append((overall_fare[1] - overall_fare[0]) / self.world.number_of_agents)
-        self.outcome[mode]['obj_ftn'].append(self.obj_weight * self.outcome[mode]['ORR'][-1]
-                                             + (1 - self.obj_weight) * (1 - self.outcome[mode]['OSC'][-1]))
+        self.outcome[mode]['avg_reward'][idx].append((overall_fare[1] - overall_fare[0]) / self.world.number_of_agents)
+        self.outcome[mode]['obj_ftn'][idx].append(self.obj_weight * self.outcome[mode]['ORR'][idx][-1]
+                                                  + (1 - self.obj_weight) * (1 - self.outcome[mode]['OSC'][idx][-1]))
 
     def get_location_agent_number_and_prob(self, joint_observation, current_time):
         """
@@ -645,9 +671,15 @@ class ActorPsi(object):
             self.optimizerA.step()
             self.optimizerP.step()
 
-    def evaluate(self):
+    def evaluate(self, idx):
         """
         Define the evaluate function to evaluate the trained actor network
+        Network will evaluate multiple times to get the mean
+
+        Parameters
+        ----------
+        idx : int
+            Test number
         """
         self.world.initialize_game(random_grid=False)
         global_time = 0
@@ -658,9 +690,11 @@ class ActorPsi(object):
             joint_action = []
             for agent_id in available_agent:
                 action_dist = get_action_dist(self.actor, self.world.joint_observation[agent_id])
-                if global_time == 0 and agent_id in [0, len(available_agent) - 1]:
-                    """Will be modified to show the agent's location (#1 and #2) and action probability"""
-                    print(agent_id, action_dist.probs)
+                if global_time == 0 and agent_id in [0, len(available_agent) - 1] and idx == 0:
+                    loc = self.world.joint_observation[agent_id][0]
+                    print(f"Agent in #{loc}'s action prob. : {action_dist.probs}")
+                    # """Will be modified to show the agent's location (#1 and #2) and action probability"""
+                    # print(agent_id, action_dist.probs)
                 action = action_dist.sample()  # runtime error if specific probability is too small
                 joint_action.append(action.item())
             if len(available_agent) != 0:
@@ -668,20 +702,21 @@ class ActorPsi(object):
                                                        overall_fare, train=False)
             global_time += 1
 
-        self.get_outcome(overall_fare, mode='test')
+        self.get_outcome(overall_fare, mode='test', idx=idx)
 
     def save_network(self):
+        """
+        Save previous networks to the folder
+        """
         self.previous_networks.append([self.designer_alpha, self.actor.state_dict(), self.psi.state_dict()])
         save_previous_networks(self.previous_networks)
 
-    def save_model(self, total_time, PATH, episode):
+    def save_model(self, PATH, episode):
         """
         Define the save function to save the model and the results
 
         Parameters
         ----------
-        total_time : float
-            Current learning time
         PATH : str
             PATH name
         episode : int
@@ -710,10 +745,12 @@ class ActorPsi(object):
                            'mean_action_sample_number': self.mean_action_sample_number,
                            'max_episode_number': self.max_episode_number,
                            'obj_weight': self.obj_weight,
+                           'test_size': self.test_size,
                            },
             'buffer': self.buffer,
             'outcome': self.outcome,
-            'total_time': total_time,
+            'overall_time': self.overall_time,
+            'previous_information': self.previous_information,
         }, PATH + filename)
 
     def run(self):
@@ -721,11 +758,20 @@ class ActorPsi(object):
         Run the network (train and test)
         """
         np.random.seed(seed=1234)
-        start = time.time()
+        run_start = time.time()
         for episode in np.arange(self.trained_episode_number, self.max_episode_number):
+            train_start = time.time()
             self.train()
-            with torch.no_grad():
-                self.evaluate()
+            train_end = time.time()
+            test_start = train_end
+            for idx in range(self.test_size):
+                with torch.no_grad():
+                    self.evaluate(idx)
+            test_end = time.time()
+            self.overall_time['train'].append(train_end-train_start)
+            self.overall_time['test'].append(test_end-test_start)
+            self.overall_time['total'].append(test_end-train_start)
+
             if (episode + 1) % self.update_period == 0:
                 self.actor_target = copy.deepcopy(self.actor)
                 self.psi_target = copy.deepcopy(self.psi)
@@ -733,18 +779,22 @@ class ActorPsi(object):
                 with torch.no_grad():
                     print_updated_q_using_psi(self.psi, self.designer_alpha)
                     print_action_distribution(self.actor)
-                print_information_per_n_episodes(self.outcome, episode, start)
-                draw_plt(self.outcome)
+                print_information_per_n_episodes(self.outcome, self.overall_time, episode)
+                draw_plt_test(self.outcome, episode)
 
             if self.epsilon_decay:
                 if (episode + 1) % 20 == 0:
                     self.epsilon = max(self.epsilon - 0.01, 0.01)
 
-            if (episode + 1) % 100 == 0:
-                total_time = self.trained_time + time.time() - start
-                PATH = './results/a_lr=' + str(self.lr_actor) + '_alpha=' + str(round(self.designer_alpha, 4)) + '/' \
-                       + time.strftime('%y%m%d_%H%M', time.localtime(start)) + '/'
-                self.save_model(total_time, PATH, episode)
+            if (episode + 1) % 1 == 0:
+                if self.previous_information == '':
+                    PATH = './results/alpha=' + str(round(self.designer_alpha, 4)) +'/' \
+                           + time.strftime('%y%m%d_%H%M', time.localtime(run_start)) + '/'
+                else:
+                    PATH = './results/alpha=' + str(round(self.designer_alpha, 4)) + '(' + self.previous_information \
+                           + ')/' + time.strftime('%y%m%d_%H%M', time.localtime(run_start)) + '/'
+
+                self.save_model(PATH, episode)
 
         self.save_network()
 
