@@ -148,6 +148,8 @@ def check_results_in_console(file):
     Examples
     --------
     file = 'C:/Users/ParkKH/Dropbox/KAIST/03. 연구/Reward structure design/Experiment/BO and MFRL/weights/a_lr=0.0001_alpha=0.3197/201031_1436/all_5499episode.tar'
+    file = 'C:/Users/ParkKH/Dropbox/KAIST/04. 프로젝트/03. IDC/Incentive_design-BO-with_successor_features/backup (~210308_2136)/results/a_lr=0.0005_alpha=0.1/210308_1642/all_2499episode.tar'
+    file = 'C:/Users/ParkKH/Dropbox/KAIST/04. 프로젝트/03. IDC/Incentive_design-BO-with_successor_features/results/alpha=0.5/210308_1642/all_2499episode.tar'
     data = check_results_in_console(file)
     outcome = data['outcome']
     draw_plt_avg(outcome, 10)
@@ -164,6 +166,25 @@ def check_results_in_console(file):
     """
     data = torch.load(file)
     return data
+
+
+def add_network_index(old_previous_networks):
+    """
+    To choose the network specifically (when there are several networks for same alpha),
+    I add networks_index to the previous_networks
+    After adding index, previous_networks is the list of [w, actor, psi, network_idx]
+    You should use this function "one" time for your old version of previous_networks
+
+    Parameters
+    ----------
+    old_previous_networks : list
+        old_previous_networks is the list of [w, actor, psi]
+    """
+    idx = 0
+    for networks in old_previous_networks:
+        networks.append(idx)
+        idx = idx + 1
+    save_previous_networks(old_previous_networks)
 
 
 def load_previous_networks():
@@ -381,6 +402,104 @@ def draw_plt_test(outcome, episode):
     plt.grid()
 
     plt.show()
+
+
+def draw_plt_two_outcome(outcome_1, outcome_2, label_1, label_2, episode):
+    """
+    Draw the graphs of two outcomes (avg reward, ORR, OSC, obj. of train and test)
+    Not implemented yet
+
+    Parameters
+    ----------
+    outcome : dict
+        Outcome for previous episodes
+    episode : int
+    """
+    raise NotImplementedError
+    # # x축 만들기
+    # episode = episode + 1
+    # x_axis = np.linspace(0, episode, num=episode, endpoint=False)
+    #
+    # result = {}
+    # for i in outcome:
+    #     result[i] = {}
+    #     for j in outcome[i]:
+    #         values = np.array(outcome[i][j])
+    #         means = np.mean(values, axis=0)
+    #         stds = np.std(values, axis=0)
+    #         result[i][j] = {'mean': means,
+    #                         'std': stds, }
+    #
+    # plt.figure(figsize=(16, 14))
+    #
+    # plt.subplot(2, 2, 1)
+    # mean = result['train']['avg_reward']['mean']
+    # std = result['train']['avg_reward']['std']
+    # plt.plot(x_axis, mean, label='Avg reward train', color=(0, 0, 1))
+    # plt.fill_between(x_axis, mean - std, mean + std, color=(0.75, 0.75, 1))
+    # plt.ylim([0, 6])
+    # plt.xlabel('Episode', fontsize=20)
+    # plt.ylabel('Value', fontsize=20)
+    # plt.title('Train(average reward)', fontdict={'fontsize': 24})
+    # plt.legend(loc='lower right', fontsize=20)
+    # plt.grid()
+    #
+    # plt.subplot(2, 2, 2)
+    # mean = result['test']['avg_reward']['mean']
+    # std = result['test']['avg_reward']['std']
+    # plt.plot(x_axis, mean, label='Avg reward test', color=(0, 0, 1))
+    # plt.fill_between(x_axis, mean - std, mean + std, color=(0.75, 0.75, 1))
+    # plt.ylim([0, 6])
+    # plt.xlabel('Episode', fontsize=20)
+    # plt.ylabel('Value', fontsize=20)
+    # plt.title('Test(average reward)', fontdict={'fontsize': 24})
+    # plt.legend(loc='lower right', fontsize=20)
+    # plt.grid()
+    #
+    # plt.subplot(2, 2, 3)
+    # mean = result['train']['ORR']['mean']
+    # std = result['train']['ORR']['std']
+    # plt.plot(x_axis, mean, label='ORR train', color=(0, 0, 1))
+    # plt.fill_between(x_axis, mean - std, mean + std, color=(0.75, 0.75, 1))
+    # mean = result['train']['OSC']['mean']
+    # std = result['train']['OSC']['std']
+    # plt.plot(x_axis, mean, label='OSC train', color=(1, 0, 0))
+    # plt.fill_between(x_axis, mean - std, mean + std, color=(1, 0.75, 0.75))
+    # mean = result['train']['obj_ftn']['mean']
+    # std = result['train']['obj_ftn']['std']
+    # plt.plot(x_axis, mean, label='Obj train', color=(0, 1, 0))
+    # plt.fill_between(x_axis, mean - std, mean + std, color=(0.75, 1, 0.75))
+    # plt.ylim([0, 1.1])
+    # plt.xlabel('Episode', fontsize=20)
+    # plt.ylabel('Value', fontsize=20)
+    # plt.title('Train(objective)', fontdict={'fontsize': 24})
+    # plt.legend(loc='lower right', fontsize=20)
+    # plt.grid()
+    #
+    # plt.subplot(2, 2, 4)
+    # mean = result['test']['ORR']['mean']
+    # std = result['test']['ORR']['std']
+    # plt.plot(x_axis, mean, label='ORR test', color=(0, 0, 1))
+    # plt.fill_between(x_axis, mean - std, mean + std, color=(0.75, 0.75, 1))
+    #
+    # mean = result['test']['OSC']['mean']
+    # std = result['test']['OSC']['std']
+    # plt.plot(x_axis, mean, label='OSC test', color=(1, 0, 0))
+    # plt.fill_between(x_axis, mean - std, mean + std, color=(1, 0.75, 0.75))
+    #
+    # mean = result['test']['obj_ftn']['mean']
+    # std = result['test']['obj_ftn']['std']
+    # plt.plot(x_axis, mean, label='Obj test', color=(0, 1, 0))
+    # plt.fill_between(x_axis, mean - std, mean + std, color=(0.75, 1, 0.75))
+    #
+    # plt.ylim([0, 1.1])
+    # plt.xlabel('Episode', fontsize=20)
+    # plt.ylabel('Value', fontsize=20)
+    # plt.title('Test(objective)', fontdict={'fontsize': 24})
+    # plt.legend(loc='lower right', fontsize=20)
+    # plt.grid()
+    #
+    # plt.show()
 
 
 def print_updated_q(critic):

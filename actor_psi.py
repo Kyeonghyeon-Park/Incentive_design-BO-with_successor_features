@@ -203,11 +203,6 @@ class ActorPsi(object):
         trained_episode_number : int
             Trained episode number of the pre-trained network (for learn the trained network more)
             This is not the episode number of previous alpha (w)
-        ####################################
-        trained_time : float
-            Trained time of the pre-trained network (for learn the trained network more)
-            This is not the trained time of previous alpha (w)
-        ####################################
         overall_time : dict
             Dict of cumulative time: train, test, total
         max_episode_number : int
@@ -223,7 +218,7 @@ class ActorPsi(object):
         previous_networks : list
             List of w and previous learned networks
             If args.reuse_psi_and_actor is True and , network will initialize the network with previous one
-            Row : [alpha, actor, psi]
+            Row : [alpha, actor, psi, network_index]
             It is saved in './weights_and_networks'
         previous_information : str
             Information of previous networks in this learning (just text)
@@ -269,21 +264,20 @@ class ActorPsi(object):
                              'test': [],
                              'total': [],
                              }
-        # self.trained_time = 0
         self.max_episode_number = args.max_episode_number
 
         # Parameters and instances for the outcome and objective
         self.obj_weight = args.obj_weight
         self.test_size = args.test_size
-        self.outcome = {'train': {'ORR': [[] for i in range(1)],
-                                  'OSC': [[] for i in range(1)],
-                                  'avg_reward': [[] for i in range(1)],
-                                  'obj_ftn': [[] for i in range(1)],
+        self.outcome = {'train': {'ORR': [[] for _ in range(1)],
+                                  'OSC': [[] for _ in range(1)],
+                                  'avg_reward': [[] for _ in range(1)],
+                                  'obj_ftn': [[] for _ in range(1)],
                                   },
-                        'test': {'ORR': [[] for i in range(self.test_size)],
-                                 'OSC': [[] for i in range(self.test_size)],
-                                 'avg_reward': [[] for i in range(self.test_size)],
-                                 'obj_ftn': [[] for i in range(self.test_size)],
+                        'test': {'ORR': [[] for _ in range(self.test_size)],
+                                 'OSC': [[] for _ in range(self.test_size)],
+                                 'avg_reward': [[] for _ in range(self.test_size)],
+                                 'obj_ftn': [[] for _ in range(self.test_size)],
                                  },
                         }
 
@@ -310,13 +304,24 @@ class ActorPsi(object):
                 self.actor.load_state_dict(self.previous_networks[idx][1])
                 self.psi.load_state_dict(self.previous_networks[idx][2])
                 self.previous_information = 'Reuse nearest network, alpha='+str(self.previous_networks[idx][0])
-            else:  # args.reuse_type_and_w['type'] == "specific"
+            elif args.reuse_type_and_alpha['type'] == "specific":
                 alphas = [item[0] for item in self.previous_networks]
                 assert args.reuse_type_and_alpha['alpha'] in alphas, "Chosen alpha is not in the previous network"
                 idx = alphas.index(args.reuse_type_and_alpha['alpha'])
                 self.actor.load_state_dict(self.previous_networks[idx][1])
                 self.psi.load_state_dict(self.previous_networks[idx][2])
                 self.previous_information = 'Reuse specific network, alpha='+str(self.previous_networks[idx][0])
+            elif args.reuse_type_and_alpha['type'] == "index":
+                network_indexes = [item[3] for item in self.previous_networks]
+                assert args.reuse_type_and_alpha['network_index'] in network_indexes, "Chosen network_index " \
+                                                                                      "is not in the previous network"
+                idx = network_indexes.index(args.reuse_type_and_alpha['network_index'])
+                self.actor.load_state_dict(self.previous_networks[idx][1])
+                self.psi.load_state_dict(self.previous_networks[idx][2])
+                self.previous_information = 'Reuse specific network, alpha=' + str(self.previous_networks[idx][0]) \
+                                            + ', idx=' + str(self.previous_networks[idx][3])
+            else:
+                raise ValueError("Chosen option is not available")
             print(self.previous_information)
 
         # Learn the network more
@@ -331,7 +336,7 @@ class ActorPsi(object):
             self.optimizerA.load_state_dict(data['optimizerA'])
             self.optimizerP = optim.Adam(self.psi.parameters())
             self.optimizerP.load_state_dict(data['optimizerP'])
-            self.update_period = data['update_period']
+            self.update_period = data['parameters']['update_period']
             self.discount_factor = data['parameters']['discount_factor']
             self.designer_alpha = data['parameters']['designer_alpha']
             self.epsilon = data['parameters']['epsilon']
@@ -342,11 +347,11 @@ class ActorPsi(object):
             self.mean_action_sample_number = data['parameters']['mean_action_sample_number']
             self.trained_episode_number = data['parameters']['max_episode_number']
             self.overall_time = data['overall_time']
-            # self.trained_time = data['total_time']
             self.max_episode_number = args.max_episode_number
             self.obj_weight = data['parameters']['obj_weight']
             self.test_size = data['parameters']['test_size']
             self.outcome = data['outcome']
+            self.previous_information = data['previous_information']
 
         # Build target networks
         self.actor_target = copy.deepcopy(self.actor)
@@ -693,8 +698,6 @@ class ActorPsi(object):
                 if global_time == 0 and agent_id in [0, len(available_agent) - 1] and idx == 0:
                     loc = self.world.joint_observation[agent_id][0]
                     print(f"Agent in #{loc}'s action prob. : {action_dist.probs}")
-                    # """Will be modified to show the agent's location (#1 and #2) and action probability"""
-                    # print(agent_id, action_dist.probs)
                 action = action_dist.sample()  # runtime error if specific probability is too small
                 joint_action.append(action.item())
             if len(available_agent) != 0:
@@ -708,7 +711,8 @@ class ActorPsi(object):
         """
         Save previous networks to the folder
         """
-        self.previous_networks.append([self.designer_alpha, self.actor.state_dict(), self.psi.state_dict()])
+        idx = len(self.previous_networks) + 1
+        self.previous_networks.append([self.designer_alpha, self.actor.state_dict(), self.psi.state_dict(), idx])
         save_previous_networks(self.previous_networks)
 
     def save_model(self, PATH, episode):
@@ -785,8 +789,9 @@ class ActorPsi(object):
             if self.epsilon_decay:
                 if (episode + 1) % 20 == 0:
                     self.epsilon = max(self.epsilon - 0.01, 0.01)
+                    # self.epsilon = max(self.epsilon - 0.01, 0)
 
-            if (episode + 1) % 1 == 0:
+            if (episode + 1) % 100 == 0:
                 if self.previous_information == '':
                     PATH = './results/alpha=' + str(round(self.designer_alpha, 4)) +'/' \
                            + time.strftime('%y%m%d_%H%M', time.localtime(run_start)) + '/'
