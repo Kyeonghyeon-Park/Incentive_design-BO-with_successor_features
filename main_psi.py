@@ -56,13 +56,16 @@ reuse_actor_and_psi : boolean
     If true and there is no previous network, network is random initialized
 reuse_type_and_alpha : dict
     If we want to reuse the actor network and the psi network, 
-    It is composed of type and alpha value
+    It is composed of type, alpha, and network_index
     alpha value is only needed when type is "specific"
+    network_index value is only needed when type is "index"
     If type is "recent", actor-psi network will be initialized with the most recent one
     If type is "nearest", (compare with current alpha) nearest alpha's network will be used for initialization 
     If type is "specific", it will use specific alpha's network to initialize the current actor-psi network
-        Not decided yet : multiple networks for same alpha
-    type option : "recent", "nearest", "specific"
+        It need 'alpha' value
+    If type is "index", it will use specific network which has specific network_idx
+        It need 'network_index' value
+    type option : "recent", "nearest", "specific", "index"
 learn_more : boolean
     True if we want to learn the network more
     You should write PATH and filename to get learned network (which should be learned more)
@@ -75,8 +78,8 @@ filename : str
 
 parser = argparse.ArgumentParser()
 # Parameters for networks
-parser.add_argument('--lr_actor', default=0.0005)
-parser.add_argument('--lr_psi', default=0.01)
+parser.add_argument('--lr_actor', default=0.0001)
+parser.add_argument('--lr_psi', default=0.0001)
 parser.add_argument('--actor_loss_type', default="avg")
 
 # Parameters for the learning
@@ -85,7 +88,7 @@ parser.add_argument('--discount_factor', default=1)
 parser.add_argument('--designer_alpha', default=designer_alpha)
 parser.add_argument('--epsilon', default=0.5)
 parser.add_argument('--epsilon_decay', default=True)
-parser.add_argument('--buffer_max_size', default=50)
+parser.add_argument('--buffer_max_size', default=100)
 parser.add_argument('--sample_size', default=8)
 parser.add_argument('--mean_action_sample_number', default=5)
 parser.add_argument('--max_episode_number', default=2500)
@@ -97,13 +100,16 @@ parser.add_argument('--obj_weight', default=0.6)
 parser.add_argument('--test_size', default=30)
 
 # Parameters for reusing previous networks
-parser.add_argument('--reuse_actor_and_psi', default=False)
-parser.add_argument('--reuse_type_and_alpha', default={'type': "specific", 'alpha': 1})
+parser.add_argument('--reuse_actor_and_psi', default=True)
+parser.add_argument('--reuse_type_and_alpha', default={'type': "index", 'alpha': 1, 'network_index': 19})
 
 # Parameters for learn the network more
+# parser.add_argument('--learn_more', default=False)
+# parser.add_argument('--PATH', default='')
+# parser.add_argument('--filename', default='')
 parser.add_argument('--learn_more', default=False)
-parser.add_argument('--PATH', default='')
-parser.add_argument('--filename', default='')
+parser.add_argument('--PATH', default='./results/alpha=0.3(Reuse specific network, alpha=0.5, idx=9)/210314_1407/')
+parser.add_argument('--filename', default='all_2499episode.tar')
 
 args = parser.parse_args()
 
@@ -132,7 +138,7 @@ args.lr_actor = 0.0005
 args.lr_critic = 0.01
 # args.actor_loss_type = "mix"
 """
-args.designer_alpha = 1
+args.designer_alpha = 0.5
 
 """
 Run the model
@@ -142,11 +148,4 @@ torch.manual_seed(1238)
 model = ActorPsi(args)
 model.run()
 
-# for j in model.outcome['test']:
-#     values = np.array(model.outcome['test'][j])
-#     means = np.mean(values, axis=0)
-#     print(f"{j}: {means[-1]:.2f}")
-#
-# for k in model.overall_time:
-#     total_times = np.sum(overall_time[])
-#     print()
+# seed test : (baseline) 1238
