@@ -1,4 +1,4 @@
-from social_dilemmas.envs.cleanup import CleanupEnv
+from social_dilemmas.envs.cleanup import CleanupEnv, CleanupEnvModified
 from social_dilemmas.envs.harvest import HarvestEnv
 from social_dilemmas.envs.switch import SwitchEnv
 
@@ -20,6 +20,17 @@ def get_env_creator(env, num_agents, args):
                 num_agents=num_agents,
                 return_agent_actions=True,
                 use_collective_reward=args.use_collective_reward,
+            )
+
+    elif env == "cleanup_modified":
+
+        def env_creator(_):
+            return CleanupEnvModified(
+                num_agents=num_agents,
+                return_agent_actions=True,
+                use_collective_reward=args.use_collective_reward,
+                lv_penalty=args.lv_penalty,
+                lv_incentive=args.lv_incentive,
             )
 
     elif env == "switch":

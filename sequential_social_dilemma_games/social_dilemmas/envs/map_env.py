@@ -2,6 +2,7 @@
 """
 
 import random
+import copy
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -60,14 +61,14 @@ DEFAULT_COLOURS = {
 
 class MapEnv(MultiAgentEnv):
     def __init__(
-        self,
-        ascii_map,
-        extra_actions,
-        view_len,
-        num_agents=1,
-        color_map=None,
-        return_agent_actions=False,
-        use_collective_reward=False,
+            self,
+            ascii_map,
+            extra_actions,
+            view_len,
+            num_agents=1,
+            color_map=None,
+            return_agent_actions=False,
+            use_collective_reward=False,
     ):
         """
 
@@ -120,7 +121,7 @@ class MapEnv(MultiAgentEnv):
                     self.spawn_points.append([row, col])
                 elif self.base_map[row, col] == b"@":
                     self.wall_points.append([row, col])
-        self.setup_agents()
+        self.setup_agents()  # 이게 실행돼서 agent 설정됨, 근데 이거 정의는 cleanup.py에 있음
 
     @property
     def observation_space(self):
@@ -132,6 +133,8 @@ class MapEnv(MultiAgentEnv):
                 dtype=np.uint8,
             )
         }
+        # PKH : 자기 위치에서 self.view_len 이내의 tile을 관찰할 수 있는데 rgb 값을 저장함
+        # PKH : agent가 보는 방향(direction)에 따라 world map의 slice가 회전된 채로 observation에 저장됨
         if self.return_agent_actions:
             # Append the actions of other agents
             obs_space = {
@@ -139,7 +142,7 @@ class MapEnv(MultiAgentEnv):
                 "other_agent_actions": Box(
                     low=0, high=len(self.all_actions), shape=(self.num_agents - 1,), dtype=np.uint8,
                 ),
-                "visible_agents": Box(low=0, high=1, shape=(self.num_agents - 1,), dtype=np.uint8,),
+                "visible_agents": Box(low=0, high=1, shape=(self.num_agents - 1,), dtype=np.uint8, ),
                 "prev_visible_agents": Box(
                     low=0, high=1, shape=(self.num_agents - 1,), dtype=np.uint8,
                 ),
@@ -336,6 +339,7 @@ class MapEnv(MultiAgentEnv):
 
         for agent in self.agents.values():
             char_id = agent.get_char_id()
+            # PKH : agent_id : 'agent-0' -> char_id : b'1'
 
             # If agent is not within map, skip.
             if not (0 <= agent.pos[0] < grid.shape[0] and 0 <= agent.pos[1] < grid.shape[1]):
@@ -880,3 +884,194 @@ class MapEnv(MultiAgentEnv):
     @staticmethod
     def get_environment_callbacks():
         return DefaultCallbacks
+
+
+class MapEnvModified(MapEnv):
+    def __init__(
+            self,
+            ascii_map,
+            extra_actions,
+            view_len,
+            num_agents=1,
+            color_map=None,
+            return_agent_actions=False,
+            use_collective_reward=False,
+    ):
+        super().__init__(
+            ascii_map,
+            extra_actions,
+            view_len,
+            num_agents=num_agents,
+            color_map=color_map,
+            return_agent_actions=return_agent_actions,
+            use_collective_reward=use_collective_reward,
+        )
+
+    def step(self, actions):
+        """Takes in a dict of actions and converts them to a map update
+
+        Parameters
+        ----------
+        actions: dict {agent-id: int}
+            dict of actions, keyed by agent-id that are passed to the agent. The agent
+            interprets the int and converts it to a command
+
+        Returns
+        -------
+        observations: dict of arrays representing agent observations
+        rewards: dict of rewards for each agent
+        dones: dict indicating whether each agent is done
+        info: dict to pass extra info to gym
+        features: dict of features for each agent
+        experiences: dict of experiences for each agent
+            (observation, action, reward, mean action, next observation, feature)
+        """
+
+        experiences = {}
+        e_map_with_agents = self.get_map_with_agents()
+        e_actions = copy.deepcopy(actions)
+        for agent in self.agents.values():
+            agent.full_map = e_map_with_agents
+            e_rgb_arr = self.color_view(agent)
+            e_visible_agents_id = self.find_visible_agents(agent.agent_id, find_other_id=True)
+            # print(e_visible_agents_id)
+            action_dim = self.action_space.n
+            e_mean_action = np.zeros(action_dim)
+            if len(e_visible_agents_id) != 0:
+                for other_agent_id in e_visible_agents_id:
+                    other_agent_action = e_actions[other_agent_id]
+                    e_mean_action[other_agent_action] += 1 / len(e_visible_agents_id)
+            # print(e_mean_action)
+            experiences[agent.agent_id] = {
+                "observation": e_rgb_arr,
+                "action": e_actions[agent.agent_id],
+                "reward": "define later",
+                "mean_action": e_mean_action,
+                "next_observation": "define later",
+                "feature": "define later",
+            }
+
+        self.beam_pos = []
+        agent_actions = {}
+        for agent_id, action in actions.items():  # PKH : ex. agent_id : 'agent-0', action : 0
+            agent_action = self.agents[agent_id].action_map(action)  # PKH : CLEANUP_ACTIONS[action_number]로 변환
+            agent_actions[agent_id] = agent_action
+
+        # Remove agents from color map
+        for agent in self.agents.values():  # PKH : env.agents가 dict 형태, values()는 각 agents들 (CleanupAgent object)
+            row, col = agent.pos[0], agent.pos[1]
+            self.single_update_world_color_map(row, col, self.world_map[row, col])
+            # PKH : self.world_map은 agent들이 없는 version
+            # PKH : self.world_map_color은 padding있고 agent들 있는 color version
+
+        self.update_moves(agent_actions)
+
+        for agent in self.agents.values():  # PKH : agent가 apple consume했다면 그 자리를 b' '로 변환
+            pos = agent.pos
+            new_char = agent.consume(self.world_map[pos[0], pos[1]])
+            self.single_update_map(pos[0], pos[1], new_char)
+
+        # execute custom moves like firing
+        self.update_custom_moves(agent_actions)
+        # PKH : updates = self.custom_action(agent, action)
+        #     PKH : agent.fire_beam(b"F")
+        #         PKH : if char == b"F": self.reward_this_turn -= 1
+        #     PKH : updates = self.update_map_fire(~)
+        #         PKH : fire에 의한 map 변화, agent hit function activation 등이 담겨 있음
+        #         PKH : self.agents[agent_id].hit(fire_char)
+        # PKH : self.update_map(updates)
+
+        # execute spawning events
+        self.custom_map_update()
+
+        map_with_agents = self.get_map_with_agents()  # PKH : self.world_map에 agent들의 char_id 추가한 것
+
+        # Add agents to color map
+        for agent in self.agents.values():
+            row, col = agent.pos[0], agent.pos[1]
+            # Firing beams have priority over agents and should cover them
+            if self.world_map[row, col] not in [b"F", b"C"]:
+                self.single_update_world_color_map(row, col, agent.get_char_id())
+
+        observations = {}
+        rewards = {}
+        features = {}
+        dones = {}
+        info = {}
+        for agent in self.agents.values():
+            agent.full_map = map_with_agents  # PKH : full_map은 self.world_map + agent들의 char_id
+            rgb_arr = self.color_view(agent)  # PKH : full_map의 slice인데 보는 방향으로 rotate
+            # concatenate on the prev_actions to the observations
+            if self.return_agent_actions:
+                prev_actions = np.array(
+                    [actions[key] for key in sorted(actions.keys()) if key != agent.agent_id]
+                ).astype(np.uint8)
+                visible_agents = self.find_visible_agents(agent.agent_id)
+                observations[agent.agent_id] = {
+                    "curr_obs": rgb_arr,
+                    "other_agent_actions": prev_actions,
+                    "visible_agents": visible_agents,
+                    "prev_visible_agents": agent.prev_visible_agents,
+                }
+                agent.prev_visible_agents = visible_agents
+            else:
+                observations[agent.agent_id] = {"curr_obs": rgb_arr}
+            rewards[agent.agent_id] = agent.compute_reward()
+            features[agent.agent_id] = agent.compute_feature()
+            experiences[agent.agent_id]["reward"] = rewards[agent.agent_id]
+            experiences[agent.agent_id]["feature"] = features[agent.agent_id]
+            experiences[agent.agent_id]["next_observation"] = rgb_arr
+            dones[agent.agent_id] = agent.get_done()
+
+        if self.use_collective_reward:
+            collective_reward = sum(rewards.values())
+            for agent in rewards.keys():
+                rewards[agent] = collective_reward
+
+        dones["__all__"] = np.any(list(dones.values()))
+
+        return observations, rewards, dones, info, features, experiences
+
+    def find_visible_agents(self, agent_id, find_other_id=False):
+        """Returns all the agents that can be seen by agent with agent_id
+        Args
+        ----
+        agent_id: str
+            The id of the agent whose visible agents we are asking about
+        find_other_id: bool
+            True if this function returns other visible agents' id
+
+        Returns
+        -------
+        visible_agents: list
+            which agents can be seen by the agent with id "agent_id" (1 or 0 / agents' id)
+        """
+        agent_pos = self.agents[agent_id].pos
+        upper_lim = int(agent_pos[0] + self.agents[agent_id].row_size)
+        lower_lim = int(agent_pos[0] - self.agents[agent_id].row_size)
+        left_lim = int(agent_pos[1] - self.agents[agent_id].col_size)
+        right_lim = int(agent_pos[1] + self.agents[agent_id].col_size)
+
+        # keep this sorted so the visibility matrix is always in order
+        if not find_other_id:
+            other_agent_pos = [
+                self.agents[other_agent_id].pos
+                for other_agent_id in sorted(self.agents.keys())
+                if other_agent_id != agent_id
+            ]
+            return np.array(
+                [
+                    1
+                    if (lower_lim <= agent_tup[0] <= upper_lim and left_lim <= agent_tup[1] <= right_lim)
+                    else 0
+                    for agent_tup in other_agent_pos
+                ],
+                dtype=np.uint8,
+            )
+        else:
+            visible_agent_id = []
+            for agent in self.agents.values():
+                if agent.agent_id != agent_id:
+                    if lower_lim <= agent.pos[0] <= upper_lim and left_lim <= agent.pos[1] <= right_lim:
+                        visible_agent_id.append(agent.agent_id)
+            return visible_agent_id
