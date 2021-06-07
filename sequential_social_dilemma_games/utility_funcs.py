@@ -146,3 +146,13 @@ def update_nested_dict(d0, d1):
                 raise TypeError
         else:
             d0[k] = d1[k]
+
+
+def draw_rgb_array(rgb_array):
+    """
+    This function is only for check
+    This function draws rgb array (it can be used for drawing the observation)
+    """
+    plt.cla()
+    plt.imshow(rgb_array, interpolation="nearest")
+    plt.show()
