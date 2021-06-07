@@ -30,7 +30,7 @@ DEFAULT_COLOURS = {
     b"@": np.array([180, 180, 180], dtype=np.uint8),  # Grey board walls
     b"A": np.array([0, 255, 0], dtype=np.uint8),  # Green apples
     b"F": np.array([255, 255, 0], dtype=np.uint8),  # Yellow firing beam
-    b"P": np.array([159, 67, 255], dtype=np.uint8),  # Generic agent (any player)
+    b"P": np.array([159, 67, 255], dtype=np.uint8),  # Generic agent (any player), purple
     # Colours for agents. R value is a unique identifier
     b"1": np.array([0, 0, 255], dtype=np.uint8),  # Pure blue
     b"2": np.array([2, 81, 154], dtype=np.uint8),  # Sky blue
@@ -907,8 +907,82 @@ class MapEnvModified(MapEnv):
             use_collective_reward=use_collective_reward,
         )
 
+    def get_map_with_agents_ind(self):
+        """Gets a version of the environment map with 'P' characters (byte)
+        All agents are indistinguishable
+        This function may be used for the learning (agents with different colors -> all agent have same colors)
+
+        Returns:
+            2D array of strings representing the map.
+        """
+        grid = np.copy(self.world_map)
+
+        for agent in self.agents.values():
+            # Unlike get_map_with_agents(), all agents have same char_id
+            char_id = b"P"
+            # If agent is not within map, skip.
+            if not (0 <= agent.pos[0] < grid.shape[0] and 0 <= agent.pos[1] < grid.shape[1]):
+                continue
+
+            grid[agent.pos[0], agent.pos[1]] = char_id
+
+        # beams should overlay agents
+        for beam_pos in self.beam_pos:
+            grid[beam_pos[0], beam_pos[1]] = beam_pos[2]
+
+        return grid
+
+    def full_map_to_colors_ind(self):
+        map_with_agents = self.get_map_with_agents_ind()
+        rgb_arr = np.zeros((map_with_agents.shape[0], map_with_agents.shape[1], 3), dtype=int)
+        return self.map_to_colors(map_with_agents, self.color_map, rgb_arr)
+
+    def color_view_ind(self, agent):
+        """
+        This function returns the color view with indistinguishable agents
+
+        Parameters
+        ----------
+        agent
+
+        Returns
+        -------
+        rotated_view: ndarray
+        """
+        row, col = agent.pos[0], agent.pos[1]
+
+        rgb_arr_ind = self.full_map_to_colors_ind()
+        world_map_color_ind = np.full(
+            (len(self.base_map) + self.view_len * 2, len(self.base_map[0]) + self.view_len * 2, 3),
+            fill_value=0,
+            dtype=np.uint8,
+        )
+
+        world_map_color_ind[
+            self.map_padding:self.map_padding + rgb_arr_ind.shape[0],
+            self.map_padding:self.map_padding + rgb_arr_ind.shape[1],
+            :
+        ] = rgb_arr_ind
+
+        view_slice = world_map_color_ind[
+                     row + self.map_padding - self.view_len:row + self.map_padding + self.view_len + 1,
+                     col + self.map_padding - self.view_len:col + self.map_padding + self.view_len + 1,
+                     ]
+
+        if agent.orientation == "UP":
+            rotated_view_ind = view_slice
+        elif agent.orientation == "LEFT":
+            rotated_view_ind = np.rot90(view_slice)
+        elif agent.orientation == "DOWN":
+            rotated_view_ind = np.rot90(view_slice, k=2)
+        elif agent.orientation == "RIGHT":
+            rotated_view_ind = np.rot90(view_slice, k=1, axes=(1, 0))
+
+        return rotated_view_ind
+
     def step(self, actions):
         """Takes in a dict of actions and converts them to a map update
+        e_rgb_arr is not same as rgb_arr!!! (e_rgb_arr is color view with indistinguishable agents)
 
         Parameters
         ----------
@@ -928,11 +1002,9 @@ class MapEnvModified(MapEnv):
         """
 
         experiences = {}
-        e_map_with_agents = self.get_map_with_agents()
         e_actions = copy.deepcopy(actions)
         for agent in self.agents.values():
-            agent.full_map = e_map_with_agents
-            e_rgb_arr = self.color_view(agent)
+            e_rgb_arr = self.color_view_ind(agent)
             e_visible_agents_id = self.find_visible_agents(agent.agent_id, find_other_id=True)
             # print(e_visible_agents_id)
             action_dim = self.action_space.n
@@ -1000,7 +1072,8 @@ class MapEnvModified(MapEnv):
         info = {}
         for agent in self.agents.values():
             agent.full_map = map_with_agents  # PKH : full_map은 self.world_map + agent들의 char_id
-            rgb_arr = self.color_view(agent)  # PKH : full_map의 slice인데 보는 방향으로 rotate
+            rgb_arr = self.color_view(agent)  # PKH : world full_map의 slice인데 보는 방향으로 rotate, color map
+            e_rgb_arr_next_obs = self.color_view_ind(agent)
             # concatenate on the prev_actions to the observations
             if self.return_agent_actions:
                 prev_actions = np.array(
@@ -1016,11 +1089,12 @@ class MapEnvModified(MapEnv):
                 agent.prev_visible_agents = visible_agents
             else:
                 observations[agent.agent_id] = {"curr_obs": rgb_arr}
+
             rewards[agent.agent_id] = agent.compute_reward()
             features[agent.agent_id] = agent.compute_feature()
             experiences[agent.agent_id]["reward"] = rewards[agent.agent_id]
             experiences[agent.agent_id]["feature"] = features[agent.agent_id]
-            experiences[agent.agent_id]["next_observation"] = rgb_arr
+            experiences[agent.agent_id]["next_observation"] = e_rgb_arr_next_obs
             dones[agent.agent_id] = agent.get_done()
 
         if self.use_collective_reward:
