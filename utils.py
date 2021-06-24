@@ -89,20 +89,20 @@ def get_psi_input(observation, action, mean_action):
     return psi_input
 
 
-def get_q(psi_network, w):
+def get_q(psi, w):
     """
     Get q value using psi and w
 
     Parameters
     ----------
-    psi_network : torch.Tensor
+    psi : torch.Tensor
     w : numpy.array
 
     Returns
     -------
     q_value : float
     """
-    psi = np.array(psi_network)
+    psi = np.array(psi)
     psiT = psi.reshape(w.shape)
     q = np.dot(psiT, w)
     q_value = q.item()
