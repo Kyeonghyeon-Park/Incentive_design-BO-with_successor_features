@@ -907,10 +907,11 @@ class MapEnvModified(MapEnv):
             use_collective_reward=use_collective_reward,
         )
 
-    def get_map_with_agents_ind(self):
+    def get_map_with_agents_ind_no_beam(self):
         """Gets a version of the environment map with 'P' characters (byte)
         All agents are indistinguishable
         This function may be used for the learning (agents with different colors -> all agent have same colors)
+        Unlike original function (get_map_with_agents), this function doesn't show the beam
 
         Returns:
             2D array of strings representing the map.
@@ -926,14 +927,10 @@ class MapEnvModified(MapEnv):
 
             grid[agent.pos[0], agent.pos[1]] = char_id
 
-        # beams should overlay agents
-        for beam_pos in self.beam_pos:
-            grid[beam_pos[0], beam_pos[1]] = beam_pos[2]
-
         return grid
 
     def full_map_to_colors_ind(self):
-        map_with_agents = self.get_map_with_agents_ind()
+        map_with_agents = self.get_map_with_agents_ind_no_beam()
         rgb_arr = np.zeros((map_with_agents.shape[0], map_with_agents.shape[1], 3), dtype=int)
         return self.map_to_colors(map_with_agents, self.color_map, rgb_arr)
 
@@ -980,6 +977,47 @@ class MapEnvModified(MapEnv):
 
         return rotated_view_ind
 
+    def symbol_view_ind(self, agent):
+        """
+        This function returns the symbol view with indistinguishable agents
+
+        Parameters
+        ----------
+        agent
+
+        Returns
+        -------
+        rotated_view: ndarray
+        """
+        row, col = agent.pos[0], agent.pos[1]
+
+        map_with_agents = self.get_map_with_agents_ind_no_beam()
+        map_with_agents_padding = np.full(
+            (len(self.base_map) + self.view_len * 2, len(self.base_map[0]) + self.view_len * 2),
+            fill_value=b" ",
+            dtype="c",
+        )
+        map_with_agents_padding[
+        self.map_padding:self.map_padding + map_with_agents.shape[0],
+        self.map_padding:self.map_padding + map_with_agents.shape[1],
+        ] = map_with_agents
+
+        view_slice = map_with_agents_padding[
+                     row + self.map_padding - self.view_len:row + self.map_padding + self.view_len + 1,
+                     col + self.map_padding - self.view_len:col + self.map_padding + self.view_len + 1,
+                     ]
+
+        if agent.orientation == "UP":
+            rotated_view_ind = view_slice
+        elif agent.orientation == "LEFT":
+            rotated_view_ind = np.rot90(view_slice)
+        elif agent.orientation == "DOWN":
+            rotated_view_ind = np.rot90(view_slice, k=2)
+        elif agent.orientation == "RIGHT":
+            rotated_view_ind = np.rot90(view_slice, k=1, axes=(1, 0))
+
+        return rotated_view_ind
+
     def step(self, actions):
         """Takes in a dict of actions and converts them to a map update
         e_rgb_arr is not same as rgb_arr!!! (e_rgb_arr is color view with indistinguishable agents)
@@ -997,14 +1035,16 @@ class MapEnvModified(MapEnv):
         dones: dict indicating whether each agent is done
         info: dict to pass extra info to gym
         features: dict of features for each agent
-        experiences: dict of experiences for each agent
+        experiences_color: dict of experiences_color for each agent
             (observation, action, reward, mean action, next observation, feature)
         """
 
-        experiences = {}
+        experiences_color = {}
+        experiences_symbol = {}
         e_actions = copy.deepcopy(actions)
         for agent in self.agents.values():
             e_rgb_arr = self.color_view_ind(agent)
+            e_sym_arr = self.symbol_view_ind(agent)
             e_visible_agents_id = self.find_visible_agents(agent.agent_id, find_other_id=True)
             # print(e_visible_agents_id)
             action_dim = self.action_space.n
@@ -1014,8 +1054,16 @@ class MapEnvModified(MapEnv):
                     other_agent_action = e_actions[other_agent_id]
                     e_mean_action[other_agent_action] += 1 / len(e_visible_agents_id)
             # print(e_mean_action)
-            experiences[agent.agent_id] = {
+            experiences_color[agent.agent_id] = {
                 "observation": e_rgb_arr,
+                "action": e_actions[agent.agent_id],
+                "reward": "define later",
+                "mean_action": e_mean_action,
+                "next_observation": "define later",
+                "feature": "define later",
+            }
+            experiences_symbol[agent.agent_id] = {
+                "observation": e_sym_arr,
                 "action": e_actions[agent.agent_id],
                 "reward": "define later",
                 "mean_action": e_mean_action,
@@ -1033,7 +1081,7 @@ class MapEnvModified(MapEnv):
         for agent in self.agents.values():  # PKH : env.agents가 dict 형태, values()는 각 agents들 (CleanupAgent object)
             row, col = agent.pos[0], agent.pos[1]
             self.single_update_world_color_map(row, col, self.world_map[row, col])
-            # PKH : self.world_map은 agent들이 없는 version
+            # PKH : self.world_map은 agent들이 없는 version  -> 이게 맞나?
             # PKH : self.world_map_color은 padding있고 agent들 있는 color version
 
         self.update_moves(agent_actions)
@@ -1074,6 +1122,7 @@ class MapEnvModified(MapEnv):
             agent.full_map = map_with_agents  # PKH : full_map은 self.world_map + agent들의 char_id
             rgb_arr = self.color_view(agent)  # PKH : world full_map의 slice인데 보는 방향으로 rotate, color map
             e_rgb_arr_next_obs = self.color_view_ind(agent)
+            e_sym_arr_next_obs = self.symbol_view_ind(agent)
             # concatenate on the prev_actions to the observations
             if self.return_agent_actions:
                 prev_actions = np.array(
@@ -1092,9 +1141,13 @@ class MapEnvModified(MapEnv):
 
             rewards[agent.agent_id] = agent.compute_reward()
             features[agent.agent_id] = agent.compute_feature()
-            experiences[agent.agent_id]["reward"] = rewards[agent.agent_id]
-            experiences[agent.agent_id]["feature"] = features[agent.agent_id]
-            experiences[agent.agent_id]["next_observation"] = e_rgb_arr_next_obs
+            experiences_color[agent.agent_id]["reward"] = rewards[agent.agent_id]
+            experiences_color[agent.agent_id]["feature"] = features[agent.agent_id]
+            experiences_color[agent.agent_id]["next_observation"] = e_rgb_arr_next_obs
+            experiences_symbol[agent.agent_id]["reward"] = rewards[agent.agent_id]
+            experiences_symbol[agent.agent_id]["feature"] = features[agent.agent_id]
+            experiences_symbol[agent.agent_id]["next_observation"] = e_sym_arr_next_obs
+
             dones[agent.agent_id] = agent.get_done()
 
         if self.use_collective_reward:
@@ -1104,7 +1157,7 @@ class MapEnvModified(MapEnv):
 
         dones["__all__"] = np.any(list(dones.values()))
 
-        return observations, rewards, dones, info, features, experiences
+        return observations, rewards, dones, info, features, experiences_color, experiences_symbol
 
     def find_visible_agents(self, agent_id, find_other_id=False):
         """Returns all the agents that can be seen by agent with agent_id

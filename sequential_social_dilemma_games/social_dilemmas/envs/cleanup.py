@@ -36,7 +36,7 @@ thresholdRestoration = 0.0
 # appleRespawnProbability = 0.05
 # PKH : test
 wasteSpawnProbability = 0.0
-appleRespawnProbability = 0.5
+appleRespawnProbability = 0.05
 
 
 class CleanupEnv(MapEnv):
@@ -203,6 +203,26 @@ class CleanupEnv(MapEnv):
         return free_area
 
 
+SYMBOL_TO_NUM_CLEANUP = {
+    b" ": 0,
+    b"@": 1,
+    b"R": 2,
+    b"S": 2,
+    b"H": 3,
+    b"A": 4,
+    b"P": 5,
+}
+
+NUM_TO_SYMBOL_CLEANUP = {
+    0: b" ",
+    1: b"@",
+    2: b"R",
+    3: b"H",
+    4: b"A",
+    5: b"P",
+}
+
+
 class CleanupEnvModified(MapEnvModified):
     def __init__(
         self,
@@ -215,6 +235,12 @@ class CleanupEnvModified(MapEnvModified):
     ):
         self.lv_penalty = lv_penalty
         self.lv_incentive = lv_incentive
+        self.observation_dim = np.array([
+            2 * CLEANUP_VIEW_SIZE + 1,
+            2 * CLEANUP_VIEW_SIZE + 1,
+            max(SYMBOL_TO_NUM_CLEANUP.values()) + 1
+        ])
+        self.feature_dim = 2  # TODO : get feature dim from the agent's feature
         super().__init__(
             ascii_map,
             _CLEANUP_ACTIONS,
@@ -265,6 +291,11 @@ class CleanupEnvModified(MapEnvModified):
                     self.river_points.append([row, col])
 
         self.color_map.update(CLEANUP_COLORS)
+
+    def step(self, actions):
+        obs, rew, dons, info, fea, exp_color, exp_symbol = super().step(actions)
+        exp_idx = self.map_to_idx(exp_symbol)
+        return obs, rew, dons, info, fea, exp_color, exp_idx
 
     @property
     def action_space(self):
@@ -390,3 +421,33 @@ class CleanupEnvModified(MapEnvModified):
         current_area = counts_dict.get(b"H", 0)
         free_area = self.potential_waste_area - current_area
         return free_area
+
+    def single_map_to_idx(self, grid):
+        """
+        Get a 2D array of numbers representing the map
+        Symbols(b' ', b'@', ...) will be changed into numbers using SYMBOL_TO_NUM
+
+        Returns
+        -------
+        grid_idx:
+            2D array of numbers representing the map.
+        """
+        grid_idx = np.full(
+            (grid.shape[0], grid.shape[1]),
+            fill_value=0,
+            dtype=np.uint8,
+        )
+        for row in range(grid_idx.shape[0]):
+            for col in range(grid_idx.shape[1]):
+                grid_idx[row, col] = SYMBOL_TO_NUM_CLEANUP[grid[row, col]]
+
+        return grid_idx
+
+    def map_to_idx(self, exp_symbol):
+        for agent in exp_symbol:
+            obs_grid = exp_symbol[agent]['observation']
+            exp_symbol[agent]['observation'] = self.single_map_to_idx(obs_grid)
+            next_obs_grid = exp_symbol[agent]['next_observation']
+            exp_symbol[agent]['next_observation'] = self.single_map_to_idx(next_obs_grid)
+        exp_idx = exp_symbol
+        return exp_idx

@@ -254,18 +254,18 @@ class CleanupAgentModified(CleanupAgent):
         if char == b"C":
             self.reward_this_turn += self.lv_incentive
             self.feature_this_turn += np.array([0, 1])
-            print(self.agent_id)
-            print(self.reward_this_turn)
-            print(self.feature_this_turn)
+            # print(self.agent_id)
+            # print(self.reward_this_turn)
+            # print(self.feature_this_turn)
 
     def consume(self, char):
         """Defines how an agent interacts with the char it is standing on"""
         if char == b"A":
             self.reward_this_turn += 1 - self.lv_penalty
             self.feature_this_turn += np.array([1, 0])
-            print(self.agent_id)
-            print(self.reward_this_turn)
-            print(self.feature_this_turn)
+            # print(self.agent_id)
+            # print(self.reward_this_turn)
+            # print(self.feature_this_turn)
             return b" "
         else:
             return char
