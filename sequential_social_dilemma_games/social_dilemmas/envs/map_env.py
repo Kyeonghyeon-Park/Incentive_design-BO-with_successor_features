@@ -906,6 +906,14 @@ class MapEnvModified(MapEnv):
             return_agent_actions=return_agent_actions,
             use_collective_reward=use_collective_reward,
         )
+        self.prev_mean_action = dict()
+        for agent in self.agents.values():
+            self.prev_mean_action[agent.agent_id] = np.zeros(self.action_space.n)
+
+    def reset(self):
+        super().reset()
+        for agent in self.agents.values():
+            self.prev_mean_action[agent.agent_id] = np.zeros(self.action_space.n)
 
     def get_map_with_agents_ind_no_beam(self):
         """Gets a version of the environment map with 'P' characters (byte)
@@ -1054,6 +1062,7 @@ class MapEnvModified(MapEnv):
                     other_agent_action = e_actions[other_agent_id]
                     e_mean_action[other_agent_action] += 1 / len(e_visible_agents_id)
             # print(e_mean_action)
+            self.prev_mean_action[agent.agent_id] = e_mean_action
             experiences_color[agent.agent_id] = {
                 "observation": e_rgb_arr,
                 "action": e_actions[agent.agent_id],
