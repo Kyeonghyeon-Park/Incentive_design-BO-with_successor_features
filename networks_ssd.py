@@ -136,6 +136,42 @@ def init_weights(m):
         m.bias.data.fill_(0)
 
 
+def make_layer_dims(observation_dim, action_dim, feature_dim, hidden_dims, mode='actor'):
+    layer_dims = []
+    if mode == 'actor':
+        for i in range(len(hidden_dims)):
+            if i == 0:
+                layer_dim = [observation_dim, hidden_dims[i]]
+            elif i < len(hidden_dims) - 1:
+                layer_dim = [hidden_dims[i - 1], hidden_dims[i]]
+            else:  # last layer
+                layer_dim = [hidden_dims[i], action_dim]
+            layer_dims.append(layer_dim)
+    elif mode == 'critic':
+        for i in range(len(hidden_dims)):
+            if i == 0:
+                layer_dim = [observation_dim, hidden_dims[i]]
+            elif i == 1:
+                layer_dim = [hidden_dims[i - 1] + action_dim * 2, hidden_dims[i]]
+            elif i < len(hidden_dims) - 1:
+                layer_dim = [hidden_dims[i - 1], hidden_dims[i]]
+            else:  # last layer
+                layer_dim = [hidden_dims[i], 1]
+            layer_dims.append(layer_dim)
+    elif mode == 'psi':
+        for i in range(len(hidden_dims)):
+            if i == 0:
+                layer_dim = [observation_dim, hidden_dims[i]]
+            elif i == 1:
+                layer_dim = [hidden_dims[i - 1] + action_dim * 2, hidden_dims[i]]
+            elif i < len(hidden_dims) - 1:
+                layer_dim = [hidden_dims[i - 1], hidden_dims[i]]
+            else:  # last layer
+                layer_dim = [hidden_dims[i], feature_dim]
+            layer_dims.append(layer_dim)
+    return layer_dims
+
+
 class Networks(object):
     """
     Define networks (actor-critic / actor-psi / critic / psi)
@@ -149,49 +185,34 @@ class Networks(object):
         self.psi_layers = []
         self.args = args
         if args.mode_ac:
-            for i in range(len(args.h_dims_a)):
-                if i == 0:
-                    layer_dim = [self.observation_dim, args.h_dims_a[i]]
-                elif i < len(args.h_dims_a) - 1:
-                    layer_dim = [args.h_dims_a[i - 1], args.h_dims_a[i]]
-                else:  # last layer
-                    layer_dim = [args.h_dims_a[i], self.action_dim]
-                self.actor_layers.append(layer_dim)
+            self.actor_layers = make_layer_dims(self.observation_dim,
+                                                self.action_dim,
+                                                self.feature_dim,
+                                                args.h_dims_a,
+                                                mode='actor')
             self.actor = Actor(self.actor_layers)
             self.actor.apply(init_weights)
             self.actor_target = copy.deepcopy(self.actor)
-
         if args.mode_psi:
-            for i in range(len(args.h_dims_p)):
-                if i == 0:
-                    layer_dim = [self.observation_dim, args.h_dims_p[i]]
-                elif i == 1:
-                    layer_dim = [args.h_dims_p[i - 1] + self.action_dim * 2, args.h_dims_p[i]]
-                elif i < len(args.h_dims_p) - 1:
-                    layer_dim = [args.h_dims_p[i - 1], args.h_dims_p[i]]
-                else:  # last layer
-                    layer_dim = [args.h_dims_p[i], self.feature_dim]
-                self.psi_layers.append(layer_dim)
+            self.psi_layers = make_layer_dims(self.observation_dim,
+                                              self.action_dim,
+                                              self.feature_dim,
+                                              args.h_dims_p,
+                                              mode='psi')
             self.psi = Critic(self.psi_layers)
             self.psi.apply(init_weights)
             self.psi_target = copy.deepcopy(self.psi)
-
         else:
-            for i in range(len(args.h_dims_c)):
-                if i == 0:
-                    layer_dim = [self.observation_dim, args.h_dims_c[i]]
-                elif i == 1:
-                    layer_dim = [args.h_dims_c[i - 1] + self.action_dim * 2, args.h_dims_c[i]]
-                elif i < len(args.h_dims_c) - 1:
-                    layer_dim = [args.h_dims_c[i - 1], args.h_dims_c[i]]
-                else:  # last layer
-                    layer_dim = [args.h_dims_c[i], 1]
-                self.critic_layers.append(layer_dim)
+            self.critic_layers = make_layer_dims(self.observation_dim,
+                                                 self.action_dim,
+                                                 self.feature_dim,
+                                                 args.h_dims_c,
+                                                 mode='critic')
             self.critic = Critic(self.critic_layers)
             self.critic.apply(init_weights)
             self.critic_target = copy.deepcopy(self.critic)
 
-    def get_action(self, observation, is_target=False):
+    def get_action(self, observation, prev_mean_action, is_target=False):
         if self.args.mode_ac:
             if is_target:
                 action_prob = self.actor_target(observation)
@@ -199,12 +220,12 @@ class Networks(object):
                 action_prob = self.actor(observation)
             action_dist = distributions.Categorical(action_prob)
             action = action_dist.sample()
-        else:  # TODO : We have to get action from Boltzmann policy
+        else:  # TODO : We have to get action from Boltzmann policy (using prev_mean_action)
             pass
-            action = np.random.randint(self.action_dim)
-            # Prev. mean action 구현 필요
             if self.args.mode_psi:
                 pass
                 # Make value using psi and weight
-
+            else:
+                pass
+            action = np.random.randint(self.action_dim)
         return action
