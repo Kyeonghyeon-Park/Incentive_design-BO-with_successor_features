@@ -1056,16 +1056,23 @@ class MapEnvModified(MapEnv):
             e_visible_agents_id = self.find_visible_agents(agent.agent_id, find_other_id=True)
             # print(e_visible_agents_id)
             action_dim = self.action_space.n
+            try:
+                e_action = e_actions[agent.agent_id]
+            except KeyError:
+                e_action = None
             e_mean_action = np.zeros(action_dim)
             if len(e_visible_agents_id) != 0:
                 for other_agent_id in e_visible_agents_id:
-                    other_agent_action = e_actions[other_agent_id]
-                    e_mean_action[other_agent_action] += 1 / len(e_visible_agents_id)
+                    try:
+                        other_agent_action = e_actions[other_agent_id]
+                        e_mean_action[other_agent_action] += 1 / len(e_visible_agents_id)
+                    except KeyError:
+                        pass
             # print(e_mean_action)
             self.prev_mean_action[agent.agent_id] = e_mean_action
             experiences_color[agent.agent_id] = {
                 "observation": e_rgb_arr,
-                "action": e_actions[agent.agent_id],
+                "action": e_action,
                 "reward": "define later",
                 "mean_action": e_mean_action,
                 "next_observation": "define later",
@@ -1073,7 +1080,7 @@ class MapEnvModified(MapEnv):
             }
             experiences_symbol[agent.agent_id] = {
                 "observation": e_sym_arr,
-                "action": e_actions[agent.agent_id],
+                "action": e_action,
                 "reward": "define later",
                 "mean_action": e_mean_action,
                 "next_observation": "define later",
