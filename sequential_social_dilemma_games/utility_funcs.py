@@ -4,6 +4,7 @@ import cv2
 import matplotlib.pyplot as plt
 import numpy as np
 
+import torch
 
 def save_img(rgb_arr, path, name):
     plt.imshow(rgb_arr, interpolation="nearest")
@@ -156,3 +157,88 @@ def draw_rgb_array(rgb_array):
     plt.cla()
     plt.imshow(rgb_array, interpolation="nearest")
     plt.show()
+
+
+def draw_or_save_plt(outcome, mode='draw', filename=''):
+    """
+    Draw or save the graph of cumulative collective rewards
+
+    Parameters
+    ----------
+    outcome : list
+        Outcome for previous episodes
+    mode : str
+        'draw' if we want to draw the figure
+        'save' if we want to save the figure
+    filename : str
+        path name for saving the figure
+    """
+    plt.figure(figsize=(16, 14))
+
+    plt.plot(outcome, label='Cumulative collective rewards')
+    plt.ylim([0, np.max(outcome)])
+    plt.xlabel('Episode', fontsize=20)
+    plt.ylabel('Value', fontsize=20)
+    plt.legend(loc='lower right')
+    plt.grid()
+    if mode == 'draw':
+        plt.show()
+    elif mode == 'save':
+        plt.savefig(filename)
+    else:
+        raise ValueError
+
+
+def save_data(args, env, buffers, time_trained, rewards, networks, path, name):
+    """
+    Function which saves several data
+    """
+    if args.mode_ac:
+        actor_params = networks.actor.state_dict()
+        actor_opt_params = networks.opt_actor.state_dict()
+    else:
+        actor_params = None
+        actor_opt_params = None
+    if args.mode_psi:
+        psi_params = networks.psi.state_dict()
+        psi_opt_params = networks.opt_psi.state_dict()
+        critic_params = None
+        critic_opt_params = None
+    else:
+        psi_params = None
+        psi_opt_params = None
+        critic_params = networks.critic.state_dict()
+        critic_opt_params = networks.opt_critic.state_dict()
+
+    torch.save({
+        'args': args,
+        'env': env,
+        'buffers': buffers,
+        'time_trained': time_trained,
+        'rewards': rewards,
+        'actor': actor_params,
+        'psi': psi_params,
+        'critic': critic_params,
+        'opt_actor': actor_opt_params,
+        'opt_psi': psi_opt_params,
+        'opt_critic': critic_opt_params,
+    }, path + name)
+
+
+def make_setting_txt(args, path):
+    """
+    Save current setting(args) to txt for easy check
+
+    Parameters
+    ----------
+    args
+        args which contains current setting
+    path : str
+        Path where txt file is stored
+    """
+    txt_path = os.path.join(path, 'args.txt')
+    f = open(txt_path, 'w')
+    for arg in vars(args):
+        content = arg + ': ' + str(getattr(args, arg)) + '\n'
+        f.write(content)
+    f.close()

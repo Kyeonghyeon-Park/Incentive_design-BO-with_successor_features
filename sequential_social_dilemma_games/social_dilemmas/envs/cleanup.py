@@ -35,7 +35,7 @@ thresholdRestoration = 0.0
 # wasteSpawnProbability = 0.5
 # appleRespawnProbability = 0.05
 # PKH : test
-wasteSpawnProbability = 0.0
+wasteSpawnProbability = 0.5
 appleRespawnProbability = 0.05
 
 

@@ -11,9 +11,10 @@ from social_dilemmas.envs.agent import (
     HARVEST_ACTIONS,
     Agent,
     CleanupAgent,
+    CleanupAgentModified,
     HarvestAgent,
 )
-from social_dilemmas.envs.cleanup import CleanupEnv
+from social_dilemmas.envs.cleanup import CleanupEnv, CleanupEnvModified
 from social_dilemmas.envs.gym.discrete_with_dtype import DiscreteWithDType
 from social_dilemmas.envs.harvest import HarvestEnv
 from social_dilemmas.envs.map_env import MapEnv
@@ -1486,6 +1487,261 @@ class TestCleanupEnv(unittest.TestCase):
     def construct_map(self, map, agent_id, start_pos, start_orientation):
         # overwrite the map for testing
         self.env = CleanupEnv(map, num_agents=0)
+        self.env.reset()
+
+        # replace the agents with agents with smaller views
+        self.add_agent(agent_id, start_pos, start_orientation, self.env, 2)
+
+class TestCleanupEnvModified(unittest.TestCase):
+    def test_parameters(self):
+        self.env = CleanupEnvModified(num_agents=0)
+        self.assertEqual(self.env.potential_waste_area, 119)
+
+    def test_reset(self):
+        self.env = CleanupEnvModified(ascii_map=MINI_CLEANUP_MAP, num_agents=0)
+        self.env.reset()
+        # check that the map has no apples
+        test_map = np.array(
+            [
+                [b"@", b"@", b"@", b"@", b"@", b"@"],
+                [b"@", b" ", b" ", b" ", b" ", b"@"],
+                [b"@", b"H", b" ", b" ", b" ", b"@"],
+                [b"@", b"R", b" ", b" ", b" ", b"@"],
+                [b"@", b"S", b" ", b" ", b" ", b"@"],
+                [b"@", b"@", b"@", b"@", b"@", b"@"],
+            ]
+        )
+        np.testing.assert_array_equal(get_env_test_map(self.env), test_map)
+
+    def test_cleanup_beam(self):
+        self.env = CleanupEnvModified(ascii_map=FIRING_CLEANUP_MAP, num_agents=2)
+        self.env.reset()
+        self.move_agent("agent-0", [3, 3])
+        self.move_agent("agent-1", [4, 2])
+        self.rotate_agent("agent-0", "LEFT")
+        # check that cleanup beam does four things
+        # 1. Cleans waste cells correctly
+        # 2. Is blocked by the first waste cell it encounters
+        # 3. Obscures agents when fired, doesn't remove them when cleaned
+        # 4. Is blocked by agents
+        self.env.step({"agent-0": CLEANUP_ACTION_MAP["CLEAN"]})
+        expected_map = np.array(
+            [
+                [b"@", b"@", b"@", b"@", b"@", b"@"],
+                [b"@", b" ", b" ", b" ", b" ", b"@"],
+                [b"@", b"H", b"C", b"C", b" ", b"@"],
+                [b"@", b"R", b"C", b"P", b" ", b"@"],
+                [b"@", b"H", b"C", b"C", b" ", b"@"],
+                [b"@", b"@", b"@", b"@", b"@", b"@"],
+            ]
+        )
+        np.testing.assert_array_equal(expected_map, get_env_test_map(self.env))
+        np.random.seed(12)
+        self.env.step({})
+        expected_map = np.array(
+            [
+                [b"@", b"@", b"@", b"@", b"@", b"@"],
+                [b"@", b" ", b" ", b" ", b" ", b"@"],
+                [b"@", b"H", b"R", b" ", b" ", b"@"],
+                [b"@", b"R", b"R", b"P", b" ", b"@"],
+                [b"@", b"H", b"P", b" ", b" ", b"@"],
+                [b"@", b"@", b"@", b"@", b"@", b"@"],
+            ]
+        )
+        np.testing.assert_array_equal(expected_map, get_env_test_map(self.env))
+
+        # check that the cleanup beam doesn't remove apples
+        self.env.reset()
+        self.move_agent("agent-0", [3, 3])
+        self.move_agent("agent-1", [4, 2])
+        self.env.update_map([[3, 4, b"A"]])
+        self.rotate_agent("agent-0", "RIGHT")
+        self.env.step({"agent-0": CLEANUP_ACTION_MAP["CLEAN"]})
+        self.env.step({})
+        expected_map = np.array(
+            [
+                [b"@", b"@", b"@", b"@", b"@", b"@"],
+                [b"@", b" ", b" ", b" ", b" ", b"@"],
+                [b"@", b"H", b"H", b" ", b" ", b"@"],
+                [b"@", b"R", b"H", b"P", b"A", b"@"],
+                [b"@", b"H", b"P", b" ", b" ", b"@"],
+                [b"@", b"@", b"@", b"@", b"@", b"@"],
+            ]
+        )
+        np.testing.assert_array_equal(expected_map, get_env_test_map(self.env))
+
+        # check that you can clean up waste that an agent is standing on
+        self.move_agent("agent-1", [2, 2])
+        self.move_agent("agent-0", [1, 3])
+        self.rotate_agent("agent-0", "DOWN")
+        random.seed(6)
+        self.env.step({"agent-0": CLEANUP_ACTION_MAP["CLEAN"]})
+        self.assertTrue(self.env.world_map[2, 2] == b"R")
+
+        # check that the beams add constructively, i.e. that if one beam clears
+        # some waste then the next agents beam is not blocked by it and can hit
+        # formerly blocked cells
+        random.seed(7)
+        self.move_agent("agent-1", [2, 3])
+        self.move_agent("agent-0", [4, 3])
+        # put some waste back where it's needed
+        self.env.update_map([[2, 2, b"H"]])
+        self.env.update_map([[3, 1, b"H"]])
+        self.rotate_agent("agent-0", "LEFT")
+        self.rotate_agent("agent-1", "LEFT")
+        self.env.step(
+            {"agent-0": CLEANUP_ACTION_MAP["CLEAN"], "agent-1": CLEANUP_ACTION_MAP["CLEAN"]}
+        )
+        self.assertTrue(self.env.world_map[3, 1] == b"R")
+
+    def test_firing_beam(self):
+        self.env = CleanupEnvModified(ascii_map=FIRING_CLEANUP_MAP, num_agents=2)
+        self.env.reset()
+        self.move_agent("agent-0", [3, 3])
+        self.move_agent("agent-1", [4, 2])
+        self.rotate_agent("agent-0", "LEFT")
+
+        # check that firing beam does not clean anything and is not blocked
+        # by anything
+        self.env.step({"agent-0": CLEANUP_ACTION_MAP["FIRE"]})
+        expected_map = np.array(
+            [
+                [b"@", b"@", b"@", b"@", b"@", b"@"],
+                [b"@", b" ", b" ", b" ", b" ", b"@"],
+                [b"@", b"F", b"F", b"F", b" ", b"@"],
+                [b"@", b"F", b"F", b"P", b" ", b"@"],
+                [b"@", b"H", b"F", b"F", b" ", b"@"],
+                [b"@", b"@", b"@", b"@", b"@", b"@"],
+            ]
+        )
+        np.testing.assert_array_equal(expected_map, get_env_test_map(self.env))
+        # check that the firing beam is removed correctly after one step
+        # it should not remove any waste, rivers, or agents
+        self.env.step({})
+        expected_map = np.array(
+            [
+                [b"@", b"@", b"@", b"@", b"@", b"@"],
+                [b"@", b" ", b" ", b" ", b" ", b"@"],
+                [b"@", b"H", b"H", b" ", b" ", b"@"],
+                [b"@", b"R", b"H", b"P", b" ", b"@"],
+                [b"@", b"H", b"P", b" ", b" ", b"@"],
+                [b"@", b"@", b"@", b"@", b"@", b"@"],
+            ]
+        )
+        np.testing.assert_array_equal(expected_map, get_env_test_map(self.env))
+
+        # check that the cleanup beam doesn't remove apples
+        self.env.reset()
+        self.move_agent("agent-0", [3, 3])
+        self.move_agent("agent-1", [4, 2])
+        self.env.update_map([[3, 4, b"A"]])
+        self.rotate_agent("agent-0", "RIGHT")
+        self.env.step({"agent-0": CLEANUP_ACTION_MAP["FIRE"]})
+        self.env.step({})
+        expected_map = np.array(
+            [
+                [b"@", b"@", b"@", b"@", b"@", b"@"],
+                [b"@", b" ", b" ", b" ", b" ", b"@"],
+                [b"@", b"H", b"H", b" ", b" ", b"@"],
+                [b"@", b"R", b"H", b"P", b"A", b"@"],
+                [b"@", b"H", b"P", b" ", b" ", b"@"],
+                [b"@", b"@", b"@", b"@", b"@", b"@"],
+            ]
+        )
+        np.testing.assert_array_equal(expected_map, get_env_test_map(self.env))
+
+    def test_apple_spawn(self):
+        """Confirm that apples spawn correctly in cleanup"""
+        self.env = CleanupEnvModified(ascii_map=APPLE_SPAWN_MAP_CLEANUP, num_agents=2)
+        self.env.reset()
+        for i in range(500):
+            self.env.step({})
+        expected_map = np.array(
+            [
+                [b"@", b"@", b"@", b"@", b"@", b"@"],
+                [b"@", b" ", b"P", b" ", b" ", b"@"],
+                [b"@", b" ", b" ", b"A", b"A", b"@"],
+                [b"@", b" ", b" ", b"A", b"A", b"@"],
+                [b"@", b" ", b" ", b"A", b"P", b"@"],
+                [b"@", b"@", b"@", b"@", b"@", b"@"],
+            ]
+        )
+        np.testing.assert_array_equal(expected_map, get_env_test_map(self.env))
+
+    def test_spawn_probabilities(self):
+        """Test that apple and waste spawn probabilities are set correctly"""
+        self.env = CleanupEnvModified(ascii_map=CLEANUP_PROB_MAP, num_agents=2)
+        self.env.reset()
+
+        # Check that the permitted waste area is correct
+        self.assertEqual(self.env.compute_permitted_area(), 1)
+
+        # Check that the potential waste area is correct
+        self.assertEqual(self.env.potential_waste_area, 5)
+
+        # Check that the apple spawn probability is zero if there's too much
+        # waste
+        self.assertTrue(np.isclose(self.env.current_apple_spawn_prob, 0))
+        # Check that the waste spawn probability is zero if there's too much
+        # waste
+        self.assertTrue(np.isclose(self.env.current_waste_spawn_prob, 0))
+
+        # Check that the waste spawn probability is computed correctly
+        np.random.seed(1)
+        self.rotate_agent("agent-0", "LEFT")
+        self.rotate_agent("agent-1", "LEFT")
+        self.env.step(
+            {"agent-0": CLEANUP_ACTION_MAP["CLEAN"], "agent-1": CLEANUP_ACTION_MAP["CLEAN"]}
+        )
+        self.assertTrue(np.isclose(self.env.current_waste_spawn_prob, 0.5))
+
+        # check that the apple spawn probability is computed correctly
+        while True:
+            self.env.step(
+                {"agent-0": CLEANUP_ACTION_MAP["CLEAN"], "agent-1": CLEANUP_ACTION_MAP["CLEAN"]}
+            )
+            if self.env.compute_permitted_area() == 4:
+                break
+        self.env.compute_probabilities()
+        self.assertTrue(np.isclose(self.env.current_apple_spawn_prob, 0.025))
+
+        # test that you can spawn waste under an agent
+        self.move_agent("agent-0", [2, 1])
+        random.seed(5)
+        self.env.step({})
+        self.assertTrue(self.env.world_map[2, 1] == b"H")
+
+    def test_past_bugs(self):
+        """This function is used to check that previous bugs do not regress"""
+        pass
+
+    def clear_agents(self):
+        self.env.agents = {}
+
+    def add_agent(self, agent_id, start_pos, start_orientation, env, view_len):
+        map_with_agents = env.get_map_with_agents()
+        self.env.agents[agent_id] = CleanupAgentModified(
+            agent_id, start_pos, start_orientation, map_with_agents, view_len
+        )
+        map_with_agents = env.get_map_with_agents()
+
+        for agent in env.agents.values():
+            # Update each agent's view of the world
+            agent.full_map = map_with_agents
+        self.env.agent_pos.append(start_pos)
+
+    def move_agent(self, agent_id, new_pos):
+        self.env.agents[agent_id].update_agent_pos(new_pos)
+        map_with_agents = self.env.get_map_with_agents()
+        agent = self.env.agents[agent_id]
+        agent.full_map = map_with_agents
+
+    def rotate_agent(self, agent_id, new_rot):
+        self.env.agents[agent_id].update_agent_rot(new_rot)
+
+    def construct_map(self, map, agent_id, start_pos, start_orientation):
+        # overwrite the map for testing
+        self.env = CleanupEnvModified(map, num_agents=0)
         self.env.reset()
 
         # replace the agents with agents with smaller views

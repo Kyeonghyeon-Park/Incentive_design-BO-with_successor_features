@@ -911,9 +911,15 @@ class MapEnvModified(MapEnv):
             self.prev_mean_action[agent.agent_id] = np.zeros(self.action_space.n)
 
     def reset(self):
-        super().reset()
+        """
+        Reset the modified environment
+        In addition to original reset, we have to reset prev_mean_action
+        """
+        observations = super().reset()
+        self.prev_mean_action = dict()
         for agent in self.agents.values():
             self.prev_mean_action[agent.agent_id] = np.zeros(self.action_space.n)
+        return observations
 
     def get_map_with_agents_ind_no_beam(self):
         """Gets a version of the environment map with 'P' characters (byte)
@@ -938,13 +944,17 @@ class MapEnvModified(MapEnv):
         return grid
 
     def full_map_to_colors_ind(self):
+        """
+        This function returns the color view with indistinguishable agents
+        Unlike the original function (full_map_to_colors), this function doesn't show the beam
+        """
         map_with_agents = self.get_map_with_agents_ind_no_beam()
         rgb_arr = np.zeros((map_with_agents.shape[0], map_with_agents.shape[1], 3), dtype=int)
         return self.map_to_colors(map_with_agents, self.color_map, rgb_arr)
 
     def color_view_ind(self, agent):
         """
-        This function returns the color view with indistinguishable agents
+        This function returns the individual observation of the color view with indistinguishable agents
 
         Parameters
         ----------
@@ -953,6 +963,7 @@ class MapEnvModified(MapEnv):
         Returns
         -------
         rotated_view: ndarray
+            Size : (2 * self.view_len + 1, 2 * self.view_len + 1, 3)
         """
         row, col = agent.pos[0], agent.pos[1]
 
@@ -987,7 +998,7 @@ class MapEnvModified(MapEnv):
 
     def symbol_view_ind(self, agent):
         """
-        This function returns the symbol view with indistinguishable agents
+        This function returns the individual observation of the symbol view with indistinguishable agents
 
         Parameters
         ----------
@@ -996,6 +1007,7 @@ class MapEnvModified(MapEnv):
         Returns
         -------
         rotated_view: ndarray
+            Size : (2 * self.view_len + 1, 2 * self.view_len + 1)
         """
         row, col = agent.pos[0], agent.pos[1]
 
@@ -1028,7 +1040,7 @@ class MapEnvModified(MapEnv):
 
     def step(self, actions):
         """Takes in a dict of actions and converts them to a map update
-        e_rgb_arr is not same as rgb_arr!!! (e_rgb_arr is color view with indistinguishable agents)
+        e_rgb_arr and e_sym_arr are not same as rgb_arr!!! (e_~~~_arr is the view with indistinguishable agents)
 
         Parameters
         ----------
@@ -1038,13 +1050,14 @@ class MapEnvModified(MapEnv):
 
         Returns
         -------
-        observations: dict of arrays representing agent observations
-        rewards: dict of rewards for each agent
-        dones: dict indicating whether each agent is done
-        info: dict to pass extra info to gym
-        features: dict of features for each agent
-        experiences_color: dict of experiences_color for each agent
+        observations: dict of arrays representing agent observations (not used)
+        rewards: dict of rewards for each agent (not used)
+        dones: dict indicating whether each agent is done (not used)
+        info: dict to pass extra info to gym (not used)
+        features: dict of features for each agent (not used)
+        experiences_color: dict of experiences for each agent (based on rgb representation) (not used)
             (observation, action, reward, mean action, next observation, feature)
+        experiences_symbol : dict of experiences for each agent (based on symbol representation)
         """
 
         experiences_color = {}
@@ -1090,19 +1103,21 @@ class MapEnvModified(MapEnv):
         self.beam_pos = []
         agent_actions = {}
         for agent_id, action in actions.items():  # PKH : ex. agent_id : 'agent-0', action : 0
-            agent_action = self.agents[agent_id].action_map(action)  # PKH : CLEANUP_ACTIONS[action_number]로 변환
+            agent_action = self.agents[agent_id].action_map(action)  # PKH : changed into CLEANUP_ACTIONS[action_number]
             agent_actions[agent_id] = agent_action
 
         # Remove agents from color map
-        for agent in self.agents.values():  # PKH : env.agents가 dict 형태, values()는 각 agents들 (CleanupAgent object)
+        # PKH : env.agents : dict format, values() : each agent (CleanupAgent object)
+        for agent in self.agents.values():
             row, col = agent.pos[0], agent.pos[1]
             self.single_update_world_color_map(row, col, self.world_map[row, col])
-            # PKH : self.world_map은 agent들이 없는 version  -> 이게 맞나?
-            # PKH : self.world_map_color은 padding있고 agent들 있는 color version
+            # PKH : self.world_map : map with no agent (should check)
+            # PKH : self.world_map_color : color map with padding and agents
 
         self.update_moves(agent_actions)
 
-        for agent in self.agents.values():  # PKH : agent가 apple consume했다면 그 자리를 b' '로 변환
+        # PKH : if agent consumes apple, the symbol of that place will be changed into b' '
+        for agent in self.agents.values():
             pos = agent.pos
             new_char = agent.consume(self.world_map[pos[0], pos[1]])
             self.single_update_map(pos[0], pos[1], new_char)
@@ -1110,17 +1125,17 @@ class MapEnvModified(MapEnv):
         # execute custom moves like firing
         self.update_custom_moves(agent_actions)
         # PKH : updates = self.custom_action(agent, action)
-        #     PKH : agent.fire_beam(b"F")
-        #         PKH : if char == b"F": self.reward_this_turn -= 1
-        #     PKH : updates = self.update_map_fire(~)
-        #         PKH : fire에 의한 map 변화, agent hit function activation 등이 담겨 있음
-        #         PKH : self.agents[agent_id].hit(fire_char)
+        # PKH : L agent.fire_beam(b"F")
+        # PKH :   L if char == b"F": self.reward_this_turn -= 1
+        # PKH : L updates = self.update_map_fire(~)
+        # PKH :   L (it contains map changed by fire, agent hit function activation, etc.)
+        # PKH :   L self.agents[agent_id].hit(fire_char)
         # PKH : self.update_map(updates)
 
         # execute spawning events
         self.custom_map_update()
 
-        map_with_agents = self.get_map_with_agents()  # PKH : self.world_map에 agent들의 char_id 추가한 것
+        map_with_agents = self.get_map_with_agents()  # PKH : self.world_map with agents' char_ids
 
         # Add agents to color map
         for agent in self.agents.values():
@@ -1135,8 +1150,8 @@ class MapEnvModified(MapEnv):
         dones = {}
         info = {}
         for agent in self.agents.values():
-            agent.full_map = map_with_agents  # PKH : full_map은 self.world_map + agent들의 char_id
-            rgb_arr = self.color_view(agent)  # PKH : world full_map의 slice인데 보는 방향으로 rotate, color map
+            agent.full_map = map_with_agents  # PKH : full_map : self.world_map + agents' char_ids
+            rgb_arr = self.color_view(agent)  # PKH : individual observation of world full_map (rotated, color map)
             e_rgb_arr_next_obs = self.color_view_ind(agent)
             e_sym_arr_next_obs = self.symbol_view_ind(agent)
             # concatenate on the prev_actions to the observations
@@ -1176,7 +1191,9 @@ class MapEnvModified(MapEnv):
         return observations, rewards, dones, info, features, experiences_color, experiences_symbol
 
     def find_visible_agents(self, agent_id, find_other_id=False):
-        """Returns all the agents that can be seen by agent with agent_id
+        """
+        Returns all the agents that can be seen by agent with agent_id
+
         Args
         ----
         agent_id: str
@@ -1218,3 +1235,25 @@ class MapEnvModified(MapEnv):
                     if lower_lim <= agent.pos[0] <= upper_lim and left_lim <= agent.pos[1] <= right_lim:
                         visible_agent_id.append(agent.agent_id)
             return visible_agent_id
+
+    def render(self, filename=None, i=0):
+        """
+        Creates an image of the map to plot or save.
+        In addition to the original render, it contains the title with the current number of step
+
+        Args
+        ----
+        filename: str
+            If a string is passed, will save the image to disk at this location.
+        i: int
+            Current number of step. It will be the title of this image
+        """
+        rgb_arr = self.full_map_to_colors()
+        title = 'step='+str(i).zfill(9)
+        plt.cla()
+        plt.title(title, loc='right', pad=10)
+        plt.imshow(rgb_arr, interpolation="nearest")
+        if filename is None:
+            plt.show()
+        else:
+            plt.savefig(filename)
