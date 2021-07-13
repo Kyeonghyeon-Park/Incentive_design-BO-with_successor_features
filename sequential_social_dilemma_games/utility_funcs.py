@@ -176,7 +176,7 @@ def draw_or_save_plt(outcome, mode='draw', filename=''):
     plt.figure(figsize=(16, 14))
 
     plt.plot(outcome, label='Cumulative collective rewards')
-    plt.ylim([0, np.max(outcome)])
+    plt.ylim([0, np.max(outcome) + 1])
     plt.xlabel('Episode', fontsize=20)
     plt.ylabel('Value', fontsize=20)
     plt.legend(loc='lower right')

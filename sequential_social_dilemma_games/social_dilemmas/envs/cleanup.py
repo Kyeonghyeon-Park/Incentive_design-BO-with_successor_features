@@ -2,6 +2,8 @@ import random
 
 import numpy as np
 from numpy.random import rand
+import matplotlib.pyplot as plt
+from matplotlib import gridspec
 
 from social_dilemmas.envs.agent import CleanupAgent, CleanupAgentModified
 from social_dilemmas.envs.gym.discrete_with_dtype import DiscreteWithDType
@@ -451,3 +453,36 @@ class CleanupEnvModified(MapEnvModified):
             exp_symbol[agent]['next_observation'] = self.single_map_to_idx(next_obs_grid)
         exp_idx = exp_symbol
         return exp_idx
+
+    def render(self, filename=None, i=0):
+        """
+        Creates an image of the map to plot or save.
+        In addition to the original render, it contains the several status
+
+        Args
+        ----
+        filename: str
+            If a string is passed, will save the image to disk at this location.
+        i: int
+            Current number of step. It will be the title of this image
+        """
+        rgb_arr = self.full_map_to_colors()
+        step = 'step='+str(i).zfill(9)
+        waste_spawn_prob = 'waste_spawn_prob=' + '{prob:.2f}'.format(prob=self.current_waste_spawn_prob)
+        apple_spawn_prob = 'apple_spawn_prob=' + '{prob:.2f}'.format(prob=self.current_apple_spawn_prob)
+        texts = [step, waste_spawn_prob, apple_spawn_prob]
+
+        fig = plt.figure()
+        spec = gridspec.GridSpec(nrows=1, ncols=2,width_ratios=[2, 1])
+        fig_graph = fig.add_subplot(spec[0])
+        fig_graph.imshow(rgb_arr, interpolation="nearest")
+        fig_status = fig.add_subplot(spec[1])
+        fig_status.axis('off')
+        for i in range(len(texts)):
+            fig_status.text(0.1, 0.95 - 0.1 * i, texts[i], horizontalalignment='left', verticalalignment='center',
+                            transform=fig_status.transAxes)
+        if filename is None:
+            plt.show()
+        else:
+            plt.savefig(filename)
+        plt.close(fig)

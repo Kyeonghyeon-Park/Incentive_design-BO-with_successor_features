@@ -100,7 +100,7 @@ for i in range(horizon):
     # For visualization
     if image_path is not None:
         filename = image_path + "frame" + str(i).zfill(9) + ".png"
-        if (i < 100) or (9900 <= i % 10000 < 10000):
+        if (i < 100) or (9000 <= i % 10000 < 9100) or (9900 <= i % 10000 < 10000):
             env.render(filename=filename, i=i)
 
     # Add samples to buffer
@@ -131,8 +131,8 @@ for i in range(horizon):
         utility_funcs.draw_or_save_plt(rewards['collective_reward'], mode='draw')
 
     # Get videos
-    if (i + 1) == 100 or (i + 1) % 10000 == 0:
-        video_name = 'trajectory_' + str(i).zfill(8)
+    if (i + 1) == 100 or (i + 1) % 10000 == 9100 or (i + 1) % 10000 == 0:
+        video_name = 'trajectory_' + str(i).zfill(9)
         utility_funcs.make_video_from_image_dir(video_path, image_path, fps=args.fps, video_name=video_name)
         # Clean up images
         for single_image_name in os.listdir(image_path):

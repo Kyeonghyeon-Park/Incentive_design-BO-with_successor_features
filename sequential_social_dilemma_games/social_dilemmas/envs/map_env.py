@@ -1236,24 +1236,3 @@ class MapEnvModified(MapEnv):
                         visible_agent_id.append(agent.agent_id)
             return visible_agent_id
 
-    def render(self, filename=None, i=0):
-        """
-        Creates an image of the map to plot or save.
-        In addition to the original render, it contains the title with the current number of step
-
-        Args
-        ----
-        filename: str
-            If a string is passed, will save the image to disk at this location.
-        i: int
-            Current number of step. It will be the title of this image
-        """
-        rgb_arr = self.full_map_to_colors()
-        title = 'step='+str(i).zfill(9)
-        plt.cla()
-        plt.title(title, loc='right', pad=10)
-        plt.imshow(rgb_arr, interpolation="nearest")
-        if filename is None:
-            plt.show()
-        else:
-            plt.savefig(filename)
