@@ -468,18 +468,18 @@ class CleanupEnvModified(MapEnvModified):
         """
         rgb_arr = self.full_map_to_colors()
         step = 'step='+str(i).zfill(9)
-        waste_spawn_prob = 'waste_spawn_prob=' + '{prob:.2f}'.format(prob=self.current_waste_spawn_prob)
-        apple_spawn_prob = 'apple_spawn_prob=' + '{prob:.2f}'.format(prob=self.current_apple_spawn_prob)
+        waste_spawn_prob = 'waste_spawn_prob=' + '{prob:.4f}'.format(prob=self.current_waste_spawn_prob)
+        apple_spawn_prob = 'apple_spawn_prob=' + '{prob:.4f}'.format(prob=self.current_apple_spawn_prob)
         texts = [step, waste_spawn_prob, apple_spawn_prob]
 
         fig = plt.figure()
-        spec = gridspec.GridSpec(nrows=1, ncols=2,width_ratios=[2, 1])
+        spec = gridspec.GridSpec(nrows=1, ncols=2, width_ratios=[2, 1])
         fig_graph = fig.add_subplot(spec[0])
         fig_graph.imshow(rgb_arr, interpolation="nearest")
         fig_status = fig.add_subplot(spec[1])
         fig_status.axis('off')
         for i in range(len(texts)):
-            fig_status.text(0.1, 0.95 - 0.1 * i, texts[i], horizontalalignment='left', verticalalignment='center',
+            fig_status.text(0, 0.95 - 0.1 * i, texts[i], horizontalalignment='left', verticalalignment='center',
                             transform=fig_status.transAxes)
         if filename is None:
             plt.show()
