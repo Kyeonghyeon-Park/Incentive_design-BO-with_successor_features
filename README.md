@@ -18,6 +18,8 @@ Based on the above conditions, `map_env.py`, `cleanup.py`, `agent.py`, `env_crea
 
 In addition, `test_envs.py` is modified for testing the modified cleanup environment.
 
+You can change the value of `appleRespawnProbability`(also `wasteSpawnProbability`) in `cleanup.py`.
+
 ### Lower level
 
 For now (210712), I'm currently working on the lower level process. 
