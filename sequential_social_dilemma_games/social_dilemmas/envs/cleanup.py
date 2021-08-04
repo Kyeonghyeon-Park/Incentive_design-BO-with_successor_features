@@ -301,11 +301,18 @@ class CleanupEnvModified(MapEnvModified):
 
     @property
     def action_space(self):
-        # PKH : return the Discrete class (class from gym), Discrete.sample() -> return randint
-        # Unlike the original action_space, we will (or possibly) decrease the possible actions
-        # ex. remove rotation, remove fire_beam, etc.
-        # Therefore, action_space should consider the varying number of actions rather than the fixed number
-        # Previously, action_space returns DiscreteWithDType(9, dtype=np.uint8)
+        """
+        Return the Discrete class (class from gym), Discrete.sample() -> return randint
+        Unlike the original action_space, we will (or possibly) decrease the possible actions
+        ex. remove rotation, remove fire_beam, etc.
+        Therefore, action_space should consider the varying number of actions rather than the fixed number
+        Previously, action_space returns DiscreteWithDType(9, dtype=np.uint8)
+
+        Returns
+        -------
+        object : Discrete
+            The Discrete class (class from gym)
+        """
         return DiscreteWithDType(len(self.all_actions), dtype=np.uint8)
 
     def custom_reset(self):
