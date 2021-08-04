@@ -1236,3 +1236,92 @@ class MapEnvModified(MapEnv):
                         visible_agent_id.append(agent.agent_id)
             return visible_agent_id
 
+    def update_map_fire(
+        self,
+        firing_pos,
+        firing_orientation,
+        fire_len,
+        fire_char,
+        cell_types=[],
+        update_char=[],
+        blocking_cells=b"P",
+        beam_width=1,
+    ):
+        #TODO : clean the function after confirming the environmental setting
+        #TODO : if beam_width is not 1, we should decide the beam area if there are blocking cells
+        """
+        This function is the temporary function for 3x3 grid beam
+        After we confirm the environmental setting (e.g. remove orientation, fire_beam, beam_width or other things),
+        arguments of this function should be changed
+
+        Notes:
+            (1) Beams are blocked by agents
+            (2) When the agent shoot the beam, this beam affects to the area around his position (3x3)
+                ###
+                #P#
+                ###
+            (2) If a beam hits a cell whose character is in cell_types, it replaces it with
+                the corresponding index in update_char
+            (4) This method updates the beam_pos, an internal representation of how
+                which cells need to be rendered with fire_char in the agent view
+
+        Parameters
+        ----------
+        firing_pos: (list)
+            the row, col from which the beam is fired
+        firing_orientation: (string)
+            the direction the beam is to be fired in
+        fire_len: (int)
+            the number of cells forward to fire
+        fire_char: (bytes)
+            the cell that should be placed where the beam goes
+        cell_types: (list of bytes)
+            the cells that are affected by the beam
+        update_char: (list of bytes)
+            the character that should replace the affected cells.
+        blocking_cells: (list of bytes)
+            cells that block the firing beam
+        beam_width: (int)
+            beam width
+        Returns
+        -------
+        updates: (tuple (row, col, char))
+            the cells that have been hit by the beam and what char will be placed there
+        """
+        agent_by_pos = {tuple(agent.pos): agent_id for agent_id, agent in self.agents.items()}
+        start_pos = np.asarray(firing_pos)
+
+        firing_points = []
+        updates = []
+        beam_range = np.arange(-beam_width, beam_width + 1)
+
+        next_cells = []
+        for i in beam_range:
+            for j in beam_range:
+                next_cells.append(start_pos + np.array([i, j]))
+
+        for next_cell in next_cells:
+            # Check this beam position is valid
+            if self.test_if_in_bounds(next_cell) and self.world_map[next_cell[0], next_cell[1]] != b"@":
+                firing_points.append((next_cell[0], next_cell[1], fire_char))
+                # Update the cell if needed
+                for c in range(len(cell_types)):
+                    if self.world_map[next_cell[0], next_cell[1]] == cell_types[c]:
+                        updates.append((next_cell[0], next_cell[1], update_char[c]))
+                        break
+
+                # agents absorb beams
+                # activate the agents hit function if needed
+                if [next_cell[0], next_cell[1]] in self.agent_pos:
+                    agent_id = agent_by_pos[(next_cell[0], next_cell[1])]
+                    self.agents[agent_id].hit(fire_char)
+
+                # check if the cell blocks beams. For example, waste blocks beams.
+                if self.world_map[next_cell[0], next_cell[1]] in blocking_cells:
+                    continue
+
+            else:
+                continue
+
+        self.beam_pos += firing_points
+        return updates
