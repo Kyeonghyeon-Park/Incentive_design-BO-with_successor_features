@@ -189,6 +189,35 @@ def draw_or_save_plt(outcome, mode='draw', filename=''):
         raise ValueError
 
 
+def draw_or_save_plt_new(collective_rewards, mode='draw', filename=''):
+    """
+    Draw or save the graph of collective rewards
+
+    Parameters
+    ----------
+    collective_rewards : numpy.ndarray
+        Array of collective reward for each episode
+    mode : str
+        'draw' if we want to draw the figure
+        'save' if we want to save the figure
+    filename : str
+        path name for saving the figure
+    """
+    plt.figure(figsize=(16, 14))
+    plt.plot(collective_rewards, label='Collective rewards')
+    plt.ylim([0, np.max(collective_rewards) + 1])
+    plt.xlabel('Episodes (1000 steps per episode)', fontsize=20)
+    plt.ylabel('Collective rewards per episode', fontsize=20)
+    plt.legend(loc='lower right')
+    plt.grid()
+    if mode == 'draw':
+        plt.show()
+    elif mode == 'save':
+        plt.savefig(filename)
+    else:
+        raise ValueError
+
+
 def save_data(args, env, buffers, time_trained, rewards, networks, path, name):
     """
     Function which saves several data
@@ -222,6 +251,23 @@ def save_data(args, env, buffers, time_trained, rewards, networks, path, name):
         'opt_actor': actor_opt_params,
         'opt_psi': psi_opt_params,
         'opt_critic': critic_opt_params,
+    }, path + name)
+
+
+def save_data_new(args, env, time_trained, collective_rewards, networks, path, name):
+    actor_params = networks.actor.state_dict()
+    actor_opt_params = networks.actor_opt.state_dict()
+    critic_params = networks.critic.state_dict()
+    critic_opt_params = networks.critic_opt.state_dict()
+    torch.save({
+        'args': args,
+        'env': env,
+        'time_trained': time_trained,
+        'collective_rewards': collective_rewards,
+        'actor': actor_params,
+        'actor_opt': actor_opt_params,
+        'critic': critic_params,
+        'critic_opt': critic_opt_params,
     }, path + name)
 
 

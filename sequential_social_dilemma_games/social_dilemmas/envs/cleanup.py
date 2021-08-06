@@ -1,17 +1,22 @@
 import random
 
+from gym.spaces import Box
+from matplotlib import gridspec
+import matplotlib.pyplot as plt
 import numpy as np
 from numpy.random import rand
-import matplotlib.pyplot as plt
-from matplotlib import gridspec
 
 from social_dilemmas.envs.agent import CleanupAgent, CleanupAgentModified
 from social_dilemmas.envs.gym.discrete_with_dtype import DiscreteWithDType
 from social_dilemmas.envs.map_env import MapEnv, MapEnvModified
 from social_dilemmas.maps import CLEANUP_MAP
 
+# TODO : build feature_space
+# For now, we use observation_dim for our network
+
 # Add custom actions to the agent
-_CLEANUP_ACTIONS = {"FIRE": 5, "CLEAN": 5}  # length of firing beam, length of cleanup beam
+# _CLEANUP_ACTIONS = {"FIRE": 5, "CLEAN": 5}  # length of firing beam, length of cleanup beam
+_CLEANUP_ACTIONS = {"FIRE": 5}  # length of firing beam, length of cleanup beam
 
 # Custom colour dictionary
 # PKH : Original one but colors were wrong
@@ -237,12 +242,7 @@ class CleanupEnvModified(MapEnvModified):
     ):
         self.lv_penalty = lv_penalty
         self.lv_incentive = lv_incentive
-        self.observation_dim = np.array([
-            2 * CLEANUP_VIEW_SIZE + 1,
-            2 * CLEANUP_VIEW_SIZE + 1,
-            max(SYMBOL_TO_NUM_CLEANUP.values()) + 1
-        ])
-        self.feature_dim = 2  # TODO : get feature dim from the agent's feature
+
         super().__init__(
             ascii_map,
             _CLEANUP_ACTIONS,
@@ -294,26 +294,65 @@ class CleanupEnvModified(MapEnvModified):
 
         self.color_map.update(CLEANUP_COLORS)
 
+    def reset(self):
+        obs = super().reset()
+        obs = self.map_to_idx(obs)
+
+        return obs
+
     def step(self, actions):
-        obs, rew, dons, info, fea, exp_color, exp_symbol = super().step(actions)
-        exp_idx = self.map_to_idx(exp_symbol)
-        return obs, rew, dons, info, fea, exp_color, exp_idx
+        obs, act, rew, m_act, n_obs, fea = super().step(actions)
+        obs = self.map_to_idx(obs)
+        n_obs = self.map_to_idx(n_obs)
+
+        return obs, act, rew, m_act, n_obs, fea
 
     @property
     def action_space(self):
         """
-        Return the Discrete class (class from gym), Discrete.sample() -> return randint
-        Unlike the original action_space, we will (or possibly) decrease the possible actions
+        Return the Discrete class (class from gym), Discrete.sample() -> return randint.
+        Unlike the original action_space, we will (or possibly) decrease the possible actions.
         ex. remove rotation, remove fire_beam, etc.
-        Therefore, action_space should consider the varying number of actions rather than the fixed number
-        Previously, action_space returns DiscreteWithDType(9, dtype=np.uint8)
+        Therefore, action_space should consider the varying number of actions rather than the fixed number.
+        Previously, action_space returns DiscreteWithDType(9, dtype=np.uint8).
 
         Returns
         -------
         object : Discrete
-            The Discrete class (class from gym)
+            The Discrete class (class from gym).
         """
         return DiscreteWithDType(len(self.all_actions), dtype=np.uint8)
+
+    def observation_space(self):
+        """
+        Return the Box class (class from gym), Box.shape -> return shape.
+        Unlike the original observation_space, we don't use rgb representation.
+        We will use SYMBOL_TO_NUM_CLEANUP to build the observation.
+        Therefore, obs_space = Box(low=0, high=5, shape=(2 * self.view_len + 1, 2 * self.view_len + 1),dtype=np.unit8)
+
+        Returns
+        -------
+        obs_space : Box
+            The Box class (class from gym).
+        """
+        obs_space = Box(
+            low=0,
+            high=5,
+            shape=(2 * self.view_len + 1, 2 * self.view_len + 1),
+            dtype=np.uint8,
+        )
+        return obs_space
+
+    # TODO : build feature_space
+    def feature_space(self):
+        """
+        Return the class (maybe Box).
+
+        Returns
+        -------
+        feature_space
+        """
+        raise NotImplementedError
 
     def custom_reset(self):
         """Initialize the walls and the waste"""
@@ -328,7 +367,7 @@ class CleanupEnvModified(MapEnvModified):
     def custom_action(self, agent, action):
         """Allows agents to take actions that are not move or turn"""
         updates = []
-        if action == "FIRE":  # PKH : put self.all_actions["FIRE"] into fire_len, current value is 5
+        if action == "TEMP":  # PKH : put self.all_actions["FIRE"] into fire_len, current value is 5
             agent.fire_beam(b"F")
             updates = self.update_map_fire(
                 agent.pos.tolist(),
@@ -337,7 +376,7 @@ class CleanupEnvModified(MapEnvModified):
                 fire_char=b"F",
             )
 
-        elif action == "CLEAN":
+        elif action == "CLEAN" or action == "FIRE":
             agent.fire_beam(b"C")
             updates = self.update_map_fire(
                 agent.pos.tolist(),
@@ -370,9 +409,6 @@ class CleanupEnvModified(MapEnvModified):
             agent_id = "agent-" + str(i)
             spawn_point = self.spawn_point()
             rotation = self.spawn_rotation()
-            # grid = util.return_view(map_with_agents, spawn_point,
-            #                         CLEANUP_VIEW_SIZE, CLEANUP_VIEW_SIZE)
-            # agent = CleanupAgent(agent_id, spawn_point, rotation, grid)
             agent = CleanupAgentModified(
                 agent_id, spawn_point, rotation, map_with_agents, view_len=CLEANUP_VIEW_SIZE,
                 lv_penalty=self.lv_penalty, lv_incentive=self.lv_incentive,
@@ -438,7 +474,11 @@ class CleanupEnvModified(MapEnvModified):
     def single_map_to_idx(self, grid):
         """
         Get a 2D array of numbers representing the map
-        Symbols(b' ', b'@', ...) will be changed into numbers using SYMBOL_TO_NUM
+        Symbols(b' ', b'@', ...) will be changed into numbers using SYMBOL_TO_NUM_CLEANUP
+
+        Parameters
+        -------
+        grid
 
         Returns
         -------
@@ -456,14 +496,27 @@ class CleanupEnvModified(MapEnvModified):
 
         return grid_idx
 
-    def map_to_idx(self, exp_symbol):
-        for agent in exp_symbol:
-            obs_grid = exp_symbol[agent]['observation']
-            exp_symbol[agent]['observation'] = self.single_map_to_idx(obs_grid)
-            next_obs_grid = exp_symbol[agent]['next_observation']
-            exp_symbol[agent]['next_observation'] = self.single_map_to_idx(next_obs_grid)
-        exp_idx = exp_symbol
-        return exp_idx
+    def map_to_idx(self, grids):
+        """
+        Get a Dict of 2D arrays.
+        Each key of grids is the agent_id.
+        2D arrays are filled with numbers and represents the grids.
+        Symbols(b' ', b'@', ...) will be changed into numbers using SYMBOL_TO_NUM_CLEANUP
+
+        Parameters
+        ----------
+        grids
+
+        Returns
+        -------
+        grids_idx : Dict
+            Dict of 2D arrays
+        """
+        grids_idx = dict()
+        for agent_id in grids.keys():
+            grids_idx[agent_id] = self.single_map_to_idx(grids[agent_id])
+
+        return grids_idx
 
     def render(self, filename=None, i=0):
         """

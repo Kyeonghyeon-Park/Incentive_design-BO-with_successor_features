@@ -30,16 +30,18 @@ parser.add_argument("--buffer_size", type=int, default=1024, help="Buffer size")
 # Setting for the save
 parser.add_argument("--fps", type=int, default=3, help="Frame per second for videos")
 parser.add_argument("--setting_name", type=str, default='setting_0', help="Setting name for the current setup")
+parser.add_argument("--description", type=str, default='Experiment', help="Description for this experiment (setting)")
 
 args = parser.parse_args()
 
 # Our setting
-args.setting_name = 'setting_3'
+args.description = 'Experiment for testing the new beam (3x3 grid beam)'
+args.setting_name = 'setting_6'
 args.env = 'cleanup_modified'
 args.num_agents = 3  # Maximum 10 agents
 # args.lv_penalty = 0.5
 # args.lv_incentive = 0.3
-args.horizon = 200000
+args.horizon = 400000
 args.h_dims_a = [64, 32, 16]
 args.h_dims_c = [128, 64, 32]
 args.lr_a = 0.0001

@@ -11,8 +11,8 @@ BASE_ACTIONS = {
     2: "MOVE_UP",  # Move up
     3: "MOVE_DOWN",  # Move down
     4: "STAY",  # don't move
-    5: "TURN_CLOCKWISE",  # Rotate counter clockwise
-    6: "TURN_COUNTERCLOCKWISE",
+    # 5: "TURN_CLOCKWISE",  # Rotate counter clockwise
+    # 6: "TURN_COUNTERCLOCKWISE",
 }  # Rotate clockwise
 
 
@@ -192,7 +192,8 @@ class HarvestAgent(Agent):
 
 
 CLEANUP_ACTIONS = BASE_ACTIONS.copy()
-CLEANUP_ACTIONS.update({7: "FIRE", 8: "CLEAN"})  # Fire a penalty beam  # Fire a cleaning beam
+# CLEANUP_ACTIONS.update({7: "FIRE", 8: "CLEAN"})  # Fire a penalty beam  # Fire a cleaning beam
+CLEANUP_ACTIONS.update({5: "FIRE"})  # Fire a penalty beam  # Fire a cleaning beam
 
 
 class CleanupAgent(Agent):

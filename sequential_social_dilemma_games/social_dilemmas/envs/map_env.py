@@ -16,8 +16,8 @@ _MAP_ENV_ACTIONS = {
     "MOVE_UP": [-1, 0],  # Move up
     "MOVE_DOWN": [1, 0],  # Move down
     "STAY": [0, 0],  # don't move
-    "TURN_CLOCKWISE": [[0, 1], [-1, 0]],  # Clockwise rotation matrix
-    "TURN_COUNTERCLOCKWISE": [[0, -1], [1, 0]],
+    # "TURN_CLOCKWISE": [[0, 1], [-1, 0]],  # Clockwise rotation matrix
+    # "TURN_COUNTERCLOCKWISE": [[0, -1], [1, 0]],
 }  # Counter clockwise rotation matrix
 # Positive Theta is in the counterclockwise direction
 
@@ -910,15 +910,40 @@ class MapEnvModified(MapEnv):
         for agent in self.agents.values():
             self.prev_mean_action[agent.agent_id] = np.zeros(self.action_space.n)
 
+    def spawn_rotation(self):
+        """Return a fixed initial rotation for an agent"""
+        return "UP"
+
     def reset(self):
         """
-        Reset the modified environment
-        In addition to original reset, we have to reset prev_mean_action
+        Reset the environment.
+        This method is performed in between rollouts. It resets the state of the environment.
+
+        Returns
+        -------
+        observations : dict
+            Dict of arrays representing observations of agents.
+            Each array is filled with symbols.
+            This will be changed into numbers in cleanup.py.
+            Each observation is ndarray and size of it is (2 * self.view_len + 1, 2 * self.view_len + 1)
         """
-        observations = super().reset()
+        self.beam_pos = []
+        self.agents = {}
+        self.setup_agents()
+        self.reset_map()
+        self.custom_map_update()
         self.prev_mean_action = dict()
+
+        observations = {}
+
+        map_with_agents = self.get_map_with_agents()
         for agent in self.agents.values():
             self.prev_mean_action[agent.agent_id] = np.zeros(self.action_space.n)
+
+            agent.full_map = map_with_agents
+            sym_arr = self.symbol_view_ind(agent)  # individual observation of world full_map (rotated, symbol map)
+            observations[agent.agent_id] = sym_arr
+
         return observations
 
     def get_map_with_agents_ind_no_beam(self):
@@ -1038,83 +1063,74 @@ class MapEnvModified(MapEnv):
 
         return rotated_view_ind
 
-    def step(self, actions):
-        """Takes in a dict of actions and converts them to a map update
+    def step(self, acts):
+        """
+        Takes in a dict of actions and converts them to a map update.
         e_rgb_arr and e_sym_arr are not same as rgb_arr!!! (e_~~~_arr is the view with indistinguishable agents)
 
         Parameters
         ----------
-        actions: dict {agent-id: int}
-            dict of actions, keyed by agent-id that are passed to the agent. The agent
-            interprets the int and converts it to a command
+        acts: dict
+            dict of actions, keyed by agent-id that are passed to the agent. ({agent-id: int})
+            The agent interprets the int and converts it to a command.
 
         Returns
         -------
-        observations: dict of arrays representing agent observations (not used)
-        rewards: dict of rewards for each agent (not used)
-        dones: dict indicating whether each agent is done (not used)
-        info: dict to pass extra info to gym (not used)
-        features: dict of features for each agent (not used)
-        experiences_color: dict of experiences for each agent (based on rgb representation) (not used)
-            (observation, action, reward, mean action, next observation, feature)
-        experiences_symbol : dict of experiences for each agent (based on symbol representation)
+        observations : dict
+            Dict of arrays representing observations of agents.
+            Each array is filled with symbols.
+            This will be changed into numbers in cleanup.py.
+        actions : dict
+            Dict of numbers representing actions of agents.
+            ex. {'agent-0': 5, ...}
+        rewards : dict
+            Dict of numbers representing actions of agents.
+            ex. {'agent-0': 1, ...}
+        mean_actions : dict
+            Dict of arrays representing actions of agents.
+            ex. {'agent-0': np.zeros(self.action_space.n), ...}
+        next_observations : dict
+            Dict of arrays representing next observations of agents.
+            Each array is filled with symbols.
+            This will be changed into numbers in cleanup.py.
+        features : dict
+            Dict of arrays representing features of agents.
+            ex. {'agent-0': np.array([0, 0]), ...}
         """
+        observations = {}
+        actions = copy.deepcopy(acts)
+        rewards = {}
+        mean_actions = {}
+        next_observations = {}
+        features = {}
 
-        experiences_color = {}
-        experiences_symbol = {}
-        e_actions = copy.deepcopy(actions)
         for agent in self.agents.values():
-            e_rgb_arr = self.color_view_ind(agent)
-            e_sym_arr = self.symbol_view_ind(agent)
-            e_visible_agents_id = self.find_visible_agents(agent.agent_id, find_other_id=True)
-            # print(e_visible_agents_id)
-            action_dim = self.action_space.n
-            try:
-                e_action = e_actions[agent.agent_id]
-            except KeyError:
-                e_action = None
-            e_mean_action = np.zeros(action_dim)
-            if len(e_visible_agents_id) != 0:
-                for other_agent_id in e_visible_agents_id:
-                    try:
-                        other_agent_action = e_actions[other_agent_id]
-                        e_mean_action[other_agent_action] += 1 / len(e_visible_agents_id)
-                    except KeyError:
-                        pass
-            # print(e_mean_action)
-            self.prev_mean_action[agent.agent_id] = e_mean_action
-            experiences_color[agent.agent_id] = {
-                "observation": e_rgb_arr,
-                "action": e_action,
-                "reward": "define later",
-                "mean_action": e_mean_action,
-                "next_observation": "define later",
-                "feature": "define later",
-            }
-            experiences_symbol[agent.agent_id] = {
-                "observation": e_sym_arr,
-                "action": e_action,
-                "reward": "define later",
-                "mean_action": e_mean_action,
-                "next_observation": "define later",
-                "feature": "define later",
-            }
+            sym_arr = self.symbol_view_ind(agent)  # individual observation of world full_map (rotated, symbol map)
+            visible_agents_id = self.find_visible_agents(agent.agent_id, find_other_id=True)
+            mean_action = np.zeros(self.action_space.n)
+            if len(visible_agents_id) != 0:
+                for other_agent_id in visible_agents_id:
+                    other_action = actions[other_agent_id]
+                    mean_action[other_action] += 1 / len(visible_agents_id)
+            self.prev_mean_action[agent.agent_id] = mean_action
+            observations[agent.agent_id] = sym_arr
+            mean_actions[agent.agent_id] = mean_action
 
         self.beam_pos = []
-        agent_actions = {}
+        actions_str = {}
         for agent_id, action in actions.items():  # PKH : ex. agent_id : 'agent-0', action : 0
             agent_action = self.agents[agent_id].action_map(action)  # PKH : changed into CLEANUP_ACTIONS[action_number]
-            agent_actions[agent_id] = agent_action
+            actions_str[agent_id] = agent_action
 
         # Remove agents from color map
-        # PKH : env.agents : dict format, values() : each agent (CleanupAgent object)
+        # PKH : env.agents : dict, values() : each agent (CleanupAgent object)
         for agent in self.agents.values():
             row, col = agent.pos[0], agent.pos[1]
             self.single_update_world_color_map(row, col, self.world_map[row, col])
-            # PKH : self.world_map : map with no agent (should check)
+            # PKH : self.world_map : map with no agent (should check again)
             # PKH : self.world_map_color : color map with padding and agents
 
-        self.update_moves(agent_actions)
+        self.update_moves(actions_str)
 
         # PKH : if agent consumes apple, the symbol of that place will be changed into b' '
         for agent in self.agents.values():
@@ -1123,7 +1139,7 @@ class MapEnvModified(MapEnv):
             self.single_update_map(pos[0], pos[1], new_char)
 
         # execute custom moves like firing
-        self.update_custom_moves(agent_actions)
+        self.update_custom_moves(actions_str)
         # PKH : updates = self.custom_action(agent, action)
         # PKH : L agent.fire_beam(b"F")
         # PKH :   L if char == b"F": self.reward_this_turn -= 1
@@ -1144,55 +1160,19 @@ class MapEnvModified(MapEnv):
             if self.world_map[row, col] not in [b"F", b"C"]:
                 self.single_update_world_color_map(row, col, agent.get_char_id())
 
-        observations = {}
-        rewards = {}
-        features = {}
-        dones = {}
-        info = {}
         for agent in self.agents.values():
             agent.full_map = map_with_agents  # PKH : full_map : self.world_map + agents' char_ids
-            rgb_arr = self.color_view(agent)  # PKH : individual observation of world full_map (rotated, color map)
-            e_rgb_arr_next_obs = self.color_view_ind(agent)
-            e_sym_arr_next_obs = self.symbol_view_ind(agent)
-            # concatenate on the prev_actions to the observations
-            if self.return_agent_actions:
-                prev_actions = np.array(
-                    [actions[key] for key in sorted(actions.keys()) if key != agent.agent_id]
-                ).astype(np.uint8)
-                visible_agents = self.find_visible_agents(agent.agent_id)
-                observations[agent.agent_id] = {
-                    "curr_obs": rgb_arr,
-                    "other_agent_actions": prev_actions,
-                    "visible_agents": visible_agents,
-                    "prev_visible_agents": agent.prev_visible_agents,
-                }
-                agent.prev_visible_agents = visible_agents
-            else:
-                observations[agent.agent_id] = {"curr_obs": rgb_arr}
+            sym_arr_n_obs = self.symbol_view_ind(agent)
 
             rewards[agent.agent_id] = agent.compute_reward()
+            next_observations[agent.agent_id] = sym_arr_n_obs
             features[agent.agent_id] = agent.compute_feature()
-            experiences_color[agent.agent_id]["reward"] = rewards[agent.agent_id]
-            experiences_color[agent.agent_id]["feature"] = features[agent.agent_id]
-            experiences_color[agent.agent_id]["next_observation"] = e_rgb_arr_next_obs
-            experiences_symbol[agent.agent_id]["reward"] = rewards[agent.agent_id]
-            experiences_symbol[agent.agent_id]["feature"] = features[agent.agent_id]
-            experiences_symbol[agent.agent_id]["next_observation"] = e_sym_arr_next_obs
 
-            dones[agent.agent_id] = agent.get_done()
-
-        if self.use_collective_reward:
-            collective_reward = sum(rewards.values())
-            for agent in rewards.keys():
-                rewards[agent] = collective_reward
-
-        dones["__all__"] = np.any(list(dones.values()))
-
-        return observations, rewards, dones, info, features, experiences_color, experiences_symbol
+        return observations, actions, rewards, mean_actions, next_observations, features
 
     def find_visible_agents(self, agent_id, find_other_id=False):
         """
-        Returns all the agents that can be seen by agent with agent_id
+        Returns all the agents that can be seen by agent with agent_id.
 
         Args
         ----
