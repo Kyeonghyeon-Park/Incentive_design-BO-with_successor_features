@@ -22,7 +22,7 @@ Notes
 '''
 
 
-def roll_out(networks, env, args, init_obs, epi_num, epi_length, is_draw=False):
+def roll_out(networks, env, args, init_obs, epi_num, epi_length, decayed_eps, is_draw=False):
     """
     Run the simulation over epi_length and get samples from it.
 
@@ -67,7 +67,11 @@ def roll_out(networks, env, args, init_obs, epi_num, epi_length, is_draw=False):
 
     # Run the simulation (or episode).
     for i in range(epi_length):
-        act = networks.get_actions(obs, prev_m_act)
+        rand_prob = np.random.rand(1)[0]
+        if rand_prob < decayed_eps:
+            act = {agent_ids[j]: np.random.randint(networks.action_size) for j in range(len(agent_ids))}
+        else:
+            act = networks.get_actions(obs, prev_m_act)
         obs, act, rew, m_act, n_obs, fea = env.step(act)
 
         # Add one-transition sample to samples and update the collective_reward.
@@ -118,8 +122,7 @@ init_obs = env.reset()
 # Build networks
 networks = Networks(env, args)
 
-# Exploration probability
-# TODO : if we don't use the exploration for actor-critic, remove this.
+# Initial exploration probability
 eps = args.epsilon
 
 # Build paths for saving images.
@@ -153,20 +156,22 @@ buffer = []
 utility_funcs.make_setting_txt(args, path)
 
 # Run
-# TODO : 4 -> args.episode_num
-for i in range(4):
+for i in range(args.episode_num):
     # Option for visualization.
-    # TODO : change False -> True, decide record frequency
-    is_draw = False if (i == 0 or (i + 1) % 10) else False
+    is_draw = True if (i == 0 or (i + 1) % args.save_freq == 0) else False
+
+    # Decayed exploration probability
+    decayed_eps = eps - eps * 0.98 * i / args.episode_num * args.mode_epsilon_decay
 
     # Run roll_out function.
     # We can get 1,000 samples and collective reward for this episode.
-    samples, init_obs, collective_reward = roll_out(networks,
-                                                    env,
-                                                    args,
-                                                    init_obs,
+    samples, init_obs, collective_reward = roll_out(networks=networks,
+                                                    env=env,
+                                                    args=args,
+                                                    init_obs=init_obs,
                                                     epi_num=i,
                                                     epi_length=args.episode_length,
+                                                    decayed_eps=decayed_eps,
                                                     is_draw=is_draw,
                                                     )
 
@@ -179,7 +184,6 @@ for i in range(4):
         print(f"Updating networks...")
         k_samples = random.choices(buffer, k=args.K)
         networks.update_networks(k_samples)
-        raise NotImplementedError
 
     # Update target networks
     if (i + 1) % args.update_freq_target == 0:
@@ -195,7 +199,7 @@ for i in range(4):
         utility_funcs.draw_or_save_plt_new(collective_rewards, mode='draw')
 
     # Save several things
-    if (i + 1) % 500 == 0:
+    if (i + 1) % args.save_freq == 0:
         time_trained = time.time() - time_start
         filename = str(i).zfill(9) + '.tar'
         filename_plt = saved_path + 'collective_rewards_' + str(i).zfill(9) + '.png'
@@ -208,108 +212,3 @@ for i in range(4):
                                      networks=networks,
                                      path=saved_path,
                                      name=filename)
-
-
-
-
-
-
-
-
-
-
-for i in range(horizon):
-    agents = list(env.agents.values())
-    agents_actions_dict = dict()
-    for agent in agents:
-        # Action selection for agents
-        exploration = np.random.rand(1)[0]
-        decayed_epsilon = epsilon - epsilon * 0.98 * i / horizon * args.mode_epsilon_decay
-        if exploration < decayed_epsilon:
-            action = np.random.randint(networks.action_dim)
-        else:
-            observation = env.single_map_to_idx(env.symbol_view_ind(agent))
-            prev_mean_action = env.prev_mean_action[agent.agent_id]
-            action = networks.get_action(observation, prev_mean_action, is_target=True)
-        agents_actions_dict[agent.agent_id] = action
-
-    obs, rew, dons, info, fea, exp_color, exp_idx = env.step(agents_actions_dict)
-
-    # Update metrics
-    collective_reward = 0
-    for agent_id in exp_idx.keys():
-        prev_cum_reward = 0 if i == 0 else rewards[agent_id][-1]
-        curr_reward = exp_idx[agent_id]['reward']
-        rewards[agent_id].append(prev_cum_reward + curr_reward)
-        collective_reward = collective_reward + curr_reward
-
-    prev_cum_collective_reward = 0 if i == 0 else rewards['collective_reward'][-1]
-    rewards['collective_reward'].append(prev_cum_collective_reward + collective_reward)
-
-    sys.stdout.flush()
-
-    # For visualization
-    if image_path is not None:
-        filename = image_path + "frame" + str(i).zfill(9) + ".png"
-        if (i < 100) or (9000 <= i % 10000 < 9100) or (9900 <= i % 10000 < 10000):
-            env.render(filename=filename, i=i)
-
-    # Add samples to buffer
-    buffers.append(exp_idx)
-    buffers = buffers[-args.buffer_size:]
-
-    # Update networks
-    if (i + 1) % 5 == 0:
-        samples = random.choices(buffers, k=args.K)
-        networks.update_networks(samples)
-
-    # Update target networks
-    if (i + 1) % 50 == 0:
-        networks.update_target_networks()
-
-    # Print status
-    if (i + 1) % 10 == 0:
-        print('Process : {i}/{horizon}, '
-              'Time : {time:.2f}, '
-              'Collective reward: {reward}'.format(i=str(i),
-                                                   horizon=str(horizon),
-                                                   time=time.time() - time_start,
-                                                   reward=str(rewards['collective_reward'][-1]),
-                                                   ))
-
-    # Draw collective reward
-    if (i + 1) % 100 == 0:
-        utility_funcs.draw_or_save_plt(rewards['collective_reward'], mode='draw')
-
-    # Get videos
-    if (i + 1) == 100 or (i + 1) % 10000 == 9100 or (i + 1) % 10000 == 0:
-        video_name = 'trajectory_' + str(i).zfill(9)
-        utility_funcs.make_video_from_image_dir(video_path, image_path, fps=args.fps, video_name=video_name)
-        # Clean up images
-        for single_image_name in os.listdir(image_path):
-            single_image_path = os.path.join(image_path, single_image_name)
-            try:
-                if os.path.isfile(single_image_path) or os.path.islink(single_image_path):
-                    os.unlink(single_image_path)
-            except Exception as e:
-                print('Failed to delete %s. Reason: %s' % (single_image_path, e))
-        # shutil.rmtree(image_path)
-
-    # Save several things
-    if (i + 1) % 10000 == 0:
-        time_trained = time.time() - time_start
-        filename = str(i).zfill(9) + '.tar'
-        filename_plt = saved_path + 'collective_reward_' + str(i).zfill(9) + '.png'
-        utility_funcs.draw_or_save_plt(rewards['collective_reward'], mode='save', filename=filename_plt)
-        utility_funcs.save_data(args=args,
-                                env=env,
-                                buffers=buffers,
-                                time_trained=time_trained,
-                                rewards=rewards,
-                                networks=networks,
-                                path=saved_path,
-                                name=filename)
-
-    # Reset the environment
-    if (i + 1) % args.episode_length == 0:
-        _ = env.reset()
