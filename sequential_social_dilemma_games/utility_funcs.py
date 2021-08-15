@@ -254,6 +254,36 @@ def save_data(args, env, buffers, time_trained, rewards, networks, path, name):
     }, path + name)
 
 
+def save_data_test(args, env, time_trained, collective_rewards, networks, path, name):
+    """
+    Function which saves several data
+    """
+    actor_params, actor_opt_params, critic_params, critic_opt_params, psi_params, psi_opt_params = [None] * 6
+
+    if args.mode_ac:
+        actor_params = networks.actor.state_dict()
+        actor_opt_params = networks.actor_opt.state_dict()
+    if args.mode_psi:
+        psi_params = networks.psi.state_dict()
+        psi_opt_params = networks.psi_opt.state_dict()
+    else:
+        critic_params = networks.critic.state_dict()
+        critic_opt_params = networks.critic_opt.state_dict()
+
+    torch.save({
+        'args': args,
+        'env': env,
+        'time_trained': time_trained,
+        'collective_rewards': collective_rewards,
+        'actor': actor_params,
+        'actor_opt': actor_opt_params,
+        'psi': psi_params,
+        'psi_opt': psi_opt_params,
+        'critic': critic_params,
+        'critic_opt': critic_opt_params,
+    }, path + name)
+
+
 def save_data_new(args, env, time_trained, collective_rewards, networks, path, name):
     actor_params = networks.actor.state_dict()
     actor_opt_params = networks.actor_opt.state_dict()
