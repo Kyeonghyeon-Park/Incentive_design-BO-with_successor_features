@@ -603,10 +603,14 @@ class Networks(object):
             critic_loss.backward()
             self.critic_opt.step()
 
+    def update_target_network(self, network, target_network):
+        for param, target_param in zip(network.parameters(), target_network.parameters()):
+            target_param.data.copy_(param.data * self.args.tau + target_param.data * (1.0 - self.args.tau))
+
     def update_target_networks(self):
         if self.args.mode_ac:
-            self.actor_target = copy.deepcopy(self.actor)
+            self.update_target_network(self.actor, self.actor_target)
         if self.args.mode_psi:
-            self.psi_target = copy.deepcopy(self.psi)
+            self.update_target_network(self.psi, self.psi_target)
         else:
-            self.critic_target = copy.deepcopy(self.critic)
+            self.update_target_network(self.critic, self.critic_target)

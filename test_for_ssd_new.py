@@ -179,9 +179,8 @@ for i in range(args.episode_num):
     collective_rewards[i] = collective_reward
     buffer = buffer[-args.buffer_size:]
 
-    # Update networks and target networks
+    # Update networks
     if (i + 1) % args.update_freq == 0:
-        print(f"Updating networks...")
         k_samples = random.choices(buffer, k=args.K)
         networks.update_networks(k_samples)
 
@@ -190,9 +189,11 @@ for i in range(args.episode_num):
         networks.update_target_networks()
 
     # Print status
+    update = "O" if (i + 1) % args.update_freq == 0 else "X"
     print(f"Process : {i}/{args.episode_num}, "
           f"Time : {time.time() - time_start:.2f}, "
-          f"Collective reward : {collective_rewards[i]}")
+          f"Collective reward : {collective_rewards[i]}, "
+          f"Update : {update}")
 
     # Draw collective rewards
     if (i + 1) % 20 == 0:
@@ -206,7 +207,6 @@ for i in range(args.episode_num):
         utility_funcs.draw_or_save_plt_new(collective_rewards, mode='save', filename=filename_plt)
         utility_funcs.save_data_test(args=args,
                                      env=env,
-                                     buffer=buffer,
                                      time_trained=time_trained,
                                      collective_rewards=collective_rewards,
                                      networks=networks,

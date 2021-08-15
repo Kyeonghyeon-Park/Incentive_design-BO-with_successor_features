@@ -41,8 +41,11 @@ def add_default_args(parser):
     parser.add_argument("--buffer_size", type=int, default=10000, help="Maximum buffer size.")
     parser.add_argument("--update_freq", type=int, default=5,
                         help="Update frequency of networks (unit : episode).")
+    # TODO : If we do soft update, we don't need this anymore
     parser.add_argument("--update_freq_target", type=int, default=50,
                         help="Update frequency of target networks (unit : episode).")
+    parser.add_argument("--tau", type=float, default=0.01,
+                        help="Learning rate of target networks. If tau is 1, it is hard update.")
 
     # Setting for the save
     parser.add_argument("--fps", type=int, default=3, help="Frame per second for videos")
@@ -69,8 +72,9 @@ add_default_args(parser)
 args = parser.parse_args()
 
 # Our setting
-args.description = 'Experiment for testing the new code with exploration.'
-args.setting_name = 'setting_8'
+args.description = 'Experiment for testing the new code. ' \
+                   'Soft update is built.'
+args.setting_name = 'setting_12'
 args.env = 'cleanup_modified'
 args.num_agents = 3  # Maximum 10 agents
 # args.lv_penalty = 0.5
@@ -79,9 +83,12 @@ args.h_dims_a = [64, 32, 16]
 args.h_dims_c = [128, 64, 32]
 args.lr_a = 0.0001
 args.lr_c = 0.001
-args.episode_num = 10000
+args.episode_num = 20000
 args.epsilon = 0.95
-args.buffer_size = 1000000
+args.buffer_size = 5000000
+args.update_freq = 1
+args.update_target_freq = 1
+
 
 # Validate setting
 validate_setting(args)
