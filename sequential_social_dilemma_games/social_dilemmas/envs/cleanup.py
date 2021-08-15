@@ -11,9 +11,6 @@ from social_dilemmas.envs.gym.discrete_with_dtype import DiscreteWithDType
 from social_dilemmas.envs.map_env import MapEnv, MapEnvModified
 from social_dilemmas.maps import CLEANUP_MAP
 
-# TODO : build feature_space
-# For now, we use observation_dim for our network
-
 # Add custom actions to the agent
 # _CLEANUP_ACTIONS = {"FIRE": 5, "CLEAN": 5}  # length of firing beam, length of cleanup beam
 _CLEANUP_ACTIONS = {"FIRE": 5}  # length of firing beam, length of cleanup beam
@@ -323,6 +320,7 @@ class CleanupEnvModified(MapEnvModified):
         """
         return DiscreteWithDType(len(self.all_actions), dtype=np.uint8)
 
+    @property
     def observation_space(self):
         """
         Return the Box class (class from gym), Box.shape -> return shape.
@@ -344,15 +342,23 @@ class CleanupEnvModified(MapEnvModified):
         return obs_space
 
     # TODO : build feature_space
+    @property
     def feature_space(self):
         """
-        Return the class (maybe Box).
+        Return the Box class (class from gym), Box.shape -> return shape.
 
         Returns
         -------
-        feature_space
+        feature_space : Box
+            The Box class (class from gym).
         """
-        raise NotImplementedError
+        fea_space = Box(
+            low=0,
+            high=1,
+            shape=(2,),
+            dtype=np.uint8,
+        )
+        return fea_space
 
     def custom_reset(self):
         """Initialize the walls and the waste"""
