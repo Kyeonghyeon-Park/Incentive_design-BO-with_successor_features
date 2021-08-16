@@ -159,7 +159,7 @@ def draw_rgb_array(rgb_array):
     plt.show()
 
 
-def draw_or_save_plt(outcome, mode='draw', filename=''):
+def draw_or_save_plt_v1(outcome, mode='draw', filename=''):
     """
     Draw or save the graph of cumulative collective rewards
 
@@ -189,7 +189,7 @@ def draw_or_save_plt(outcome, mode='draw', filename=''):
         raise ValueError
 
 
-def draw_or_save_plt_new(collective_rewards, mode='draw', filename=''):
+def draw_or_save_plt_v2(collective_rewards, mode='draw', filename=''):
     """
     Draw or save the graph of collective rewards
 
@@ -204,7 +204,8 @@ def draw_or_save_plt_new(collective_rewards, mode='draw', filename=''):
         path name for saving the figure
     """
     plt.figure(figsize=(16, 14))
-    plt.plot(collective_rewards, label='Collective rewards')
+    x = np.arange(collective_rewards.size)
+    plt.scatter(x, collective_rewards, label='Collective rewards')
     plt.ylim([0, np.max(collective_rewards) + 1])
     plt.xlabel('Episodes (1000 steps per episode)', fontsize=20)
     plt.ylabel('Collective rewards per episode', fontsize=20)
@@ -218,7 +219,56 @@ def draw_or_save_plt_new(collective_rewards, mode='draw', filename=''):
         raise ValueError
 
 
-def save_data(args, env, buffers, time_trained, rewards, networks, path, name):
+def draw_or_save_plt_v3(collective_rewards, i=0, mode='draw', filename=''):
+    """
+    Draw or save the graph of collective rewards
+
+    Parameters
+    ----------
+    collective_rewards : numpy.ndarray
+        Array of collective reward for each episode
+    i : int
+        Number of finished episodes
+    mode : str
+        'draw' if we want to draw the figure
+        'save' if we want to save the figure
+    filename : str
+        path name for saving the figure
+    """
+
+    rew = collective_rewards[:i+1]
+    moving_avg_len = 10
+    means = np.zeros(rew.size)
+    stds = np.zeros(rew.size)
+    for j in range(rew.size):
+        if j + 1 < moving_avg_len:
+            rew_part = rew[:j + 1]
+        else:
+            rew_part = rew[j - moving_avg_len + 1:j + 1]
+        means[j] = np.mean(rew_part)
+        stds[j] = np.std(rew_part)
+
+    plt.figure(figsize=(16, 14))
+
+    x = np.arange(rew.size)
+
+    plt.plot(x, means, label='Moving avg. of collective rewards')
+    plt.fill_between(x, means - stds, means + stds, color=(0.85, 0.85, 1))
+    plt.scatter(x, rew, label='Collective rewards')
+    plt.ylim([0, np.max(rew) + 1])
+    plt.xlabel('Episodes (1000 steps per episode)', fontsize=20)
+    plt.ylabel('Collective rewards per episode', fontsize=20)
+    plt.legend(loc='lower right')
+    plt.grid()
+    if mode == 'draw':
+        plt.show()
+    elif mode == 'save':
+        plt.savefig(filename)
+    else:
+        raise ValueError
+
+
+def save_data_v1(args, env, buffers, time_trained, rewards, networks, path, name):
     """
     Function which saves several data
     """
@@ -254,7 +304,24 @@ def save_data(args, env, buffers, time_trained, rewards, networks, path, name):
     }, path + name)
 
 
-def save_data_test(args, env, time_trained, collective_rewards, networks, path, name):
+def save_data_v2(args, env, time_trained, collective_rewards, networks, path, name):
+    actor_params = networks.actor.state_dict()
+    actor_opt_params = networks.actor_opt.state_dict()
+    critic_params = networks.critic.state_dict()
+    critic_opt_params = networks.critic_opt.state_dict()
+    torch.save({
+        'args': args,
+        'env': env,
+        'time_trained': time_trained,
+        'collective_rewards': collective_rewards,
+        'actor': actor_params,
+        'actor_opt': actor_opt_params,
+        'critic': critic_params,
+        'critic_opt': critic_opt_params,
+    }, path + name)
+
+
+def save_data_v3(args, env, episode_trained, decayed_eps, time_trained, collective_rewards, networks, path, name):
     """
     Function which saves several data
     """
@@ -273,29 +340,14 @@ def save_data_test(args, env, time_trained, collective_rewards, networks, path, 
     torch.save({
         'args': args,
         'env': env,
+        'episode_trained': episode_trained,
         'time_trained': time_trained,
+        'decayed_eps': decayed_eps,
         'collective_rewards': collective_rewards,
         'actor': actor_params,
         'actor_opt': actor_opt_params,
         'psi': psi_params,
         'psi_opt': psi_opt_params,
-        'critic': critic_params,
-        'critic_opt': critic_opt_params,
-    }, path + name)
-
-
-def save_data_new(args, env, time_trained, collective_rewards, networks, path, name):
-    actor_params = networks.actor.state_dict()
-    actor_opt_params = networks.actor_opt.state_dict()
-    critic_params = networks.critic.state_dict()
-    critic_opt_params = networks.critic_opt.state_dict()
-    torch.save({
-        'args': args,
-        'env': env,
-        'time_trained': time_trained,
-        'collective_rewards': collective_rewards,
-        'actor': actor_params,
-        'actor_opt': actor_opt_params,
         'critic': critic_params,
         'critic_opt': critic_opt_params,
     }, path + name)
