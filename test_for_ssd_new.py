@@ -48,11 +48,17 @@ def roll_out(networks, env, args, init_obs, epi_num, epi_length, decayed_eps, is
         Initial observation of agents after reset().
     collective_reward : int
         Collective reward of this episode.
+    collective_feature
+        Collective feature of this episode.
+        This is used for calculating total_incentives (if env=cleanup) and total_penalties
+        If env=cleanup, np.array([x, x]).
+        If env=harvest, x.
     """
     agent_ids = list(env.agents.keys())
     prev_steps = epi_num * epi_length
     samples = [None] * epi_length
     collective_reward = 0
+    collective_feature = np.zeros([0, 0]) if args.env == 'cleanup_modified' else 0
 
     # TODO : we can move init_m_act into env.reset()
     init_m_act = {agent_id: np.zeros(env.action_space.n) for agent_id in agent_ids}
@@ -78,6 +84,7 @@ def roll_out(networks, env, args, init_obs, epi_num, epi_length, decayed_eps, is
         # Add one-transition sample to samples and update the collective_reward.
         samples[i] = (obs, act, rew, m_act, n_obs, fea)
         collective_reward += sum(rew[agent_id] for agent_id in agent_ids)
+        collective_feature += sum(fea[agent_id] for agent_id in agent_ids)
 
         sys.stdout.flush()
 
@@ -107,7 +114,7 @@ def roll_out(networks, env, args, init_obs, epi_num, epi_length, decayed_eps, is
     # Reset the environment after roll_out.
     init_obs = env.reset()
 
-    return samples, init_obs, collective_reward
+    return samples, init_obs, collective_reward, collective_feature
 
 
 # Seed setting.
@@ -145,6 +152,8 @@ if not os.path.exists(saved_path):
 
 # Metrics
 collective_rewards = np.zeros(args.episode_num)
+total_penalties = np.zeros(args.episode_num)
+total_incentives = np.zeros(args.episode_num)
 time_start = time.time()
 
 # Save current setting(args) to txt for easy check
@@ -166,18 +175,24 @@ for i in range(args.episode_num):
 
     # Run roll_out function.
     # We can get 1,000 samples and collective reward for this episode.
-    samples, init_obs, collective_reward = roll_out(networks=networks,
-                                                    env=env,
-                                                    args=args,
-                                                    init_obs=init_obs,
-                                                    epi_num=i,
-                                                    epi_length=args.episode_length,
-                                                    decayed_eps=decayed_eps,
-                                                    is_draw=is_draw,
-                                                    )
+    samples, init_obs, collective_reward, collective_feature = roll_out(networks=networks,
+                                                                        env=env,
+                                                                        args=args,
+                                                                        init_obs=init_obs,
+                                                                        epi_num=i,
+                                                                        epi_length=args.episode_length,
+                                                                        decayed_eps=decayed_eps,
+                                                                        is_draw=is_draw,
+                                                                        )
 
     buffer += samples
     collective_rewards[i] = collective_reward
+    if args.env == 'cleanup_modified':
+        total_penalties[i] = collective_feature[0] * args.lv_penalty
+        total_incentives[i] = collective_feature[1] * args.lv_incentive
+    else:
+        total_penalties[i] = collective_feature * args.lv_penalty
+
     buffer = buffer[-args.buffer_size:]
 
     # Update networks
