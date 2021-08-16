@@ -328,6 +328,10 @@ class Networks(object):
             self.observation_size = np.prod(env.observation_space.shape)
         self.action_size = env.action_space.n
         self.feature_size = np.prod(env.feature_space.shape)
+        if self.args.env == 'cleanup_modified':
+            self.w = torch.tensor([1 - self.args.lv_penalty, self.args.lv_incentive], dtype=torch.float)
+        else:
+            self.w = torch.tensor(1 - self.args.lv_penalty, dtype=torch.float)
 
         if self.args.mode_ac:
             self.actor = Actor(self.observation_size, self.action_size, self.feature_size, self.args.h_dims_a)
@@ -551,11 +555,8 @@ class Networks(object):
         with torch.no_grad():
             # Get q values from the psi/critic target network
             if self.args.mode_psi:
-                # TODO
-                # psi_target = self.psi_target(obs, m_act)
-                # multiply w
-                # get q_target
-                raise NotImplementedError
+                psi_target = self.psi_target(obs, m_act)  # Shape : (N, action_size, feature_size)
+                q_target = torch.tensordot(psi_target, self.w, dims=([2], [0]))  # Shape : (N, action_size)
             else:
                 q_target = self.critic_target(obs, m_act)  # Shape : (N, action_size)
             # Get action probabilities from the actor target network
@@ -576,10 +577,33 @@ class Networks(object):
         return actor_loss
 
     def calculate_psi_loss(self, tensors):
-        # TODO
+        obs = tensors['obs']
+        act = tensors['act']  # Shape : (N, )
+        m_act = tensors['m_act']
+        n_obs = tensors['n_obs']
+        fea = tensors['fea']
+
         with torch.no_grad():
-            pass
-        raise NotImplementedError
+            # Get psi values from the psi target network
+            psi_target_n = self.psi_target(n_obs, m_act)  # (N, action_size, feature_size)
+
+            # Get action probabilities from the actor target network or the Boltzmann policy (N, action_size)
+            if self.args.mode_ac:
+                act_probs_target_n = self.actor_target(n_obs)
+            else:
+                act_probs_target_n = self.get_boltzmann_policy(psi_target_n)
+
+            # Get expected psi using psi and action probabilities
+            expected_psi_target_n = torch.bmm(act_probs_target_n.unsqueeze(1), psi_target_n)  # (N, 1, feature_size)
+            expected_psi_target_n = expected_psi_target_n.squeeze()  # (N, feature_size)
+
+        # Get psi loss
+        psi = self.psi(obs, m_act)  # (N, action_size, feature_size)
+        psi = psi[torch.arange(psi.size(0)), act]  # (N, feature_size)
+        psi_loss = (fea + expected_psi_target_n - psi) ** 2  # (N, feature_size)
+        psi_loss = torch.mean(psi_loss, dim=0)  # (feature_size, )
+
+        return psi_loss
 
     def calculate_critic_loss(self, tensors):
         obs = tensors['obs']
@@ -588,7 +612,7 @@ class Networks(object):
         m_act = tensors['m_act']
         n_obs = tensors['n_obs']
         with torch.no_grad():
-            # Get q values from the psi/critic target network
+            # Get q values from the critic target network
             q_target_n = self.critic_target(n_obs, m_act)
 
             # Get action probabilities from the actor target network or the Boltzmann policy
