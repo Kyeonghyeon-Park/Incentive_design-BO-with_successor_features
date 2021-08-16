@@ -58,7 +58,7 @@ def roll_out(networks, env, args, init_obs, epi_num, epi_length, decayed_eps, is
     prev_steps = epi_num * epi_length
     samples = [None] * epi_length
     collective_reward = 0
-    collective_feature = np.zeros([0, 0]) if args.env == 'cleanup_modified' else 0
+    collective_feature = np.array([0, 0]) if args.env == 'cleanup_modified' else 0
 
     # TODO : we can move init_m_act into env.reset()
     init_m_act = {agent_id: np.zeros(env.action_space.n) for agent_id in agent_ids}

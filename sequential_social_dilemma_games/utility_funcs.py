@@ -237,7 +237,7 @@ def draw_or_save_plt_v3(collective_rewards, i=0, mode='draw', filename=''):
     """
 
     rew = collective_rewards[:i+1]
-    moving_avg_len = 10
+    moving_avg_len = 20
     means = np.zeros(rew.size)
     stds = np.zeros(rew.size)
     for j in range(rew.size):

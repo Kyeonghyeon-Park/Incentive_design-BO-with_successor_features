@@ -341,7 +341,6 @@ class CleanupEnvModified(MapEnvModified):
         )
         return obs_space
 
-    # TODO : build feature_space
     @property
     def feature_space(self):
         """

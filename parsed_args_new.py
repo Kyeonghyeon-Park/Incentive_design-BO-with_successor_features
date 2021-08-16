@@ -75,8 +75,9 @@ args = parser.parse_args()
 
 # Our setting
 args.description = 'Experiment for testing the new code. ' \
-                   'Beam width is 2.' \
-                   'Moving average is added to the graph.'
+                   'Beam width is 2. ' \
+                   'Moving average is added to the graph. ' \
+                   'Update target frequency 50 is changed into 1. '
 args.setting_name = 'setting_14'
 args.env = 'cleanup_modified'
 args.num_agents = 3  # Maximum 10 agents
@@ -90,7 +91,7 @@ args.episode_num = 100000
 args.epsilon = 0.95
 args.buffer_size = 5000000
 args.update_freq = 1
-args.update_target_freq = 1
+args.update_freq_target = 1
 
 
 # Validate setting
