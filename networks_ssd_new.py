@@ -320,10 +320,15 @@ class Networks(object):
     """
 
     def __init__(self, env, args):
-        self.observation_size = np.prod(env.observation_space.shape)
+        self.args = args
+        self.observation_num_classes = env.observation_space.high.max() + 1
+        if self.args.mode_one_hot_obs:
+            self.observation_size = np.prod(env.observation_space.shape) * self.observation_num_classes
+        else:
+            self.observation_size = np.prod(env.observation_space.shape)
         self.action_size = env.action_space.n
         self.feature_size = np.prod(env.feature_space.shape)
-        self.args = args
+
         if self.args.mode_ac:
             self.actor = Actor(self.observation_size, self.action_size, self.feature_size, self.args.h_dims_a)
             self.actor.apply(init_weights)
@@ -447,6 +452,7 @@ class Networks(object):
     def to_tensors(self, obs=None, act=None, rew=None, m_act=None, n_obs=None, fea=None):
         """
         Make list of inputs to tensors.
+        If args.mode_one_hot_obs, observations will be changed into one-hot encoded version.
 
         Parameters
         ----------
@@ -473,13 +479,22 @@ class Networks(object):
         -------
         tensors : dict
             Dict of tensors which are tensor versions of obs, act, rew, m_act, n_obs, fea
+            ex. shape of tensors['obs'] = (N, observation_size: 15 * 15 * 6)
         """
         tensors = {i: None for i in ['obs', 'act', 'rew', 'm_act', 'n_obs', 'fea']}
 
         if obs is not None:
-            obs_tensor = torch.tensor(obs, dtype=torch.float)
-            obs_tensor = obs_tensor.view(-1, self.observation_size)  # Shape should be (N, observation_size)
-            tensors['obs'] = obs_tensor
+            if self.args.mode_one_hot_obs:
+                # F.one_hot takes tensor with index values of shape (*) and returns a tensor of shape (*, num_classes)
+                obs_tensor = torch.tensor(obs, dtype=torch.int64)
+                obs_tensor = F.one_hot(obs_tensor, num_classes=self.observation_num_classes)
+                obs_tensor = obs_tensor.type(torch.float)
+                obs_tensor = obs_tensor.view(-1, self.observation_size)  # Shape should be (N, observation_size)
+                tensors['obs'] = obs_tensor
+            else:
+                obs_tensor = torch.tensor(obs, dtype=torch.float)
+                obs_tensor = obs_tensor.view(-1, self.observation_size)  # Shape should be (N, observation_size)
+                tensors['obs'] = obs_tensor
         if act is not None:
             act_tensor = torch.tensor(act)  # Shape should be (N, )
             tensors['act'] = act_tensor
@@ -498,9 +513,17 @@ class Networks(object):
             mean_act_tensor = mean_act_tensor.view(-1, self.action_size)  # Shape should be (N, action_size)
             tensors['m_act'] = mean_act_tensor
         if n_obs is not None:
-            n_obs_tensor = torch.tensor(n_obs, dtype=torch.float)
-            n_obs_tensor = n_obs_tensor.view(-1, self.observation_size)  # Shape should be (N, observation_size)
-            tensors['n_obs'] = n_obs_tensor
+            if self.args.mode_one_hot_obs:
+                # F.one_hot takes tensor with index values of shape (*) and returns a tensor of shape (*, num_classes)
+                n_obs_tensor = torch.tensor(n_obs, dtype=torch.int64)
+                n_obs_tensor = F.one_hot(n_obs_tensor, num_classes=self.observation_num_classes)
+                n_obs_tensor = n_obs_tensor.type(torch.float)
+                n_obs_tensor = n_obs_tensor.view(-1, self.observation_size)  # Shape should be (N, observation_size)
+                tensors['n_obs'] = n_obs_tensor
+            else:
+                n_obs_tensor = torch.tensor(n_obs, dtype=torch.float)
+                n_obs_tensor = n_obs_tensor.view(-1, self.observation_size)  # Shape should be (N, observation_size)
+                tensors['n_obs'] = n_obs_tensor
         if fea is not None:
             fea_tensor = torch.tensor(fea, dtype=torch.float)
             fea_tensor = fea_tensor.view(-1, self.feature_size)  # Shape should be (N, feature_size)

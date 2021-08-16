@@ -34,6 +34,7 @@ def roll_out(networks, env, args, init_obs, epi_num, epi_length, decayed_eps, is
     init_obs
     epi_num
     epi_length
+    decayed_eps
     is_draw
 
     Returns
@@ -197,18 +198,20 @@ for i in range(args.episode_num):
 
     # Draw collective rewards
     if (i + 1) % 20 == 0:
-        utility_funcs.draw_or_save_plt_new(collective_rewards, mode='draw')
+        utility_funcs.draw_or_save_plt_v3(collective_rewards, i=i, mode='draw')
 
     # Save several things
     if (i + 1) % args.save_freq == 0:
         time_trained = time.time() - time_start
         filename = str(i).zfill(9) + '.tar'
         filename_plt = saved_path + 'collective_rewards_' + str(i).zfill(9) + '.png'
-        utility_funcs.draw_or_save_plt_new(collective_rewards, mode='save', filename=filename_plt)
-        utility_funcs.save_data_test(args=args,
-                                     env=env,
-                                     time_trained=time_trained,
-                                     collective_rewards=collective_rewards,
-                                     networks=networks,
-                                     path=saved_path,
-                                     name=filename)
+        utility_funcs.draw_or_save_plt_v3(collective_rewards, i=i, mode='save', filename=filename_plt)
+        utility_funcs.save_data_v3(args=args,
+                                   env=env,
+                                   episode_trained=i,
+                                   decayed_eps=decayed_eps,
+                                   time_trained=time_trained,
+                                   collective_rewards=collective_rewards,
+                                   networks=networks,
+                                   path=saved_path,
+                                   name=filename)

@@ -46,6 +46,8 @@ def add_default_args(parser):
                         help="Update frequency of target networks (unit : episode).")
     parser.add_argument("--tau", type=float, default=0.01,
                         help="Learning rate of target networks. If tau is 1, it is hard update.")
+    parser.add_argument("--mode_one_hot_obs", type=bool, default=True,
+                        help="True if we use one-hot encoded observations.")
 
     # Setting for the save
     parser.add_argument("--fps", type=int, default=3, help="Frame per second for videos")
@@ -54,7 +56,7 @@ def add_default_args(parser):
 
     # TODO : remove this (This task have low priorities)
     # Deprecated arguments (only works for building the environment.)
-    parser.add_argument("--use_collective_reward", action="store_true",default=False,
+    parser.add_argument("--use_collective_reward", action="store_true", default=False,
                         help="Train using collective reward instead of individual reward.",)
 
 
@@ -73,17 +75,18 @@ args = parser.parse_args()
 
 # Our setting
 args.description = 'Experiment for testing the new code. ' \
-                   'Soft update is built.'
-args.setting_name = 'setting_12'
+                   'Beam width is 2.' \
+                   'Moving average is added to the graph.'
+args.setting_name = 'setting_14'
 args.env = 'cleanup_modified'
 args.num_agents = 3  # Maximum 10 agents
 # args.lv_penalty = 0.5
 # args.lv_incentive = 0.3
-args.h_dims_a = [64, 32, 16]
-args.h_dims_c = [128, 64, 32]
+args.h_dims_a = [128, 64, 32, 16]
+args.h_dims_c = [256, 128, 64, 32]
 args.lr_a = 0.0001
 args.lr_c = 0.001
-args.episode_num = 20000
+args.episode_num = 100000
 args.epsilon = 0.95
 args.buffer_size = 5000000
 args.update_freq = 1
