@@ -529,6 +529,7 @@ class Networks(object):
                 n_obs_tensor = n_obs_tensor.view(-1, self.observation_size)  # Shape should be (N, observation_size)
                 tensors['n_obs'] = n_obs_tensor
         if fea is not None:
+            fea = np.asarray(fea)
             fea_tensor = torch.tensor(fea, dtype=torch.float)
             fea_tensor = fea_tensor.view(-1, self.feature_size)  # Shape should be (N, feature_size)
             tensors['fea'] = fea_tensor

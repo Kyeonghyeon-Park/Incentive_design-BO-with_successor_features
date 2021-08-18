@@ -3,10 +3,10 @@ import math
 import numpy as np
 from ray.rllib.agents.callbacks import DefaultCallbacks
 
-from social_dilemmas.envs.agent import SwitchAgent
-from social_dilemmas.envs.gym.discrete_with_dtype import DiscreteWithDType
-from social_dilemmas.envs.map_env import MapEnv
-from social_dilemmas.maps import SwitchMapElements
+from sequential_social_dilemma_games.social_dilemmas.envs.agent import SwitchAgent
+from sequential_social_dilemma_games.social_dilemmas.envs.gym.discrete_with_dtype import DiscreteWithDType
+from sequential_social_dilemma_games.social_dilemmas.envs.map_env import MapEnv
+from sequential_social_dilemma_games.social_dilemmas.maps import SwitchMapElements
 
 # Add custom actions to the agent
 _SWITCH_ACTIONS = {"TOGGLE_SWITCH": 1}  # distance at which switch can be pulled

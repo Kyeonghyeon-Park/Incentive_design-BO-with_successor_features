@@ -252,8 +252,8 @@ def draw_or_save_plt_v3(collective_rewards, i=0, mode='draw', filename=''):
 
     x = np.arange(rew.size)
 
-    plt.plot(x, means, label='Moving avg. of collective rewards')
-    plt.fill_between(x, means - stds, means + stds, color=(0.85, 0.85, 1))
+    plt.plot(x, means, label='Moving avg. of collective rewards', color=(0, 1, 0))
+    plt.fill_between(x, means - stds, means + stds, color=(0.85, 1, 0.85))
     plt.scatter(x, rew, label='Collective rewards')
     plt.ylim([0, np.max(rew) + 1])
     plt.xlabel('Episodes (1000 steps per episode)', fontsize=20)
@@ -370,3 +370,22 @@ def make_setting_txt(args, path):
         content = arg + ': ' + str(getattr(args, arg)) + '\n'
         f.write(content)
     f.close()
+
+
+def make_dirs(args):
+    path = "results_ssd/" + args.setting_name
+    if path is None:
+        path = os.path.abspath(os.path.dirname(__file__)) + "/results_ssd" + args.setting_name
+        if not os.path.exists(path):
+            os.makedirs(path)
+    image_path = os.path.join(path, "frames/")
+    if not os.path.exists(image_path):
+        os.makedirs(image_path)
+    video_path = os.path.join(path, "videos/")
+    if not os.path.exists(video_path):
+        os.makedirs(video_path)
+    saved_path = os.path.join(path, "saved/")
+    if not os.path.exists(saved_path):
+        os.makedirs(saved_path)
+
+    return path, image_path, video_path, saved_path

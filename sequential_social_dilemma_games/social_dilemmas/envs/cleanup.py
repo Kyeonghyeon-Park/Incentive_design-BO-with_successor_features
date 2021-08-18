@@ -6,10 +6,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 from numpy.random import rand
 
-from social_dilemmas.envs.agent import CleanupAgent, CleanupAgentModified
-from social_dilemmas.envs.gym.discrete_with_dtype import DiscreteWithDType
-from social_dilemmas.envs.map_env import MapEnv, MapEnvModified
-from social_dilemmas.maps import CLEANUP_MAP
+from sequential_social_dilemma_games.social_dilemmas.envs.agent import CleanupAgent, CleanupAgentModified
+from sequential_social_dilemma_games.social_dilemmas.envs.gym.discrete_with_dtype import DiscreteWithDType
+from sequential_social_dilemma_games.social_dilemmas.envs.map_env import MapEnv, MapEnvModified
+from sequential_social_dilemma_games.social_dilemmas.maps import CLEANUP_MAP
 
 # Add custom actions to the agent
 # _CLEANUP_ACTIONS = {"FIRE": 5, "CLEAN": 5}  # length of firing beam, length of cleanup beam
@@ -335,7 +335,7 @@ class CleanupEnvModified(MapEnvModified):
         """
         obs_space = Box(
             low=0,
-            high=5,
+            high=max(SYMBOL_TO_NUM_CLEANUP.values()),
             shape=(2 * self.view_len + 1, 2 * self.view_len + 1),
             dtype=np.uint8,
         )
@@ -414,10 +414,14 @@ class CleanupEnvModified(MapEnvModified):
             agent_id = "agent-" + str(i)
             spawn_point = self.spawn_point()
             rotation = self.spawn_rotation()
-            agent = CleanupAgentModified(
-                agent_id, spawn_point, rotation, map_with_agents, view_len=CLEANUP_VIEW_SIZE,
-                lv_penalty=self.lv_penalty, lv_incentive=self.lv_incentive,
-            )
+            agent = CleanupAgentModified(agent_id,
+                                         spawn_point,
+                                         rotation,
+                                         map_with_agents,
+                                         view_len=CLEANUP_VIEW_SIZE,
+                                         lv_penalty=self.lv_penalty,
+                                         lv_incentive=self.lv_incentive,
+                                         )
             self.agents[agent_id] = agent  # agent is added to dict
 
     def spawn_apples_and_waste(self):

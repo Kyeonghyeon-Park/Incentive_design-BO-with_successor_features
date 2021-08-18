@@ -1227,42 +1227,41 @@ class MapEnvModified(MapEnv):
         blocking_cells=b"P",
         beam_width=1,
     ):
-        #TODO : clean the function after confirming the environmental setting
-        #TODO : if beam_width is not 1, we should decide the beam area if there are blocking cells
         """
-        This function is the temporary function for 3x3 grid beam
-        After we confirm the environmental setting (e.g. remove orientation, fire_beam, beam_width or other things),
-        arguments of this function should be changed
+        This function is for our new grid beam.
+        Fire beam in the harvest environment doesn't have cell_types, update_char, and blocking_cells (They only have fire_char).
 
         Notes:
-            (1) Beams are blocked by agents
-            (2) When the agent shoot the beam, this beam affects to the area around his position (3x3)
-                ###
-                #P#
-                ###
-            (2) If a beam hits a cell whose character is in cell_types, it replaces it with
-                the corresponding index in update_char
+            (1) Beams are not blocked by agents.
+            (2) When the agent shoot the beam, this beam affects to the area around his position.
+                                        #####
+                ###                     #####
+                #P# if beam_width=1     ##P## if beam_width=2
+                ###                     #####
+                                        #####
+            (3) If a beam hits a cell whose character is in cell_types, it replaces it with
+                the corresponding index in update_char.
             (4) This method updates the beam_pos, an internal representation of how
-                which cells need to be rendered with fire_char in the agent view
+                which cells need to be rendered with fire_char in the agent view.
 
         Parameters
         ----------
         firing_pos: (list)
             the row, col from which the beam is fired
         firing_orientation: (string)
-            the direction the beam is to be fired in
+            the direction the beam is to be fired in. Not used.
         fire_len: (int)
-            the number of cells forward to fire
+            the number of cells forward to fire. Not used.
         fire_char: (bytes)
-            the cell that should be placed where the beam goes
+            the cell that should be placed where the beam goes.
         cell_types: (list of bytes)
-            the cells that are affected by the beam
+            the cells that are affected by the beam.
         update_char: (list of bytes)
             the character that should replace the affected cells.
         blocking_cells: (list of bytes)
-            cells that block the firing beam
+            cells that block the firing beam.
         beam_width: (int)
-            beam width
+            beam width.
         Returns
         -------
         updates: (tuple (row, col, char))

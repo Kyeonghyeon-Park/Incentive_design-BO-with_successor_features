@@ -7,19 +7,17 @@ import time
 import numpy as np
 import torch
 
-# import pathmagic
 from networks_ssd_new import Networks
 from parsed_args_new import args
-from social_dilemmas.envs.env_creator import get_env_creator
-import utility_funcs
+from sequential_social_dilemma_games.social_dilemmas.envs.env_creator import get_env_creator
+import sequential_social_dilemma_games.utility_funcs as utility_funcs
 
-'''
+"""
 Notes
 
-01) You should set sequential_social_dilemma_games to source root to avoid errors
-    If you can't, try "import pathmagic"    
-02) You will run this 'test_for_ssd.py' file but you should change settings in 'parsed_args.py'
-'''
+01) You will run this 'test_for_ssd_new.py' file but you should change settings in 'parsed_args_new.py'
+
+"""
 
 
 def roll_out(networks, env, args, init_obs, epi_num, epi_length, decayed_eps, is_draw=False):
@@ -134,26 +132,12 @@ networks = Networks(env, args)
 eps = args.epsilon
 
 # Build paths for saving images.
-# TODO : move it to the function.
-path = "results_ssd/" + args.setting_name
-if path is None:
-    path = os.path.abspath(os.path.dirname(__file__)) + "/results_ssd" + args.setting_name
-    if not os.path.exists(path):
-        os.makedirs(path)
-image_path = os.path.join(path, "frames/")
-if not os.path.exists(image_path):
-    os.makedirs(image_path)
-video_path = os.path.join(path, "videos/")
-if not os.path.exists(video_path):
-    os.makedirs(video_path)
-saved_path = os.path.join(path, "saved/")
-if not os.path.exists(saved_path):
-    os.makedirs(saved_path)
+path, image_path, video_path, saved_path = utility_funcs.make_dirs(args)
 
 # Metrics
 collective_rewards = np.zeros(args.episode_num)
 total_penalties = np.zeros(args.episode_num)
-total_incentives = np.zeros(args.episode_num)
+total_incentives = np.zeros(args.episode_num)  # Only used in cleanup environment.
 time_start = time.time()
 
 # Save current setting(args) to txt for easy check

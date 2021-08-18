@@ -41,7 +41,6 @@ def add_default_args(parser):
     parser.add_argument("--buffer_size", type=int, default=10000, help="Maximum buffer size.")
     parser.add_argument("--update_freq", type=int, default=5,
                         help="Update frequency of networks (unit : episode).")
-    # TODO : If we do soft update, we don't need this anymore
     parser.add_argument("--update_freq_target", type=int, default=50,
                         help="Update frequency of target networks (unit : episode).")
     parser.add_argument("--tau", type=float, default=0.01,
@@ -75,24 +74,21 @@ args = parser.parse_args()
 
 # Our setting
 args.description = 'Experiment for testing the new code. ' \
-                   'Beam width is 2. ' \
-                   'Moving average is added to the graph. ' \
-                   'Update target frequency 50 is changed into 1. '
-args.setting_name = 'setting_14'
+                   'Test the harvest environment.'
+args.setting_name = 'setting_17'
 args.env = 'cleanup_modified'
 args.num_agents = 3  # Maximum 10 agents
 # args.lv_penalty = 0.5
 # args.lv_incentive = 0.3
-args.h_dims_a = [128, 64, 32, 16]
+args.h_dims_a = [256, 128, 64, 32]
 args.h_dims_c = [256, 128, 64, 32]
 args.lr_a = 0.0001
 args.lr_c = 0.001
 args.episode_num = 100000
 args.epsilon = 0.95
-args.buffer_size = 5000000
+args.buffer_size = 2000000
 args.update_freq = 1
 args.update_freq_target = 1
-
 
 # Validate setting
 validate_setting(args)

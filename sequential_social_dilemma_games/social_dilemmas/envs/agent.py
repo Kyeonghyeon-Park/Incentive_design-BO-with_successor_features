@@ -155,8 +155,8 @@ class Agent(object):
 
 
 HARVEST_ACTIONS = BASE_ACTIONS.copy()
-HARVEST_ACTIONS.update({7: "FIRE"})  # Fire a penalty beam
-
+# HARVEST_ACTIONS.update({7: "FIRE"})  # Fire a penalty beam
+HARVEST_ACTIONS.update({5: "FIRE"})  # Fire a penalty beam
 
 class HarvestAgent(Agent):
     def __init__(self, agent_id, start_pos, start_orientation, full_map, view_len):
@@ -191,9 +191,41 @@ class HarvestAgent(Agent):
             return char
 
 
+class HarvestAgentModified(HarvestAgent):
+    def __init__(self, agent_id, start_pos, start_orientation, full_map, view_len, lv_penalty):
+        super().__init__(agent_id, start_pos, start_orientation, full_map, view_len)
+        self.lv_penalty = lv_penalty
+        self.feature_this_turn = np.array(0)
+
+    def compute_feature(self):
+        feature = self.feature_this_turn
+        self.feature_this_turn = np.array(0)
+        return feature
+
+    def fire_beam(self, char):
+        """Fire beam doesn't reduce the agent's reward (and feature)"""
+        pass
+
+    def hit(self, char):
+        """Agent's reward (and feature) doesn't decrease even when the agent is hit by the beam"""
+        pass
+
+    def get_done(self):
+        return False
+
+    def consume(self, char):
+        """Defines how an agent interacts with the char it is standing on"""
+        if char == b"A":
+            self.reward_this_turn += 1 - self.lv_penalty
+            self.feature_this_turn += np.array(1)
+            return b" "
+        else:
+            return char
+
+
 CLEANUP_ACTIONS = BASE_ACTIONS.copy()
 # CLEANUP_ACTIONS.update({7: "FIRE", 8: "CLEAN"})  # Fire a penalty beam  # Fire a cleaning beam
-CLEANUP_ACTIONS.update({5: "FIRE"})  # Fire a penalty beam  # Fire a cleaning beam
+CLEANUP_ACTIONS.update({5: "FIRE"})  # Fire a beam which works as a cleaning beam
 
 
 class CleanupAgent(Agent):
