@@ -644,7 +644,7 @@ class Networks(object):
             self.actor_opt.step()
         if self.args.mode_psi:
             self.psi_opt.zero_grad()
-            psi_loss.backward()
+            psi_loss.backward(torch.ones(self.feature_size.item()))
             self.psi_opt.step()
         else:
             self.critic_opt.zero_grad()
