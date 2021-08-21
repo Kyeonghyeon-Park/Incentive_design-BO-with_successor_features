@@ -318,7 +318,6 @@ class Networks(object):
     """
     Define networks (actor-critic / actor-psi / critic / psi)
     """
-
     def __init__(self, env, args):
         self.args = args
         self.observation_num_classes = env.observation_space.high.max() + 1
@@ -348,6 +347,18 @@ class Networks(object):
             self.critic.apply(init_weights)
             self.critic_target = copy.deepcopy(self.critic)
             self.critic_opt = optim.Adam(self.critic.parameters(), lr=self.args.lr_c)
+
+        self.reuse_networks()
+
+    def reuse_networks(self):
+        if self.args.mode_reuse_networks:
+            prev_dict = torch.load(self.args.file_path)
+            if self.args.mode_ac:
+                self.actor.load_state_dict(prev_dict['actor'])
+            if self.args.mode_psi:
+                self.psi.load_state_dict(prev_dict['psi'])
+            else:
+                self.critic.load_state_dict(prev_dict['critic'])
 
     # TODO : build a Boltzmann policy if we don't use actor-critic or actor-psi
     def get_boltzmann_policy(self, q_values):

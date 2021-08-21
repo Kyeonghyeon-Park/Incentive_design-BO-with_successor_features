@@ -1,4 +1,5 @@
 import argparse
+import torch
 
 
 def add_default_args(parser):
@@ -51,6 +52,11 @@ def add_default_args(parser):
                         help="Learning rate of target networks. If tau is 1, it is hard update.")
     parser.add_argument("--mode_one_hot_obs", type=bool, default=True,
                         help="True if we use one-hot encoded observations.")
+    parser.add_argument("--mode_reuse_networks", type=bool, default=False,
+                        help="True if we reuse other networks for the initialization.")
+    parser.add_argument("--file_path", type=str, default='',
+                        help="File path of the results of other networks. "
+                             "ex. args.file_path='./results_ssd/setting_14/saved/000011999.tar'")
 
     # Setting for the save
     parser.add_argument("--fps", type=int, default=3, help="Frame per second for videos")
@@ -70,6 +76,11 @@ def validate_setting(args):
         assert len(args.h_dims_p) != 0 and args.lr_p != 0, "Psi network setting error."
     else:
         assert len(args.h_dims_c) != 0 and args.lr_c != 0, "Critic network setting error."
+    if args.mode_reuse_networks:
+        prev_dict = torch.load(args.file_path)
+        prev_args = prev_dict['args']
+        is_true = (args.mode_psi == prev_args.mode_psi) and (args.mode_ac == prev_args.mode_ac)
+        assert is_true, "You can not reuse other networks which modes are not matched."
 
 
 parser = argparse.ArgumentParser()
