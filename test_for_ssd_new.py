@@ -260,7 +260,7 @@ for i in range(args.episode_num):
                                           objectives,
                                           objectives_test,
                                           i=i,
-                                          mode='draw',
+                                          mode='save',
                                           filename=filename_plt,
                                           )
         utility_funcs.save_data_v4(args=args,
