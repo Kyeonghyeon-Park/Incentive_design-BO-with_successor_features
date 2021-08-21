@@ -268,6 +268,83 @@ def draw_or_save_plt_v3(collective_rewards, i=0, mode='draw', filename=''):
         raise ValueError
 
 
+def get_figure_components(inputs, i):
+    rew = inputs[:i+1]
+    moving_avg_len = 20
+    means = np.zeros(rew.size)
+    stds = np.zeros(rew.size)
+    for j in range(rew.size):
+        if j + 1 < moving_avg_len:
+            rew_part = rew[:j + 1]
+        else:
+            rew_part = rew[j - moving_avg_len + 1:j + 1]
+        means[j] = np.mean(rew_part)
+        stds[j] = np.std(rew_part)
+    return rew, means, stds
+
+
+def draw_or_save_plt_v4(col_rews, col_rews_test, objs, objs_test, i=0, mode='draw', filename=''):
+    x_axis = np.arange(i+1)
+    y_axis_lim = np.max(objs[:i+1]) + 1
+    y_axis_lim_test = np.max(objs_test[:i+1]) + 1
+    plt.figure(figsize=(16, 14))
+
+    plt.subplot(2, 2, 1)
+    outs, means, stds = get_figure_components(col_rews, i)
+    plt.plot(x_axis, means, label='Moving avg. of collective rewards', color=(0, 1, 0))
+    plt.fill_between(x_axis, means - stds, means + stds, color=(0.85, 1, 0.85))
+    plt.scatter(x_axis, outs, label='Collective rewards')
+    plt.ylim([0, y_axis_lim])
+    plt.xlabel('Episodes (1000 steps per episode)', fontsize=20)
+    plt.ylabel('Collective rewards per episode', fontsize=20)
+    plt.title('Collective rewards (train)', fontdict={'fontsize': 24})
+    plt.legend(loc='upper right', fontsize=14)
+    plt.grid()
+
+    plt.subplot(2, 2, 2)
+    outs, means, stds = get_figure_components(col_rews_test, i)
+    plt.plot(x_axis, means, label='Moving avg. of collective rewards', color=(0, 1, 0))
+    plt.fill_between(x_axis, means - stds, means + stds, color=(0.85, 1, 0.85))
+    plt.scatter(x_axis, outs, label='Collective rewards')
+    plt.ylim([0, y_axis_lim_test])
+    plt.xlabel('Episodes (1000 steps per episode)', fontsize=20)
+    plt.ylabel('Collective rewards per episode', fontsize=20)
+    plt.title('Collective rewards (test)', fontdict={'fontsize': 24})
+    plt.legend(loc='upper right', fontsize=14)
+    plt.grid()
+
+    plt.subplot(2, 2, 3)
+    outs, means, stds = get_figure_components(objs, i)
+    plt.plot(x_axis, means, label='Moving avg. of designer objectives', color=(0, 1, 0))
+    plt.fill_between(x_axis, means - stds, means + stds, color=(0.85, 1, 0.85))
+    plt.scatter(x_axis, outs, label='Designer objectives')
+    plt.ylim([0, y_axis_lim])
+    plt.xlabel('Episodes (1000 steps per episode)', fontsize=20)
+    plt.ylabel('Designer objectives per episode', fontsize=20)
+    plt.title('Designer objectives (train)', fontdict={'fontsize': 24})
+    plt.legend(loc='upper right', fontsize=14)
+    plt.grid()
+
+    plt.subplot(2, 2, 4)
+    outs, means, stds = get_figure_components(objs_test, i)
+    plt.plot(x_axis, means, label='Moving avg. of designer objectives', color=(0, 1, 0))
+    plt.fill_between(x_axis, means - stds, means + stds, color=(0.85, 1, 0.85))
+    plt.scatter(x_axis, outs, label='Designer objectives')
+    plt.ylim([0, y_axis_lim_test])
+    plt.xlabel('Episodes (1000 steps per episode)', fontsize=20)
+    plt.ylabel('Designer objectives per episode', fontsize=20)
+    plt.title('Designer objectives (test)', fontdict={'fontsize': 24})
+    plt.legend(loc='upper right', fontsize=14)
+    plt.grid()
+
+    if mode == 'draw':
+        plt.show()
+    elif mode == 'save':
+        plt.savefig(filename)
+    else:
+        raise ValueError
+
+
 def save_data_v1(args, env, buffers, time_trained, rewards, networks, path, name):
     """
     Function which saves several data
@@ -344,6 +421,38 @@ def save_data_v3(args, env, episode_trained, decayed_eps, time_trained, collecti
         'time_trained': time_trained,
         'decayed_eps': decayed_eps,
         'collective_rewards': collective_rewards,
+        'actor': actor_params,
+        'actor_opt': actor_opt_params,
+        'psi': psi_params,
+        'psi_opt': psi_opt_params,
+        'critic': critic_params,
+        'critic_opt': critic_opt_params,
+    }, path + name)
+
+
+def save_data_v4(args, env, episode_trained, decayed_eps, time_trained, outcomes, networks, path, name):
+    """
+    Function which saves several data
+    """
+    actor_params, actor_opt_params, critic_params, critic_opt_params, psi_params, psi_opt_params = [None] * 6
+
+    if args.mode_ac:
+        actor_params = networks.actor.state_dict()
+        actor_opt_params = networks.actor_opt.state_dict()
+    if args.mode_psi:
+        psi_params = networks.psi.state_dict()
+        psi_opt_params = networks.psi_opt.state_dict()
+    else:
+        critic_params = networks.critic.state_dict()
+        critic_opt_params = networks.critic_opt.state_dict()
+
+    torch.save({
+        'args': args,
+        'env': env,
+        'episode_trained': episode_trained,
+        'time_trained': time_trained,
+        'decayed_eps': decayed_eps,
+        'outcomes': outcomes,
         'actor': actor_params,
         'actor_opt': actor_opt_params,
         'psi': psi_params,

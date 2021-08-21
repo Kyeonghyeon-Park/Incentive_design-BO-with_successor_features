@@ -2,11 +2,13 @@ import argparse
 
 
 def add_default_args(parser):
-    # Initial setting
+    # Setting for the description
     parser.add_argument("--description", type=str, default='Experiment',
                         help="General description for this experiment (or setting). It is only used for the reminder.",)
     parser.add_argument("--setting_name", type=str, default='setting_0',
                         help="Setting name for the current setup. This name will be used for the folder name.",)
+
+    # Setting for the environment
     parser.add_argument("--env", type=str, default="cleanup",
                         help="Name of the environment to use. Can be cleanup_modified or harvest_modified.",)
     parser.add_argument("--num_agents", type=int, default=2, help="Number of agents.")
@@ -15,7 +17,7 @@ def add_default_args(parser):
     parser.add_argument("--lv_penalty", type=float, default=0, help="Penalty level for agents who eat apple.")
     parser.add_argument("--lv_incentive", type=float, default=0, help="Incentive level for agents who clean the river.")
 
-    # Setting for the Networks
+    # Setting for the networks
     parser.add_argument("--mode_ac", type=bool, default=True, help="Mode selection (Actor-critic/psi or critic/psi).")
     parser.add_argument("--mode_psi", type=bool, default=False, help="Mode selection (critic or psi).")
     parser.add_argument("--h_dims_a", type=list, default=[], help="Default layer size for actor hidden layers.")
@@ -35,6 +37,8 @@ def add_default_args(parser):
                         help="True if we do epsilon decay. Not used yet. (Do we need this?)")
     parser.add_argument("--boltz_beta", type=float, default=1,
                         help="Parameter for Boltzmann policy. Not used yet.")
+    parser.add_argument("--mode_test", type=bool, default=False,
+                        help="True if we do test during the learning. It require double time.")
 
     # Setting for the learning
     parser.add_argument("--K", type=int, default=200, help="Number of samples from the buffer.")
@@ -72,20 +76,36 @@ parser = argparse.ArgumentParser()
 add_default_args(parser)
 args = parser.parse_args()
 
-# Our setting
+# Setting for the description
 args.description = 'Experiment for testing the new code. ' \
-                   'Test the harvest environment.'
-args.setting_name = 'setting_17'
+                   'Penalties and incentives are implied. ' \
+                   'Successor feature version.'
+args.setting_name = 'setting_20'
+
+# Setting for the environment
 args.env = 'cleanup_modified'
 args.num_agents = 3  # Maximum 10 agents
-# args.lv_penalty = 0.5
-# args.lv_incentive = 0.3
+
+# Setting for the incentive designer's problem
+args.lv_penalty = 0.3
+args.lv_incentive = 0.1
+
+# Setting for the networks
+args.mode_psi = True
 args.h_dims_a = [256, 128, 64, 32]
-args.h_dims_c = [256, 128, 64, 32]
+# args.h_dims_c = [256, 128, 64, 32]
+args.h_dims_p = [256, 128, 64, 32]
 args.lr_a = 0.0001
-args.lr_c = 0.001
-args.episode_num = 100000
+# args.lr_c = 0.001
+args.lr_p = 0.001
+
+# Setting for the experiment
+args.episode_num = 30000
 args.epsilon = 0.95
+# args.mode_test = True
+
+# Setting for the learning
+args.K = 400
 args.buffer_size = 2000000
 args.update_freq = 1
 args.update_freq_target = 1

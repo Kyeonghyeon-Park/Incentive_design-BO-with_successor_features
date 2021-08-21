@@ -20,7 +20,7 @@ Notes
 """
 
 
-def roll_out(networks, env, args, init_obs, epi_num, epi_length, decayed_eps, is_draw=False):
+def roll_out(networks, env, args, init_obs, epi_num, epi_length, decayed_eps, is_draw=False, is_train=True):
     """
     Run the simulation over epi_length and get samples from it.
 
@@ -34,6 +34,7 @@ def roll_out(networks, env, args, init_obs, epi_num, epi_length, decayed_eps, is
     epi_length
     decayed_eps
     is_draw
+    is_train
 
     Returns
     ----------
@@ -72,15 +73,20 @@ def roll_out(networks, env, args, init_obs, epi_num, epi_length, decayed_eps, is
 
     # Run the simulation (or episode).
     for i in range(epi_length):
-        rand_prob = np.random.rand(1)[0]
-        if rand_prob < decayed_eps:
-            act = {agent_ids[j]: np.random.randint(networks.action_size) for j in range(len(agent_ids))}
+        if is_train:
+            rand_prob = np.random.rand(1)[0]
+            if rand_prob < decayed_eps:
+                act = {agent_ids[j]: np.random.randint(networks.action_size) for j in range(len(agent_ids))}
+            else:
+                act = networks.get_actions(obs, prev_m_act)
         else:
             act = networks.get_actions(obs, prev_m_act)
         obs, act, rew, m_act, n_obs, fea = env.step(act)
 
-        # Add one-transition sample to samples and update the collective_reward.
-        samples[i] = (obs, act, rew, m_act, n_obs, fea)
+        # If is_train=True, add one-transition sample to samples.
+        # Update the collective_reward.
+        if is_train:
+            samples[i] = (obs, act, rew, m_act, n_obs, fea)
         collective_reward += sum(rew[agent_id] for agent_id in agent_ids)
         collective_feature += sum(fea[agent_id] for agent_id in agent_ids)
 
@@ -98,7 +104,10 @@ def roll_out(networks, env, args, init_obs, epi_num, epi_length, decayed_eps, is
     # Save the video.
     # TODO : move this part into utils to make simpler code.
     if is_draw:
-        video_name = "trajectory_episode_" + str(epi_num)
+        if is_train:
+            video_name = "trajectory_train_episode_" + str(epi_num)
+        else:
+            video_name = "trajectory_test_episode_" + str(epi_num)
         utility_funcs.make_video_from_image_dir(video_path, image_path, fps=args.fps, video_name=video_name)
         # Clean up images.
         for single_image_name in os.listdir(image_path):
@@ -138,6 +147,13 @@ path, image_path, video_path, saved_path = utility_funcs.make_dirs(args)
 collective_rewards = np.zeros(args.episode_num)
 total_penalties = np.zeros(args.episode_num)
 total_incentives = np.zeros(args.episode_num)  # Only used in cleanup environment.
+objectives = np.zeros(args.episode_num)
+
+collective_rewards_test = np.zeros(args.episode_num)
+total_penalties_test = np.zeros(args.episode_num)
+total_incentives_test = np.zeros(args.episode_num)  # Only used in cleanup environment.
+objectives_test = np.zeros(args.episode_num)
+
 time_start = time.time()
 
 # Save current setting(args) to txt for easy check
@@ -145,9 +161,6 @@ utility_funcs.make_setting_txt(args, path)
 
 # Buffer
 buffer = []
-
-# Save current setting(args) to txt for easy check
-utility_funcs.make_setting_txt(args, path)
 
 # Run
 for i in range(args.episode_num):
@@ -167,6 +180,7 @@ for i in range(args.episode_num):
                                                                         epi_length=args.episode_length,
                                                                         decayed_eps=decayed_eps,
                                                                         is_draw=is_draw,
+                                                                        is_train=True,
                                                                         )
 
     buffer += samples
@@ -174,8 +188,10 @@ for i in range(args.episode_num):
     if args.env == 'cleanup_modified':
         total_penalties[i] = collective_feature[0] * args.lv_penalty
         total_incentives[i] = collective_feature[1] * args.lv_incentive
+        objectives[i] = collective_rewards[i] + total_penalties[i] - total_incentives[i]
     else:
         total_penalties[i] = collective_feature * args.lv_penalty
+        objectives[i] = collective_rewards[i] + total_penalties[i]
 
     buffer = buffer[-args.buffer_size:]
 
@@ -192,25 +208,76 @@ for i in range(args.episode_num):
     update = "O" if (i + 1) % args.update_freq == 0 else "X"
     print(f"Process : {i}/{args.episode_num}, "
           f"Time : {time.time() - time_start:.2f}, "
-          f"Collective reward : {collective_rewards[i]}, "
-          f"Update : {update}")
+          f"Collective reward : {collective_rewards[i]:.2f}, "
+          f"Update : {update}, "
+          f"Train")
+
+    # Test
+    if args.mode_test:
+        samples, init_obs, collective_reward, collective_feature = roll_out(networks=networks,
+                                                                            env=env,
+                                                                            args=args,
+                                                                            init_obs=init_obs,
+                                                                            epi_num=i,
+                                                                            epi_length=args.episode_length,
+                                                                            decayed_eps=decayed_eps,
+                                                                            is_draw=is_draw,
+                                                                            is_train=False,
+                                                                            )
+
+        collective_rewards_test[i] = collective_reward
+        if args.env == 'cleanup_modified':
+            total_penalties_test[i] = collective_feature[0] * args.lv_penalty
+            total_incentives_test[i] = collective_feature[1] * args.lv_incentive
+            objectives_test[i] = collective_rewards_test[i] + total_penalties_test[i] - total_incentives_test[i]
+        else:
+            total_penalties_test[i] = collective_feature * args.lv_penalty
+            objectives_test[i] = collective_rewards_test[i] + total_penalties_test[i]
+
+        # Print status
+        print(f"Process : {i}/{args.episode_num}, "
+              f"Time : {time.time() - time_start:.2f}, "
+              f"Collective reward : {collective_rewards_test[i]:.2f}, "
+              f"Test")
 
     # Draw collective rewards
     if (i + 1) % 20 == 0:
-        utility_funcs.draw_or_save_plt_v3(collective_rewards, i=i, mode='draw')
+        utility_funcs.draw_or_save_plt_v4(collective_rewards,
+                                          collective_rewards_test,
+                                          objectives,
+                                          objectives_test,
+                                          i=i,
+                                          mode='draw',
+                                          )
 
     # Save several things
     if (i + 1) % args.save_freq == 0:
         time_trained = time.time() - time_start
         filename = str(i).zfill(9) + '.tar'
-        filename_plt = saved_path + 'collective_rewards_' + str(i).zfill(9) + '.png'
-        utility_funcs.draw_or_save_plt_v3(collective_rewards, i=i, mode='save', filename=filename_plt)
-        utility_funcs.save_data_v3(args=args,
+        filename_plt = saved_path + 'outcomes_' + str(i).zfill(9) + '.png'
+        utility_funcs.draw_or_save_plt_v4(collective_rewards,
+                                          collective_rewards_test,
+                                          objectives,
+                                          objectives_test,
+                                          i=i,
+                                          mode='draw',
+                                          filename=filename_plt,
+                                          )
+        utility_funcs.save_data_v4(args=args,
                                    env=env,
                                    episode_trained=i,
                                    decayed_eps=decayed_eps,
                                    time_trained=time_trained,
-                                   collective_rewards=collective_rewards,
+                                   outcomes={'collective_rewards': collective_rewards,
+                                             'collective_rewards_test': collective_rewards_test,
+                                             'total_penalties': total_penalties,
+                                             'total_penalties_test': total_penalties_test,
+                                             'total_incentives': total_incentives,
+                                             'total_incentives_test': total_incentives_test,
+                                             'objectives': objectives,
+                                             'objectives_test': objectives_test,
+                                             },
                                    networks=networks,
                                    path=saved_path,
-                                   name=filename)
+                                   name=filename,
+                                   )
