@@ -330,7 +330,7 @@ class Networks(object):
         if self.args.env == 'cleanup_modified':
             self.w = torch.tensor([1 - self.args.lv_penalty, self.args.lv_incentive], dtype=torch.float)
         else:
-            self.w = torch.tensor(1 - self.args.lv_penalty, dtype=torch.float)
+            self.w = torch.tensor([1 - self.args.lv_penalty], dtype=torch.float)
 
         if self.args.mode_ac:
             self.actor = Actor(self.observation_size, self.action_size, self.feature_size, self.args.h_dims_a)
@@ -607,8 +607,7 @@ class Networks(object):
 
             # Get expected psi using psi and action probabilities
             expected_psi_target_n = torch.bmm(act_probs_target_n.unsqueeze(1), psi_target_n)  # (N, 1, feature_size)
-            expected_psi_target_n = expected_psi_target_n.squeeze()  # (N, feature_size)
-
+            expected_psi_target_n = expected_psi_target_n.view(-1, self.feature_size)  # (N, feature_size)
         # Get psi loss
         psi = self.psi(obs, m_act)  # (N, action_size, feature_size)
         psi = psi[torch.arange(psi.size(0)), act]  # (N, feature_size)
