@@ -16,7 +16,6 @@ import sequential_social_dilemma_games.utility_funcs as utility_funcs
 Notes
 
 01) You will run this 'test_for_ssd_new.py' file but you should change settings in 'parsed_args_new.py'
-
 """
 
 
@@ -124,6 +123,19 @@ def roll_out(networks, env, args, init_obs, epi_num, epi_length, decayed_eps, is
     return samples, init_obs, collective_reward, collective_feature
 
 
+def get_decayed_eps(prev_decayed_eps, i, args):
+    if args.mode_epsilon_decay:
+        if args.epsilon_decay_ver == 'linear':
+            decayed_eps = prev_decayed_eps * (1 - 0.98 * i / args.episode_num)
+        elif args.epsilon_decay_ver == 'exponential':
+            decayed_eps = max(prev_decayed_eps * 0.9997, 0.01)
+        else:
+            raise ValueError("The version of epsilon decay is not matched with current implementation.")
+    else:
+        decayed_eps = prev_decayed_eps
+    return decayed_eps
+
+
 # Seed setting.
 random.seed(1234)
 np.random.seed(1234)
@@ -138,22 +150,16 @@ init_obs = env.reset()
 networks = Networks(env, args)
 
 # Initial exploration probability
-eps = args.epsilon
+decayed_eps = args.epsilon
 
 # Build paths for saving images.
 path, image_path, video_path, saved_path = utility_funcs.make_dirs(args)
 
 # Metrics
-collective_rewards = np.zeros(args.episode_num)
-total_penalties = np.zeros(args.episode_num)
-total_incentives = np.zeros(args.episode_num)  # Only used in cleanup environment.
-objectives = np.zeros(args.episode_num)
-
-collective_rewards_test = np.zeros(args.episode_num)
-total_penalties_test = np.zeros(args.episode_num)
-total_incentives_test = np.zeros(args.episode_num)  # Only used in cleanup environment.
-objectives_test = np.zeros(args.episode_num)
-
+collective_rewards, collective_rewards_test = [np.zeros(args.episode_num) for _ in range(2)]
+total_penalties, total_penalties_test = [np.zeros(args.episode_num) for _ in range(2)]
+total_incentives, total_incentives_test = [np.zeros(args.episode_num) for _ in range(2)]  # only used in cleanup env.
+objectives, objectives_test = [np.zeros(args.episode_num) for _ in range(2)]
 time_start = time.time()
 
 # Save current setting(args) to txt for easy check
@@ -165,13 +171,12 @@ buffer = []
 # Run
 for i in range(args.episode_num):
     # Option for visualization.
-    is_draw = True if (i == 0 or (i + 1) % args.save_freq == 0) else False
+    is_draw = False if (i == 0 or (i + 1) % args.save_freq == 0) else False
 
     # Decayed exploration probability
-    decayed_eps = eps - eps * 0.98 * i / args.episode_num * args.mode_epsilon_decay
+    decayed_eps = get_decayed_eps(decayed_eps, i, args)
 
-    # Run roll_out function.
-    # We can get 1,000 samples and collective reward for this episode.
+    # Run roll_out function. (We can get 1,000 samples and collective reward of this episode)
     samples, init_obs, collective_reward, collective_feature = roll_out(networks=networks,
                                                                         env=env,
                                                                         args=args,

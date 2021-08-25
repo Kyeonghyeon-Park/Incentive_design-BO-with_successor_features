@@ -1,7 +1,5 @@
 import copy
-import os
 
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.distributions as distributions
@@ -321,34 +319,59 @@ class Networks(object):
     def __init__(self, env, args):
         self.args = args
         self.observation_num_classes = env.observation_space.high.max() + 1
-        if self.args.mode_one_hot_obs:
-            self.observation_size = np.prod(env.observation_space.shape) * self.observation_num_classes
-        else:
-            self.observation_size = np.prod(env.observation_space.shape)
+        self.observation_size = self.get_observation_size(env)
         self.action_size = env.action_space.n
         self.feature_size = np.prod(env.feature_space.shape)
-        if self.args.env == 'cleanup_modified':
-            self.w = torch.tensor([1 - self.args.lv_penalty, self.args.lv_incentive], dtype=torch.float)
-        else:
-            self.w = torch.tensor([1 - self.args.lv_penalty], dtype=torch.float)
-
-        if self.args.mode_ac:
-            self.actor = Actor(self.observation_size, self.action_size, self.feature_size, self.args.h_dims_a)
-            self.actor.apply(init_weights)
-            self.actor_target = copy.deepcopy(self.actor)
-            self.actor_opt = optim.Adam(self.actor.parameters(), lr=self.args.lr_a)
-        if self.args.mode_psi:
-            self.psi = Psi(self.observation_size, self.action_size, self.feature_size, self.args.h_dims_p)
-            self.psi.apply(init_weights)
-            self.psi_target = copy.deepcopy(self.psi)
-            self.psi_opt = optim.Adam(self.psi.parameters(), lr=self.args.lr_p)
-        else:  # use critic
-            self.critic = Critic(self.observation_size, self.action_size, self.feature_size, self.args.h_dims_c)
-            self.critic.apply(init_weights)
-            self.critic_target = copy.deepcopy(self.critic)
-            self.critic_opt = optim.Adam(self.critic.parameters(), lr=self.args.lr_c)
-
+        self.w = self.get_w()
+        self.actor, self.actor_target = self.get_network("actor")
+        self.psi, self.psi_target = self.get_network("psi")
+        self.critic, self.critic_target = self.get_network("critic")
         self.reuse_networks()
+        self.actor_opt, self.actor_skd = self.get_opt_and_skd("actor")
+        self.psi_opt, self.psi_skd = self.get_opt_and_skd("psi")
+        self.critic_opt, self.critic_skd = self.get_opt_and_skd("critic")
+
+    def get_observation_size(self, env):
+        if self.args.mode_one_hot_obs:
+            observation_size = np.prod(env.observation_space.shape) * self.observation_num_classes
+        else:
+            observation_size = np.prod(env.observation_space.shape)
+        return observation_size
+
+    def get_w(self):
+        if self.args.env == 'cleanup_modified':
+            w = torch.tensor([1 - self.args.lv_penalty, self.args.lv_incentive], dtype=torch.float)
+        else:
+            w = torch.tensor([1 - self.args.lv_penalty], dtype=torch.float)
+        return w
+
+    def get_network(self, mode):
+        network, network_target = [None] * 2
+        if self.args.mode_ac and mode == "actor":
+            network = Actor(self.observation_size, self.action_size, self.feature_size, self.args.h_dims_a)
+            network.apply(init_weights)
+            network_target = copy.deepcopy(network)
+        elif self.args.mode_psi and mode == "psi":
+            network = Psi(self.observation_size, self.action_size, self.feature_size, self.args.h_dims_p)
+            network.apply(init_weights)
+            network_target = copy.deepcopy(network)
+        elif (not self.args.mode_psi) and mode == "critic":
+            network = Critic(self.observation_size, self.action_size, self.feature_size, self.args.h_dims_c)
+            network.apply(init_weights)
+            network_target = copy.deepcopy(network)
+        return network, network_target
+
+    def get_opt_and_skd(self, mode):
+        opt, skd = [None] * 2
+        if self.args.mode_ac and mode == "actor":
+            opt = optim.Adam(self.actor.parameters(), lr=self.args.lr_a)
+        elif self.args.mode_psi and mode == "psi":
+            opt = optim.Adam(self.psi.parameters(), lr=self.args.lr_p)
+        elif (not self.args.mode_psi) and mode == "critic":
+            opt = optim.Adam(self.critic.parameters(), lr=self.args.lr_c)
+        if self.args.mode_lr_decay and opt is not None:
+            skd = optim.lr_scheduler.StepLR(opt, step_size=10, gamma=0.999)
+        return opt, skd
 
     def reuse_networks(self):
         if self.args.mode_reuse_networks:
@@ -513,12 +536,6 @@ class Networks(object):
         if act is not None:
             act_tensor = torch.tensor(act)  # Shape should be (N, )
             tensors['act'] = act_tensor
-            # TODO : remove
-            # act_tensor = torch.tensor(act)
-            # act_tensor = F.one_hot(act_tensor, num_classes=self.action_size)
-            # act_tensor = act_tensor.type(torch.float)
-            # act_tensor - act_tensor.view(-1, self.action_size)  # Shape should be (N, action_size)
-            # tensors['act'] = act_tensor
         if rew is not None:
             rew_tensor = torch.tensor(rew, dtype=torch.float)
             rew_tensor = rew_tensor.view(-1, 1)  # Shape should be (N, 1)
@@ -547,7 +564,6 @@ class Networks(object):
 
         return tensors
 
-    # TODO : add descriptions
     def calculate_losses(self, tensors):
         actor_loss, psi_loss, critic_loss = [None] * 3
         if self.args.mode_ac:
@@ -652,14 +668,17 @@ class Networks(object):
             self.actor_opt.zero_grad()
             actor_loss.backward()
             self.actor_opt.step()
+            self.actor_skd.step() if self.args.mode_lr_decay else None
         if self.args.mode_psi:
             self.psi_opt.zero_grad()
             psi_loss.backward(torch.ones(self.feature_size.item()))
             self.psi_opt.step()
+            self.psi_skd.step() if self.args.mode_lr_decay else None
         else:
             self.critic_opt.zero_grad()
             critic_loss.backward()
             self.critic_opt.step()
+            self.critic_skd.step() if self.args.mode_lr_decay else None
 
     def update_target_network(self, network, target_network):
         for param, target_param in zip(network.parameters(), target_network.parameters()):

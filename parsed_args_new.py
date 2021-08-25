@@ -12,7 +12,7 @@ def add_default_args(parser):
     # Setting for the environment
     parser.add_argument("--env", type=str, default="cleanup",
                         help="Name of the environment to use. Can be cleanup_modified or harvest_modified.",)
-    parser.add_argument("--num_agents", type=int, default=2, help="Number of agents.")
+    parser.add_argument("--num_agents", type=int, default=2, help="Number of agents. Maximum number of agents is 10.")
 
     # Setting for the incentive designer's problem
     parser.add_argument("--lv_penalty", type=float, default=0, help="Penalty level for agents who eat apple.")
@@ -32,10 +32,11 @@ def add_default_args(parser):
     # Setting for the experiment
     parser.add_argument("--episode_num", type=int, default=200, help="Number of episodes.")
     parser.add_argument("--episode_length", type=int, default=1000, help="Episode length for the experiment.")
-    parser.add_argument("--epsilon", type=float, default=0.9,
-                        help="Epsilon for exploration. Not used yet. (Do we need this?)")
-    parser.add_argument("--mode_epsilon_decay", type=bool, default=True,
-                        help="True if we do epsilon decay. Not used yet. (Do we need this?)")
+    parser.add_argument("--epsilon", type=float, default=0.9, help="Epsilon for exploration.")
+    parser.add_argument("--mode_epsilon_decay", type=bool, default=True, help="True if we do epsilon decay.")
+    parser.add_argument("--epsilon_decay_ver", type=str, default="linear",
+                        help="If mode_epsilon_decay is True, we have to choose the version of epsilon decay."
+                             "'linear', 'exponential' can be used.")
     parser.add_argument("--boltz_beta", type=float, default=1,
                         help="Parameter for Boltzmann policy. Not used yet.")
     parser.add_argument("--mode_test", type=bool, default=False,
@@ -44,6 +45,7 @@ def add_default_args(parser):
     # Setting for the learning
     parser.add_argument("--K", type=int, default=200, help="Number of samples from the buffer.")
     parser.add_argument("--buffer_size", type=int, default=10000, help="Maximum buffer size.")
+    parser.add_argument("--mode_lr_decay", type=bool, default=True, help="True if we do learning rate decay.")
     parser.add_argument("--update_freq", type=int, default=5,
                         help="Update frequency of networks (unit : episode).")
     parser.add_argument("--update_freq_target", type=int, default=50,
@@ -88,20 +90,19 @@ add_default_args(parser)
 args = parser.parse_args()
 
 # Setting for the description
-args.description = 'Experiment for testing the new code. ' \
-                   'Penalties and incentives are implied. ' \
-                   'Successor feature version.'
-args.setting_name = 'setting_20'
+args.description = 'Experiment for debugging the code.'
+args.setting_name = 'setting_22'
 
 # Setting for the environment
-args.env = 'cleanup_modified'
-args.num_agents = 3  # Maximum 10 agents
+args.env = 'harvest_modified'
+args.num_agents = 3
 
 # Setting for the incentive designer's problem
 args.lv_penalty = 0.3
 args.lv_incentive = 0.1
 
 # Setting for the networks
+# args.mode_ac = True
 args.mode_psi = True
 args.h_dims_a = [256, 128, 64, 32]
 # args.h_dims_c = [256, 128, 64, 32]
@@ -109,17 +110,27 @@ args.h_dims_p = [256, 128, 64, 32]
 args.lr_a = 0.0001
 # args.lr_c = 0.001
 args.lr_p = 0.001
+# args.gamma = 0.99
 
 # Setting for the experiment
-args.episode_num = 30000
+args.episode_num = 50000
+# args.episode_length = 1000
 args.epsilon = 0.95
-# args.mode_test = True
+# args.mode_epsilon_decay = True
+args.epsilon_decay_ver = 'exponential'
+# args.boltz_beta = 1.0
+# args.mode_test = False
 
 # Setting for the learning
 args.K = 400
 args.buffer_size = 2000000
+args.mode_lr_decay = True
 args.update_freq = 1
 args.update_freq_target = 1
+# args.tau = 0.01
+# args.mode_one_hot_obs = True
+# args.mode_reuse_networks = False
+# args.file_path = ''
 
 # Validate setting
 validate_setting(args)
