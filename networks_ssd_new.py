@@ -378,10 +378,13 @@ class Networks(object):
             prev_dict = torch.load(self.args.file_path)
             if self.args.mode_ac:
                 self.actor.load_state_dict(prev_dict['actor'])
+                self.actor_target.load_state_dict(prev_dict['actor'])
             if self.args.mode_psi:
                 self.psi.load_state_dict(prev_dict['psi'])
+                self.psi_target.load_state_dict(prev_dict['psi'])
             else:
                 self.critic.load_state_dict(prev_dict['critic'])
+                self.critic_target.load_state_dict(prev_dict['critic'])
 
     # TODO : build a Boltzmann policy if we don't use actor-critic or actor-psi
     def get_boltzmann_policy(self, q_values):
