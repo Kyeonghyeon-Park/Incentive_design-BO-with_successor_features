@@ -126,9 +126,9 @@ def roll_out(networks, env, args, init_obs, epi_num, epi_length, decayed_eps, is
 def get_decayed_eps(prev_decayed_eps, i, args):
     if args.mode_epsilon_decay:
         if args.epsilon_decay_ver == 'linear':
-            decayed_eps = prev_decayed_eps * (1 - 0.98 * i / args.episode_num)
+            decayed_eps = args.epsilon * (1 - 0.98 * i / args.episode_num)
         elif args.epsilon_decay_ver == 'exponential':
-            decayed_eps = max(prev_decayed_eps * 0.9997, 0.01)
+            decayed_eps = max(prev_decayed_eps * 0.9999, 0.01)
         else:
             raise ValueError("The version of epsilon decay is not matched with current implementation.")
     else:
@@ -137,9 +137,10 @@ def get_decayed_eps(prev_decayed_eps, i, args):
 
 
 # Seed setting.
-random.seed(1234)
-np.random.seed(1234)
-torch.manual_seed(1234)
+rand_seed = 1234
+random.seed(rand_seed)
+np.random.seed(rand_seed)
+torch.manual_seed(rand_seed)
 
 # Build the environment.
 env_creator = get_env_creator(args.env, args.num_agents, args)
@@ -171,7 +172,7 @@ buffer = []
 # Run
 for i in range(args.episode_num):
     # Option for visualization.
-    is_draw = False if (i == 0 or (i + 1) % args.save_freq == 0) else False
+    is_draw = (True and args.mode_draw) if (i == 0 or (i + 1) % args.save_freq == 0) else False
 
     # Decayed exploration probability
     decayed_eps = get_decayed_eps(decayed_eps, i, args)
@@ -246,7 +247,7 @@ for i in range(args.episode_num):
               f"Test")
 
     # Draw collective rewards
-    if (i + 1) % 20 == 0:
+    if (i + 1) % 20 == 0 and args.mode_draw:
         utility_funcs.draw_or_save_plt_v4(collective_rewards,
                                           collective_rewards_test,
                                           objectives,

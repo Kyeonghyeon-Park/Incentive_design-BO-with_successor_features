@@ -60,10 +60,12 @@ def add_default_args(parser):
                         help="File path of the results of other networks. "
                              "ex. args.file_path='./results_ssd/setting_14/saved/000011999.tar'")
 
-    # Setting for the save
+    # Setting for the draw and the save
     parser.add_argument("--fps", type=int, default=3, help="Frame per second for videos")
     parser.add_argument("--save_freq", type=int, default=1000,
                         help="Save frequency of results and networks (unit : episode).")
+    parser.add_argument("--mode_draw", type=bool, default=True,
+                        help="True if we draw plt during the training.")
 
     # TODO : remove this (This task have low priorities)
     # Deprecated arguments (only works for building the environment.)
@@ -90,11 +92,12 @@ add_default_args(parser)
 args = parser.parse_args()
 
 # Setting for the description
-args.description = 'Experiment for debugging the code.'
-args.setting_name = 'setting_22'
+args.description = 'Experiment for debugging the code. ' \
+                   'Nothing is applied.'
+args.setting_name = 'setting_debug'
 
 # Setting for the environment
-args.env = 'harvest_modified'
+args.env = 'cleanup_modified'
 args.num_agents = 3
 
 # Setting for the incentive designer's problem
@@ -113,11 +116,11 @@ args.lr_p = 0.001
 # args.gamma = 0.99
 
 # Setting for the experiment
-args.episode_num = 50000
+args.episode_num = 30000
 # args.episode_length = 1000
 args.epsilon = 0.95
 # args.mode_epsilon_decay = True
-args.epsilon_decay_ver = 'exponential'
+args.epsilon_decay_ver = 'linear'
 # args.boltz_beta = 1.0
 # args.mode_test = False
 
@@ -131,6 +134,11 @@ args.update_freq_target = 1
 # args.mode_one_hot_obs = True
 # args.mode_reuse_networks = False
 # args.file_path = ''
+
+# Setting for the draw and the save
+# args.fps = 3
+# args.save_freq = 1000
+args.mode_draw = False
 
 # Validate setting
 validate_setting(args)
