@@ -404,7 +404,7 @@ class Networks(object):
         policy = None
         raise NotImplementedError
 
-    def get_actions(self, obs, prev_m_act, is_target=False):
+    def get_actions(self, obs, prev_m_act, is_target=True):
         """
         Get actions.
 
