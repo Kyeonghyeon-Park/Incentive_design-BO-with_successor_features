@@ -439,6 +439,7 @@ class Networks(object):
                 action_dists = distributions.Categorical(action_probs)
                 actions = action_dists.sample()
                 actions = {agent_ids[i]: actions[i].item() for i in range(len(agent_ids))}
+                actions_probs = {agent_ids[i]: action_probs[i] for i in range(len(agent_ids))}
             else:  # TODO : We have to get action from Boltzmann policy (using tensors['m_act'])
                 if self.args.mode_psi:
                     pass
@@ -447,7 +448,7 @@ class Networks(object):
                     pass
                 raise NotImplementedError
 
-        return actions
+        return actions, actions_probs
 
     def preprocess(self, samples):
         """

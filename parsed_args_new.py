@@ -92,12 +92,12 @@ add_default_args(parser)
 args = parser.parse_args()
 
 # Setting for the description
-args.description = 'Experiment for debugging the code. ' \
-                   'Nothing is applied.'
-args.setting_name = 'setting_debug'
+args.description = 'Experiment for testing the code. ' \
+                   'Map is changed.'
+args.setting_name = 'setting_30'
 
 # Setting for the environment
-args.env = 'cleanup_modified'
+args.env = 'cleanup_modified_v2'
 args.num_agents = 3
 
 # Setting for the incentive designer's problem
@@ -107,9 +107,9 @@ args.lv_incentive = 0.1
 # Setting for the networks
 # args.mode_ac = True
 args.mode_psi = True
-args.h_dims_a = [256, 128, 64, 32]
+args.h_dims_a = [256, 128, 64, 32, 16]
 # args.h_dims_c = [256, 128, 64, 32]
-args.h_dims_p = [256, 128, 64, 32]
+args.h_dims_p = [256, 128, 64, 32, 16]
 args.lr_a = 0.0001
 # args.lr_c = 0.001
 args.lr_p = 0.001
@@ -125,7 +125,7 @@ args.epsilon_decay_ver = 'linear'
 # args.mode_test = False
 
 # Setting for the learning
-args.K = 400
+args.K = 800
 args.buffer_size = 2000000
 args.mode_lr_decay = True
 args.update_freq = 1
@@ -138,7 +138,7 @@ args.update_freq_target = 1
 # Setting for the draw and the save
 # args.fps = 3
 # args.save_freq = 1000
-args.mode_draw = False
+args.mode_draw = True
 
 # Validate setting
 validate_setting(args)

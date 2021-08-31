@@ -527,10 +527,10 @@ class CleanupEnvModified(MapEnvModified):
 
         return grids_idx
 
-    def render(self, filename=None, i=0):
+    def render(self, filename=None, i=0, act_probs=None):
         """
         Creates an image of the map to plot or save.
-        In addition to the original render, it contains the several status
+        In addition to the original render, it contains the several status.
 
         Args
         ----
@@ -538,21 +538,34 @@ class CleanupEnvModified(MapEnvModified):
             If a string is passed, will save the image to disk at this location.
         i: int
             Current number of step. It will be the title of this image
+        act_probs: dict
+            Dict of action probs for agents in the current observation.
         """
         rgb_arr = self.full_map_to_colors()
         step = 'step='+str(i).zfill(9)
         waste_spawn_prob = 'waste_spawn_prob=' + '{prob:.4f}'.format(prob=self.current_waste_spawn_prob)
         apple_spawn_prob = 'apple_spawn_prob=' + '{prob:.4f}'.format(prob=self.current_apple_spawn_prob)
         texts = [step, waste_spawn_prob, apple_spawn_prob]
+        actions_name = "Actions: LEFT, RIGHT, UP, DOWN, STAY, FIRE"
+        texts.append(actions_name)
+        agents_color = "Agents: Blue, Sky blue, Magenta"
+        texts.append(agents_color)
+        agent_ids = list(self.agents.keys())
+        for agent_id in agent_ids:
+            if isinstance(act_probs[agent_id], str):
+                texts.append(f"{act_probs[agent_id]}")
+            else:
+                probs = ", ".join('{a:.4f}'.format(a=e.item()) for e in act_probs[agent_id])
+                texts.append(probs)
 
         fig = plt.figure()
-        spec = gridspec.GridSpec(nrows=1, ncols=2, width_ratios=[2, 1])
+        spec = gridspec.GridSpec(nrows=1, ncols=2, width_ratios=[1, 1])
         fig_graph = fig.add_subplot(spec[0])
         fig_graph.imshow(rgb_arr, interpolation="nearest")
         fig_status = fig.add_subplot(spec[1])
         fig_status.axis('off')
         for i in range(len(texts)):
-            fig_status.text(0, 0.95 - 0.1 * i, texts[i], horizontalalignment='left', verticalalignment='center',
+            fig_status.text(0, 0.90 - 0.1 * i, texts[i], fontsize='small', horizontalalignment='left', verticalalignment='center',
                             transform=fig_status.transAxes)
         if filename is None:
             plt.show()

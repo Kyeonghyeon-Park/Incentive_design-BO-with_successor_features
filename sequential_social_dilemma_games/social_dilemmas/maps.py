@@ -51,6 +51,33 @@ CLEANUP_MAP = [
     "@@@@@@@@@@@@@@@@@@",
 ]
 
+CLEANUP_MAP_V2 = [
+    "@@@@@@@@@@@@@@@@@@",
+    "@RRRRRR B B BBBBB@",
+    "@HHHHHH   B  BBBB@",
+    "@RRRRRR  B  BBBBB@",
+    "@RRRRR  P B  BBBB@",
+    "@RRRRR B  P BBBBB@",
+    "@HHHHH B  B  BBBB@",
+    "@RRRRR  B   BBBBB@",
+    "@HHHHHHSSSSSSBBBB@",
+    "@HHHHHHSSSSSSBBBB@",
+    "@RRRRR  BP P BBBB@",
+    "@HHHHH B PB BBBBB@",
+    "@RRRRRR  B P BBBB@",
+    "@HHHHHH P B BBBBB@",
+    "@RRRRR B  B  BBBB@",
+    "@HHHH  B P BBBBBB@",
+    "@RRRRR  B B  BBBB@",
+    "@HHHHH BPBP BBBBB@",
+    "@RRRRR B  B  BBBB@",
+    "@HHHH B   B BBBBB@",
+    "@RRRRR  B  B BBBB@",
+    "@HHHHH B  B BBBBB@",
+    "@RRRRR B   B BBBB@",
+    "@HHHH    B  BBBBB@",
+    "@@@@@@@@@@@@@@@@@@",
+]
 
 # 'S' means turned-on switch
 # 's' means turned-off switch

@@ -355,10 +355,10 @@ class HarvestEnvModified(MapEnvModified):
 
         return grids_idx
 
-    def render(self, filename=None, i=0):
+    def render(self, filename=None, i=0, act_probs=None):
         """
         Creates an image of the map to plot or save.
-        In addition to the original render, it contains the several status
+        In addition to the original render, it contains the several status.
 
         Args
         ----
@@ -366,6 +366,8 @@ class HarvestEnvModified(MapEnvModified):
             If a string is passed, will save the image to disk at this location.
         i: int
             Current number of step. It will be the title of this image
+        act_probs: dict
+            Dict of action probs for agents in the current observation.
         """
         rgb_arr = self.full_map_to_colors()
         step = 'step='+str(i).zfill(9)

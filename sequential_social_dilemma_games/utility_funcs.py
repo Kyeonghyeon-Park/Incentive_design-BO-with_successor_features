@@ -498,3 +498,19 @@ def make_dirs(args):
         os.makedirs(saved_path)
 
     return path, image_path, video_path, saved_path
+
+
+def make_video(is_train, epi_num, args, video_path, image_path):
+    if is_train:
+        video_name = "trajectory_train_episode_" + str(epi_num)
+    else:
+        video_name = "trajectory_test_episode_" + str(epi_num)
+    make_video_from_image_dir(video_path, image_path, fps=args.fps, video_name=video_name)
+    # Clean up images.
+    for single_image_name in os.listdir(image_path):
+        single_image_path = os.path.join(image_path, single_image_name)
+        try:
+            if os.path.isfile(single_image_path) or os.path.islink(single_image_path):
+                os.unlink(single_image_path)
+        except Exception as e:
+            print('Failed to delete %s. Reason: %s' % (single_image_path, e))

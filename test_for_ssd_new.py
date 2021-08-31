@@ -19,7 +19,7 @@ Notes
 """
 
 
-def roll_out(networks, env, args, init_obs, epi_num, epi_length, decayed_eps, is_draw=False, is_train=True):
+def roll_out(networks, env, args, init_obs, epi_num, epi_length, decayed_eps, paths, is_draw=False, is_train=True):
     """
     Run the simulation over epi_length and get samples from it.
 
@@ -32,6 +32,7 @@ def roll_out(networks, env, args, init_obs, epi_num, epi_length, decayed_eps, is
     epi_num
     epi_length
     decayed_eps
+    paths
     is_draw
     is_train
 
@@ -52,38 +53,43 @@ def roll_out(networks, env, args, init_obs, epi_num, epi_length, decayed_eps, is
         If env=cleanup, np.array([x, x]).
         If env=harvest, x.
     """
+    image_path, video_path, saved_path = paths
+
     agent_ids = list(env.agents.keys())
     prev_steps = epi_num * epi_length
     samples = [None] * epi_length
     collective_reward = 0
-    collective_feature = np.array([0, 0]) if args.env == 'cleanup_modified' else 0
+    collective_feature = np.array([0, 0]) if "cleanup" in args.env else 0
 
     # TODO : we can move init_m_act into env.reset()
     init_m_act = {agent_id: np.zeros(env.action_space.n) for agent_id in agent_ids}
-
-    # Save the image of initial state of the environment.
-    if is_draw:
-        print(f"Run the episode with saving figures...")
-        filename = image_path + "frame" + str(prev_steps).zfill(9) + ".png"
-        env.render(filename=filename, i=prev_steps)
 
     obs = init_obs  # Initial observations.
     prev_m_act = init_m_act  # Initial previous mean actions which is only used for Boltzmann policy.
 
     # Run the simulation (or episode).
     for i in range(epi_length):
+        # Select actions.
         if is_train:
             rand_prob = np.random.rand(1)[0]
             if rand_prob < decayed_eps:
                 act = {agent_ids[j]: np.random.randint(networks.action_size) for j in range(len(agent_ids))}
+                act_probs = {agent_ids[j]: "Random" for j in range(len(agent_ids))}
             else:
-                act = networks.get_actions(obs, prev_m_act)
+                act, act_probs = networks.get_actions(obs, prev_m_act)
         else:
-            act = networks.get_actions(obs, prev_m_act)
+            act, act_probs = networks.get_actions(obs, prev_m_act)
+
+        # Save the image.
+        if is_draw:
+            print(f"Run the episode with saving figures...") if i == 0 else None
+            filename = image_path + "frame" + str(prev_steps + i).zfill(9) + ".png"
+            env.render(filename=filename, i=prev_steps + i, act_probs=act_probs)
+
+        # Step.
         obs, act, rew, m_act, n_obs, fea = env.step(act)
 
-        # If is_train=True, add one-transition sample to samples.
-        # Update the collective_reward.
+        # Add one-transition sample to samples if is_train=True and update the collective_reward.
         if is_train:
             samples[i] = (obs, act, rew, m_act, n_obs, fea)
         collective_reward += sum(rew[agent_id] for agent_id in agent_ids)
@@ -95,27 +101,14 @@ def roll_out(networks, env, args, init_obs, epi_num, epi_length, decayed_eps, is
         obs = n_obs
         prev_m_act = m_act
 
-        # Save the image.
-        if is_draw:
+        # Save the last image.
+        if is_draw and i == epi_length - 1:
+            act_probs = {agent_ids[j]: "End" for j in range(len(agent_ids))}
             filename = image_path + "frame" + str(prev_steps + i + 1).zfill(9) + ".png"
-            env.render(filename=filename, i=prev_steps + i + 1)
+            env.render(filename=filename, i=prev_steps + i + 1, act_probs=act_probs)
 
     # Save the video.
-    # TODO : move this part into utils to make simpler code.
-    if is_draw:
-        if is_train:
-            video_name = "trajectory_train_episode_" + str(epi_num)
-        else:
-            video_name = "trajectory_test_episode_" + str(epi_num)
-        utility_funcs.make_video_from_image_dir(video_path, image_path, fps=args.fps, video_name=video_name)
-        # Clean up images.
-        for single_image_name in os.listdir(image_path):
-            single_image_path = os.path.join(image_path, single_image_name)
-            try:
-                if os.path.isfile(single_image_path) or os.path.islink(single_image_path):
-                    os.unlink(single_image_path)
-            except Exception as e:
-                print('Failed to delete %s. Reason: %s' % (single_image_path, e))
+    utility_funcs.make_video(is_train, epi_num, args, video_path, image_path) if is_draw else None
 
     # Reset the environment after roll_out.
     init_obs = env.reset()
@@ -155,6 +148,7 @@ decayed_eps = args.epsilon
 
 # Build paths for saving images.
 path, image_path, video_path, saved_path = utility_funcs.make_dirs(args)
+paths = [image_path, video_path, saved_path]
 
 # Metrics
 collective_rewards, collective_rewards_test = [np.zeros(args.episode_num) for _ in range(2)]
@@ -185,13 +179,14 @@ for i in range(args.episode_num):
                                                                         epi_num=i,
                                                                         epi_length=args.episode_length,
                                                                         decayed_eps=decayed_eps,
+                                                                        paths=paths,
                                                                         is_draw=is_draw,
                                                                         is_train=True,
                                                                         )
 
     buffer += samples
     collective_rewards[i] = collective_reward
-    if args.env == 'cleanup_modified':
+    if "cleanup" in args.env:
         total_penalties[i] = collective_feature[0] * args.lv_penalty
         total_incentives[i] = collective_feature[1] * args.lv_incentive
         objectives[i] = collective_rewards[i] + total_penalties[i] - total_incentives[i]
@@ -227,12 +222,13 @@ for i in range(args.episode_num):
                                                                             epi_num=i,
                                                                             epi_length=args.episode_length,
                                                                             decayed_eps=decayed_eps,
+                                                                            paths=paths,
                                                                             is_draw=is_draw,
                                                                             is_train=False,
                                                                             )
 
         collective_rewards_test[i] = collective_reward
-        if args.env == 'cleanup_modified':
+        if "cleanup" in args.env:
             total_penalties_test[i] = collective_feature[0] * args.lv_penalty
             total_incentives_test[i] = collective_feature[1] * args.lv_incentive
             objectives_test[i] = collective_rewards_test[i] + total_penalties_test[i] - total_incentives_test[i]
