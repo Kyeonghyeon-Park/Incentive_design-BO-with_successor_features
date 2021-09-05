@@ -168,7 +168,6 @@ class Critic(nn.Module):
     def __init__(self, obs_size, act_size, fea_size, hidden_dims):
         """
         Create a new critic network.
-        The network is composed of LSTM layer and fully connected layer.
         The network is composed of linear (or fully connected) layers.
         After the linear layer, except the last case, we use ReLU for the activation function.
 
@@ -243,7 +242,6 @@ class Psi(nn.Module):
     def __init__(self, obs_size, act_size, fea_size, hidden_dims):
         """
         Create a new psi (successor feature) network.
-        The network is composed of LSTM layer and fully connected layer.
         The network is composed of linear (or fully connected) layers.
         After the linear layer, except the last case, we use ReLU for the activation function.
         We will reshape the last outcome to show the features for all actions.
@@ -511,7 +509,7 @@ class Networks(object):
             List of individual mean actions.
             ex. m_act = [np.array(action_size), np.array(action_size), ...]
         n_obs
-            List of individual mean actions.
+            List of individual next observations.
             ex. next_obs = [np.array(15,15), np.array(15,15), ...]
         fea
             List of individual features.
