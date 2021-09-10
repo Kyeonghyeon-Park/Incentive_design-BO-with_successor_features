@@ -285,8 +285,10 @@ def get_figure_components(inputs, i):
 
 def draw_or_save_plt_v4(col_rews, col_rews_test, objs, objs_test, i=0, mode='draw', filename=''):
     x_axis = np.arange(i+1)
-    y_axis_lim = np.max(objs[:i+1]) + 1
-    y_axis_lim_test = np.max(objs_test[:i+1]) + 1
+    y_axis_lim_rew = np.max(col_rews[:i + 1]) + 100
+    y_axis_lim_rew_test = np.max(col_rews_test[:i + 1]) + 100
+    y_axis_lim_obj = np.max(objs[:i + 1]) + 1
+    y_axis_lim_obj_test = np.max(objs_test[:i + 1]) + 1
     plt.figure(figsize=(16, 14))
 
     plt.subplot(2, 2, 1)
@@ -294,11 +296,11 @@ def draw_or_save_plt_v4(col_rews, col_rews_test, objs, objs_test, i=0, mode='dra
     plt.plot(x_axis, means, label='Moving avg. of collective rewards', color=(0, 1, 0))
     plt.fill_between(x_axis, means - stds, means + stds, color=(0.85, 1, 0.85))
     plt.scatter(x_axis, outs, label='Collective rewards')
-    plt.ylim([0, y_axis_lim])
+    plt.ylim([0, y_axis_lim_rew])
     plt.xlabel('Episodes (1000 steps per episode)', fontsize=20)
     plt.ylabel('Collective rewards per episode', fontsize=20)
     plt.title('Collective rewards (train)', fontdict={'fontsize': 24})
-    plt.legend(loc='upper right', fontsize=14)
+    plt.legend(loc='lower right', fontsize=14)
     plt.grid()
 
     plt.subplot(2, 2, 2)
@@ -306,11 +308,11 @@ def draw_or_save_plt_v4(col_rews, col_rews_test, objs, objs_test, i=0, mode='dra
     plt.plot(x_axis, means, label='Moving avg. of collective rewards', color=(0, 1, 0))
     plt.fill_between(x_axis, means - stds, means + stds, color=(0.85, 1, 0.85))
     plt.scatter(x_axis, outs, label='Collective rewards')
-    plt.ylim([0, y_axis_lim_test])
+    plt.ylim([0, y_axis_lim_rew_test])
     plt.xlabel('Episodes (1000 steps per episode)', fontsize=20)
     plt.ylabel('Collective rewards per episode', fontsize=20)
     plt.title('Collective rewards (test)', fontdict={'fontsize': 24})
-    plt.legend(loc='upper right', fontsize=14)
+    plt.legend(loc='lower right', fontsize=14)
     plt.grid()
 
     plt.subplot(2, 2, 3)
@@ -318,11 +320,11 @@ def draw_or_save_plt_v4(col_rews, col_rews_test, objs, objs_test, i=0, mode='dra
     plt.plot(x_axis, means, label='Moving avg. of designer objectives', color=(0, 1, 0))
     plt.fill_between(x_axis, means - stds, means + stds, color=(0.85, 1, 0.85))
     plt.scatter(x_axis, outs, label='Designer objectives')
-    plt.ylim([0, y_axis_lim])
+    plt.ylim([0, y_axis_lim_obj])
     plt.xlabel('Episodes (1000 steps per episode)', fontsize=20)
     plt.ylabel('Designer objectives per episode', fontsize=20)
     plt.title('Designer objectives (train)', fontdict={'fontsize': 24})
-    plt.legend(loc='upper right', fontsize=14)
+    plt.legend(loc='lower right', fontsize=14)
     plt.grid()
 
     plt.subplot(2, 2, 4)
@@ -330,11 +332,11 @@ def draw_or_save_plt_v4(col_rews, col_rews_test, objs, objs_test, i=0, mode='dra
     plt.plot(x_axis, means, label='Moving avg. of designer objectives', color=(0, 1, 0))
     plt.fill_between(x_axis, means - stds, means + stds, color=(0.85, 1, 0.85))
     plt.scatter(x_axis, outs, label='Designer objectives')
-    plt.ylim([0, y_axis_lim_test])
+    plt.ylim([0, y_axis_lim_obj_test])
     plt.xlabel('Episodes (1000 steps per episode)', fontsize=20)
     plt.ylabel('Designer objectives per episode', fontsize=20)
     plt.title('Designer objectives (test)', fontdict={'fontsize': 24})
-    plt.legend(loc='upper right', fontsize=14)
+    plt.legend(loc='lower right', fontsize=14)
     plt.grid()
 
     if mode == 'draw':
