@@ -141,8 +141,10 @@ class HarvestEnvModified(MapEnvModified):
         return_agent_actions=False,
         use_collective_reward=False,
         lv_penalty=0,
+        lv_incentive=0,
     ):
         self.lv_penalty = lv_penalty
+        self.lv_incentive = lv_incentive
         self.num_new_apples = 0
         super().__init__(
             ascii_map,
@@ -222,7 +224,7 @@ class HarvestEnvModified(MapEnvModified):
         fea_space = Box(
             low=0,
             high=1,
-            shape=(1,),
+            shape=(2,),
             dtype=np.uint8,
         )
         return fea_space
@@ -240,7 +242,8 @@ class HarvestEnvModified(MapEnvModified):
                                          rotation,
                                          grid,
                                          view_len=HARVEST_VIEW_SIZE,
-                                         lv_penalty=self.lv_penalty)
+                                         lv_penalty=self.lv_penalty,
+                                         lv_incentive=self.lv_incentive,)
             self.agents[agent_id] = agent
 
     def custom_reset(self):

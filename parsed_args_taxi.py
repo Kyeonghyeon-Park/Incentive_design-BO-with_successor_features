@@ -78,15 +78,15 @@ args = parser.parse_args()
 
 # Setting for the description.
 args.description = "Driver repositioning experiment. " \
-                   "Increase K and change learning rate."
-args.setting_name = "setting_1"
+                   "Get priors."
+args.setting_name = "setting_16"
 
 # Setting for the environment.
 # args.grid_size = 2
 # args.num_agents = 100
 
 # Setting for the incentive designer's problem.
-args.lv_penalty = 0.5
+args.lv_penalty = 0.7
 
 # Setting for the networks.
 # args.mode_ac = True
@@ -97,21 +97,21 @@ args.h_dims_a = [32, 16, 8]
 args.h_dims_p = [64, 32, 16]
 args.lr_a = 0.0001
 # args.lr_c = 0.001
-args.lr_p = 0.0001
+args.lr_p = 0.0005
 # args.gamma = 1
 
 # Setting for the experiment.
-args.num_episodes = 2500
+args.num_episodes = 7500
 # args.episode_length = 2
 args.epsilon = 0.5
 args.num_tests = 20
-args.random_seed = 1237
+args.random_seed = 1245
 
 # setting for the learning.
-args.K = 16
+args.K = 8
 args.buffer_size = 100
 # args.num_mean_actions = 5
-args.mode_lr_decay = True
+args.mode_lr_decay = False
 args.update_freq = 1
 args.update_freq_target = 10
 # args.tau = 1

@@ -220,7 +220,8 @@ class TaxiEnv:
             rew[agent_id] = reward
             m_act[agent_id] = mean_action
             fea[agent_id] = feature
-            done[agent_id] = True if self.obs[agent_id][1] >= self.episode_length else False
+            # TODO : come back to self.episode_length
+            done[agent_id] = True if self.obs[agent_id][1] >= self.episode_length - 1 else False
         n_obs = copy.deepcopy(self.obs)
 
         return (obs, act, rew, m_act, n_obs, fea, done), fare_info

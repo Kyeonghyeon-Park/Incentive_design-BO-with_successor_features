@@ -21,6 +21,7 @@ def get_env_creator(env, num_agents, args):
                 return_agent_actions=True,
                 use_collective_reward=args.use_collective_reward,
                 lv_penalty=args.lv_penalty,
+                lv_incentive=args.lv_incentive,
             )
 
     elif env == "cleanup":

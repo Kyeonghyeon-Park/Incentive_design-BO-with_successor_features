@@ -167,20 +167,20 @@ def plot_gp(optimizer, x):
 
 #%%
 plot_gp(optimizer, x)
-for BO_iter in range(5):
-    optimizer.maximize(init_points=0, n_iter=1)
-    plot_gp(optimizer, x)
+# for BO_iter in range(5):
+#     optimizer.maximize(init_points=0, n_iter=1)
+#     plot_gp(optimizer, x)
 
 
 #%%
-print("################## Final outcome ##################")
-print(optimizer.max)
-for i, res in enumerate(optimizer.res):
-    print("Iteration {}: \n\t{}".format(i, res))
-print("################## Final outcome ##################")
-
-logger = JSONLogger(path="./logs.json")
-optimizer.subscribe(Events.OPTIMIZATION_STEP, logger)
+# print("################## Final outcome ##################")
+# print(optimizer.max)
+# for i, res in enumerate(optimizer.res):
+#     print("Iteration {}: \n\t{}".format(i, res))
+# print("################## Final outcome ##################")
+#
+# logger = JSONLogger(path="./logs.json")
+# optimizer.subscribe(Events.OPTIMIZATION_STEP, logger)
 
 #%% etc
 # probe 시 다음 maximize 호출 되었을 때 어느 point 진행할 지 예약

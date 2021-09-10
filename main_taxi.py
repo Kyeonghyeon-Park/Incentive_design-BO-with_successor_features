@@ -120,9 +120,12 @@ if __name__ == "__main__":
             utils_taxi.get_plt(outcomes, outcomes_t, i, mode="draw")
 
         # Print values and policies.
-        if (i + 1) % 100 == 0:
-            utils_taxi.print_updated_q(networks)
+        if (i + 1) % 1 == 0:
+            # utils_taxi.print_updated_q(networks)
             utils_taxi.print_action_dist(networks)
+
+        if (i + 1) % 10 == 0:
+            utils_taxi.print_updated_q(networks)
 
         # Save the figure and data.
         if (i + 1) % args.save_freq == 0:

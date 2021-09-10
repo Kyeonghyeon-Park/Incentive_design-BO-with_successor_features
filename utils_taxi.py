@@ -173,21 +173,28 @@ def print_updated_q(networks):
         ind_obs_one_hot[loc, time] = 1
         return ind_obs_one_hot
 
+    torch.set_printoptions(linewidth=200, sci_mode=False)
+
     for loc in [1, 2]:
         for t in [0]:
             print("Q at (#", loc, ", ", t, ")")
-            for m_act in np.arange(0.0, 1.1, 0.1):
-                ind_obs = np.array([loc, t])
-                ind_obs_1 = get_one_hot_obs(ind_obs)
-                obs_tensor = torch.tensor([ind_obs_1], dtype=torch.float)
-                obs_tensor = obs_tensor.view(-1, networks.observation_size)
+            q_all = torch.zeros([11, networks.action_size])
+            for i in range(11):
+                m_act = i / 10
+            # for m_act in np.arange(0.0, 1.1, 0.1):
+                with torch.no_grad():
+                    ind_obs = np.array([loc, t])
+                    ind_obs_1 = get_one_hot_obs(ind_obs)
+                    obs_tensor = torch.tensor([ind_obs_1], dtype=torch.float)
+                    obs_tensor = obs_tensor.view(-1, networks.observation_size)
 
-                m_act_tensor = torch.tensor(m_act, dtype=torch.float)
-                m_act_tensor = m_act_tensor.view(-1, networks.mean_action_size)
+                    m_act_tensor = torch.tensor(m_act, dtype=torch.float)
+                    m_act_tensor = m_act_tensor.view(-1, networks.mean_action_size)
 
-                psi = networks.psi(obs_tensor, m_act_tensor)
-                q = torch.tensordot(psi, networks.w, dims=([2], [0]))
-                print(q)
+                    psi = networks.psi(obs_tensor, m_act_tensor)
+                    q = torch.tensordot(psi, networks.w, dims=([2], [0]))
+                    q_all[i] = q[0]
+            print(q_all.transpose(1, 0))
 
 
 def print_action_dist(networks):

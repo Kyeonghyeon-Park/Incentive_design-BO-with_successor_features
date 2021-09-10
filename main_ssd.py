@@ -7,15 +7,15 @@ import time
 import numpy as np
 import torch
 
-from networks_ssd_new import Networks
-from parsed_args_new import args
+from networks_ssd import Networks
+from parsed_args_ssd import args
 from sequential_social_dilemma_games.social_dilemmas.envs.env_creator import get_env_creator
 import sequential_social_dilemma_games.utility_funcs as utility_funcs
 
 """
 Notes
 
-01) You will run this 'test_for_ssd_new.py' file but you should change settings in 'parsed_args_new.py'
+01) You will run this 'main_ssd.py' file but you should change settings in 'parsed_args_ssd.py'
 """
 
 
@@ -47,11 +47,10 @@ def roll_out(networks, env, args, init_obs, epi_num, epi_length, decayed_eps, pa
         Initial observation of agents after reset().
     collective_reward : int
         Collective reward of this episode.
-    collective_feature
+    collective_feature : np.ndarray
         Collective feature of this episode.
-        This is used for calculating total_incentives (if env=cleanup) and total_penalties
-        If env=cleanup, np.array([x, x]).
-        If env=harvest, x.
+        This is used for calculating total_incentives and total_penalties.
+        ex. np.array([x, y])
     """
     image_path, video_path, saved_path = paths
 
@@ -59,7 +58,7 @@ def roll_out(networks, env, args, init_obs, epi_num, epi_length, decayed_eps, pa
     prev_steps = epi_num * epi_length
     samples = [None] * epi_length
     collective_reward = 0
-    collective_feature = np.array([0, 0]) if "cleanup" in args.env else 0
+    collective_feature = np.array([0, 0])
 
     # TODO : we can move init_m_act into env.reset()
     init_m_act = {agent_id: np.zeros(env.action_space.n) for agent_id in agent_ids}
@@ -153,7 +152,7 @@ paths = [image_path, video_path, saved_path]
 # Metrics
 collective_rewards, collective_rewards_test = [np.zeros(args.episode_num) for _ in range(2)]
 total_penalties, total_penalties_test = [np.zeros(args.episode_num) for _ in range(2)]
-total_incentives, total_incentives_test = [np.zeros(args.episode_num) for _ in range(2)]  # only used in cleanup env.
+total_incentives, total_incentives_test = [np.zeros(args.episode_num) for _ in range(2)]
 objectives, objectives_test = [np.zeros(args.episode_num) for _ in range(2)]
 time_start = time.time()
 
@@ -186,13 +185,9 @@ for i in range(args.episode_num):
 
     buffer += samples
     collective_rewards[i] = collective_reward
-    if "cleanup" in args.env:
-        total_penalties[i] = collective_feature[0] * args.lv_penalty
-        total_incentives[i] = collective_feature[1] * args.lv_incentive
-        objectives[i] = collective_rewards[i] + total_penalties[i] - total_incentives[i]
-    else:
-        total_penalties[i] = collective_feature * args.lv_penalty
-        objectives[i] = collective_rewards[i] + total_penalties[i]
+    total_penalties[i] = collective_feature[0] * args.lv_penalty
+    total_incentives[i] = collective_feature[1] * args.lv_incentive
+    objectives[i] = collective_rewards[i] + total_penalties[i] - total_incentives[i]
 
     buffer = buffer[-args.buffer_size:]
 
@@ -210,6 +205,7 @@ for i in range(args.episode_num):
     print(f"Process : {i}/{args.episode_num}, "
           f"Time : {time.time() - time_start:.2f}, "
           f"Collective reward : {collective_rewards[i]:.2f}, "
+          f"Objective : {objectives[i]:.2f}, "
           f"Update : {update}, "
           f"Train")
 
@@ -228,18 +224,15 @@ for i in range(args.episode_num):
                                                                             )
 
         collective_rewards_test[i] = collective_reward
-        if "cleanup" in args.env:
-            total_penalties_test[i] = collective_feature[0] * args.lv_penalty
-            total_incentives_test[i] = collective_feature[1] * args.lv_incentive
-            objectives_test[i] = collective_rewards_test[i] + total_penalties_test[i] - total_incentives_test[i]
-        else:
-            total_penalties_test[i] = collective_feature * args.lv_penalty
-            objectives_test[i] = collective_rewards_test[i] + total_penalties_test[i]
+        total_penalties_test[i] = collective_feature[0] * args.lv_penalty
+        total_incentives_test[i] = collective_feature[1] * args.lv_incentive
+        objectives_test[i] = collective_rewards_test[i] + total_penalties_test[i] - total_incentives_test[i]
 
         # Print status
         print(f"Process : {i}/{args.episode_num}, "
               f"Time : {time.time() - time_start:.2f}, "
               f"Collective reward : {collective_rewards_test[i]:.2f}, "
+              f"Objective : {objectives_test[i]:.2f}, "
               f"Test")
 
     # Draw collective rewards
