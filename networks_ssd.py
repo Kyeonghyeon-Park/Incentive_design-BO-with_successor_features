@@ -626,7 +626,7 @@ class Networks(object):
         # Get psi loss
         psi = self.psi(obs, m_act)  # (N, action_size, feature_size)
         psi = psi[torch.arange(psi.size(0)), act]  # (N, feature_size)
-        psi_loss = (fea + expected_psi_target_n - psi) ** 2  # (N, feature_size)
+        psi_loss = (fea + self.args.gamma * expected_psi_target_n - psi) ** 2  # (N, feature_size)
         psi_loss = torch.mean(psi_loss, dim=0)  # (feature_size, )
 
         return psi_loss
@@ -653,7 +653,7 @@ class Networks(object):
         # Get actor loss using values
         q = self.critic(obs, m_act)
         q = q[torch.arange(q.size(0)), act].view(-1, 1)
-        critic_loss = (rew + v_target_n - q) ** 2
+        critic_loss = (rew + self.args.gamma * v_target_n - q) ** 2
         critic_loss = torch.mean(critic_loss)
 
         return critic_loss

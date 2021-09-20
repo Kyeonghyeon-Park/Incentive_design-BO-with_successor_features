@@ -92,17 +92,17 @@ add_default_args(parser)
 args = parser.parse_args()
 
 # Setting for the description
-args.description = 'Experiment for testing the code. ' \
-                   'Debug the new harvest environment.'
-args.setting_name = 'setting_debug'
+args.description = 'Experiment for the harvest environment. ' \
+                   'Add gamma.'
+args.setting_name = 'setting_33'
 
 # Setting for the environment
 args.env = 'harvest_modified'
 args.num_agents = 3
 
 # Setting for the incentive designer's problem
-args.lv_penalty = 0.3
-args.lv_incentive = 0.3
+args.lv_penalty = 0.1
+args.lv_incentive = 0.1
 
 # Setting for the networks
 # args.mode_ac = True
@@ -126,7 +126,7 @@ args.epsilon_decay_ver = 'linear'
 
 # Setting for the learning
 args.K = 400
-args.buffer_size = 2000000
+args.buffer_size = 1000000
 args.mode_lr_decay = True
 args.update_freq = 1
 args.update_freq_target = 1
@@ -138,7 +138,7 @@ args.update_freq_target = 1
 # Setting for the draw and the save
 # args.fps = 3
 # args.save_freq = 1000
-args.mode_draw = False
+args.mode_draw = True
 
 # Validate setting
 validate_setting(args)
