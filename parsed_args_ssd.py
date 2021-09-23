@@ -41,6 +41,7 @@ def add_default_args(parser):
                         help="Parameter for Boltzmann policy. Not used yet.")
     parser.add_argument("--mode_test", type=bool, default=False,
                         help="True if we do test during the learning. It require double time.")
+    parser.add_argument("--random_seed", type=int, default=1234, help="Random seed.")
 
     # Setting for the learning
     parser.add_argument("--K", type=int, default=200, help="Number of samples from the buffer.")
@@ -93,16 +94,16 @@ args = parser.parse_args()
 
 # Setting for the description
 args.description = 'Experiment for the harvest environment. ' \
-                   'Add gamma.'
-args.setting_name = 'setting_33'
+                   'Test no beam.'
+args.setting_name = 'setting_debug'
 
 # Setting for the environment
 args.env = 'harvest_modified'
 args.num_agents = 3
 
 # Setting for the incentive designer's problem
-args.lv_penalty = 0.1
-args.lv_incentive = 0.1
+args.lv_penalty = 0.0
+args.lv_incentive = 0.0
 
 # Setting for the networks
 # args.mode_ac = True
@@ -123,6 +124,7 @@ args.epsilon = 0.95
 args.epsilon_decay_ver = 'linear'
 # args.boltz_beta = 1.0
 # args.mode_test = False
+# args.random_seed = 1234
 
 # Setting for the learning
 args.K = 400

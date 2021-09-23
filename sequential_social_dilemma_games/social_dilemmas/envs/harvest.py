@@ -9,10 +9,11 @@ from sequential_social_dilemma_games.social_dilemmas.envs.gym.discrete_with_dtyp
 from sequential_social_dilemma_games.social_dilemmas.envs.map_env import MapEnv, MapEnvModified
 from sequential_social_dilemma_games.social_dilemmas.maps import HARVEST_MAP
 
-APPLE_RADIUS = 2  # Not used.
+APPLE_RADIUS = 2
 
 # Add custom actions to the agent
-_HARVEST_ACTIONS = {"FIRE": 5}  # length of firing range
+# _HARVEST_ACTIONS = {"FIRE": 5}  # {Action name: length of firing range}
+_HARVEST_ACTIONS = {}
 
 SPAWN_PROB = [0, 0.005, 0.02, 0.05]
 

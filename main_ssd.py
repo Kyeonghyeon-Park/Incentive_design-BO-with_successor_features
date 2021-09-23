@@ -129,7 +129,7 @@ def get_decayed_eps(prev_decayed_eps, i, args):
 
 
 # Seed setting.
-rand_seed = 1234
+rand_seed = args.random_seed
 random.seed(rand_seed)
 np.random.seed(rand_seed)
 torch.manual_seed(rand_seed)
