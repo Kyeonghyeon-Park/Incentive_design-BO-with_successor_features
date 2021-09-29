@@ -185,10 +185,9 @@ for i in range(args.episode_num):
 
     buffer += samples
     collective_rewards[i] = collective_reward
-    total_penalties[i] = collective_feature[0] * args.lv_penalty
-    total_incentives[i] = collective_feature[1] * args.lv_incentive
+    total_penalties[i] = -collective_feature[1] * args.lv_penalty
+    total_incentives[i] = collective_feature[2] * args.lv_incentive
     objectives[i] = collective_rewards[i] + total_penalties[i] - total_incentives[i]
-
     buffer = buffer[-args.buffer_size:]
 
     # Update networks
@@ -224,8 +223,8 @@ for i in range(args.episode_num):
                                                                             )
 
         collective_rewards_test[i] = collective_reward
-        total_penalties_test[i] = collective_feature[0] * args.lv_penalty
-        total_incentives_test[i] = collective_feature[1] * args.lv_incentive
+        total_penalties_test[i] = -collective_feature[1] * args.lv_penalty
+        total_incentives_test[i] = collective_feature[2] * args.lv_incentive
         objectives_test[i] = collective_rewards_test[i] + total_penalties_test[i] - total_incentives_test[i]
 
         # Print status
