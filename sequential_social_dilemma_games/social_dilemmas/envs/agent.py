@@ -196,11 +196,11 @@ class HarvestAgentModified(HarvestAgent):
         super().__init__(agent_id, start_pos, start_orientation, full_map, view_len)
         self.lv_penalty = lv_penalty
         self.lv_incentive = lv_incentive
-        self.feature_this_turn = np.array([0, 0])
+        self.feature_this_turn = np.array([0, 0, 0])
 
     def compute_feature(self):
         feature = self.feature_this_turn
-        self.feature_this_turn = np.array([0, 0])
+        self.feature_this_turn = np.array([0, 0, 0])
         return feature
 
     def fire_beam(self, char):
@@ -215,17 +215,19 @@ class HarvestAgentModified(HarvestAgent):
         return False
 
     def consume(self, char):
-        """Defines how an agent interacts with the char it is standing on"""
+        """
+        Defines how an agent interacts with the char it is standing on.
+        However, reward and feature in this function are not used anymore.
+        Reward in this function is used as an indicator (eating an apple) in harvest.py.
+        We get (final) reward and feature in harvest.py.
+        """
         if char == b"A":
-            self.reward_this_turn += 1 - self.lv_penalty
-            self.feature_this_turn += np.array([1, 0])
+            self.reward_this_turn += 1
             # print(self.agent_id)
             # print(self.reward_this_turn)
             # print(self.feature_this_turn)
             return b" "
         else:
-            self.reward_this_turn += self.lv_incentive
-            self.feature_this_turn += np.array([0, 1])
             # print(self.agent_id)
             # print(self.reward_this_turn)
             # print(self.feature_this_turn)

@@ -51,7 +51,7 @@ def roll_out(networks, env, args, init_obs, epi_num, epi_length, decayed_eps, pa
     prev_steps = 0
     samples = [None] * epi_length
     collective_reward = 0
-    collective_feature = np.array([0, 0])
+    collective_feature = np.zeros(np.prod(env.feature_space.shape))
 
     # TODO : we can move init_m_act into env.reset()
     init_m_act = {agent_id: np.zeros(env.action_space.n) for agent_id in agent_ids}
@@ -114,16 +114,15 @@ args.h_dims_p = [256, 128, 64, 32]
 
 ##### You should set this part ######
 # Set alpha which you want to test (i.e., you set w').
-args.lv_penalty = 0.7
-args.lv_incentive = 0.7
+args.lv_penalty = 0.0
+args.lv_incentive = 0.0
 
 # Set network lists which you want to test (i.e., you set previous networks of w_0,...,w_n).
-prev_list = ['./David/w03/000029999.tar', 
-             './David/w07/000029999.tar',
+prev_list = ['./results_ssd/setting_server_computer/setting_0/saved/000029999.tar',
              ]
 
 # Set the number of tests
-num_test = 10
+num_test = 1
 #####################################
 
 # Seed setting.
@@ -165,7 +164,7 @@ for j in range(len(prev_list)):
 
     for i in range(num_test):
         print(f"Test num : {i} / {num_test-1}")
-        is_draw = False if i == 0 else False
+        is_draw = True if i == 0 else False
         samples, init_obs, collective_reward, collective_feature = roll_out(networks=networks,
                                                                             env=env,
                                                                             args=args,

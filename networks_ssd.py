@@ -337,7 +337,12 @@ class Networks(object):
         return observation_size
 
     def get_w(self):
-        w = torch.tensor([1 - self.args.lv_penalty, self.args.lv_incentive], dtype=torch.float)
+        if "cleanup" in self.args.env:
+            w = torch.tensor([1 - self.args.lv_penalty, self.args.lv_incentive], dtype=torch.float)
+        elif "harvest" in self.args.env:
+            w = torch.tensor([1, self.args.lv_penalty, self.args.lv_incentive], dtype=torch.float)
+        else:
+            raise NotImplementedError
         return w
 
     def get_network(self, mode):
@@ -519,47 +524,47 @@ class Networks(object):
             ex. shape of tensors['obs'] = (N, observation_size: 15 * 15 * 6)
         """
         tensors = {i: None for i in ['obs', 'act', 'rew', 'm_act', 'n_obs', 'fea']}
-
-        if obs is not None:
-            if self.args.mode_one_hot_obs:
-                # F.one_hot takes tensor with index values of shape (*) and returns a tensor of shape (*, num_classes)
-                obs_tensor = torch.tensor(obs, dtype=torch.int64)
-                obs_tensor = F.one_hot(obs_tensor, num_classes=self.observation_num_classes)
-                obs_tensor = obs_tensor.type(torch.float)
-                obs_tensor = obs_tensor.view(-1, self.observation_size)  # Shape should be (N, observation_size)
-                tensors['obs'] = obs_tensor
-            else:
-                obs_tensor = torch.tensor(obs, dtype=torch.float)
-                obs_tensor = obs_tensor.view(-1, self.observation_size)  # Shape should be (N, observation_size)
-                tensors['obs'] = obs_tensor
-        if act is not None:
-            act_tensor = torch.tensor(act)  # Shape should be (N, )
-            tensors['act'] = act_tensor
-        if rew is not None:
-            rew_tensor = torch.tensor(rew, dtype=torch.float)
-            rew_tensor = rew_tensor.view(-1, 1)  # Shape should be (N, 1)
-            tensors['rew'] = rew_tensor
-        if m_act is not None:
-            mean_act_tensor = torch.tensor(m_act, dtype=torch.float)
-            mean_act_tensor = mean_act_tensor.view(-1, self.action_size)  # Shape should be (N, action_size)
-            tensors['m_act'] = mean_act_tensor
-        if n_obs is not None:
-            if self.args.mode_one_hot_obs:
-                # F.one_hot takes tensor with index values of shape (*) and returns a tensor of shape (*, num_classes)
-                n_obs_tensor = torch.tensor(n_obs, dtype=torch.int64)
-                n_obs_tensor = F.one_hot(n_obs_tensor, num_classes=self.observation_num_classes)
-                n_obs_tensor = n_obs_tensor.type(torch.float)
-                n_obs_tensor = n_obs_tensor.view(-1, self.observation_size)  # Shape should be (N, observation_size)
-                tensors['n_obs'] = n_obs_tensor
-            else:
-                n_obs_tensor = torch.tensor(n_obs, dtype=torch.float)
-                n_obs_tensor = n_obs_tensor.view(-1, self.observation_size)  # Shape should be (N, observation_size)
-                tensors['n_obs'] = n_obs_tensor
-        if fea is not None:
-            fea = np.asarray(fea)
-            fea_tensor = torch.tensor(fea, dtype=torch.float)
-            fea_tensor = fea_tensor.view(-1, self.feature_size)  # Shape should be (N, feature_size)
-            tensors['fea'] = fea_tensor
+        with torch.no_grad():
+            if obs is not None:
+                if self.args.mode_one_hot_obs:
+                    # F.one_hot takes tensor with index values of shape (*) and returns a tensor of shape (*, num_classes)
+                    obs_tensor = torch.tensor(obs, dtype=torch.int64)
+                    obs_tensor = F.one_hot(obs_tensor, num_classes=self.observation_num_classes)
+                    obs_tensor = obs_tensor.type(torch.float)
+                    obs_tensor = obs_tensor.view(-1, self.observation_size)  # Shape should be (N, observation_size)
+                    tensors['obs'] = obs_tensor
+                else:
+                    obs_tensor = torch.tensor(obs, dtype=torch.float)
+                    obs_tensor = obs_tensor.view(-1, self.observation_size)  # Shape should be (N, observation_size)
+                    tensors['obs'] = obs_tensor
+            if act is not None:
+                act_tensor = torch.tensor(act)  # Shape should be (N, )
+                tensors['act'] = act_tensor
+            if rew is not None:
+                rew_tensor = torch.tensor(rew, dtype=torch.float)
+                rew_tensor = rew_tensor.view(-1, 1)  # Shape should be (N, 1)
+                tensors['rew'] = rew_tensor
+            if m_act is not None:
+                mean_act_tensor = torch.tensor(m_act, dtype=torch.float)
+                mean_act_tensor = mean_act_tensor.view(-1, self.action_size)  # Shape should be (N, action_size)
+                tensors['m_act'] = mean_act_tensor
+            if n_obs is not None:
+                if self.args.mode_one_hot_obs:
+                    # F.one_hot takes tensor with index values of shape (*) and returns a tensor of shape (*, num_classes)
+                    n_obs_tensor = torch.tensor(n_obs, dtype=torch.int64)
+                    n_obs_tensor = F.one_hot(n_obs_tensor, num_classes=self.observation_num_classes)
+                    n_obs_tensor = n_obs_tensor.type(torch.float)
+                    n_obs_tensor = n_obs_tensor.view(-1, self.observation_size)  # Shape should be (N, observation_size)
+                    tensors['n_obs'] = n_obs_tensor
+                else:
+                    n_obs_tensor = torch.tensor(n_obs, dtype=torch.float)
+                    n_obs_tensor = n_obs_tensor.view(-1, self.observation_size)  # Shape should be (N, observation_size)
+                    tensors['n_obs'] = n_obs_tensor
+            if fea is not None:
+                fea = np.asarray(fea)
+                fea_tensor = torch.tensor(fea, dtype=torch.float)
+                fea_tensor = fea_tensor.view(-1, self.feature_size)  # Shape should be (N, feature_size)
+                tensors['fea'] = fea_tensor
 
         return tensors
 

@@ -15,7 +15,9 @@ APPLE_RADIUS = 2
 # _HARVEST_ACTIONS = {"FIRE": 5}  # {Action name: length of firing range}
 _HARVEST_ACTIONS = {}
 
-SPAWN_PROB = [0, 0.005, 0.02, 0.05]
+# SPAWN_PROB = [0, 0.005, 0.02, 0.05]  # Original spawn rate
+SPAWN_PROB = [0, 0.005, 0.01, 0.015]
+
 
 HARVEST_VIEW_SIZE = 7
 
@@ -172,6 +174,7 @@ class HarvestEnvModified(MapEnvModified):
         obs, act, rew, m_act, n_obs, fea = super().step(actions)
         obs = self.map_to_idx(obs)
         n_obs = self.map_to_idx(n_obs)
+        rew, fea = self.get_rew_and_fea(rew, fea)
 
         return obs, act, rew, m_act, n_obs, fea
 
@@ -225,7 +228,7 @@ class HarvestEnvModified(MapEnvModified):
         fea_space = Box(
             low=0,
             high=1,
-            shape=(2,),
+            shape=(3,),
             dtype=np.uint8,
         )
         return fea_space
@@ -304,6 +307,54 @@ class HarvestEnvModified(MapEnvModified):
                 if rand_num < spawn_prob:
                     new_apple_points.append((row, col, b"A"))
         return new_apple_points
+
+    def get_avg_spawn_rate(self):
+        """
+        Get an average spawn rate of all possible apple spawn points.
+
+        Returns
+        -------
+        avg_spawn_rate : float
+            Average spawn rate of all possible apple spawn points.
+        """
+        sum_spawn_rate = 0
+        num_spawn_rate = 0  # Number of apple spawn points which has no apple and agent.
+        agent_positions = self.agent_pos
+        for i in range(len(self.apple_points)):
+            row, col = self.apple_points[i]
+            # apples can't spawn where agents are standing or where an apple already is
+            if [row, col] not in agent_positions and self.world_map[row, col] != b"A":
+                num_spawn_rate += 1
+                num_apples = 0
+                for j in range(-APPLE_RADIUS, APPLE_RADIUS + 1):
+                    for k in range(-APPLE_RADIUS, APPLE_RADIUS + 1):
+                        if j ** 2 + k ** 2 <= APPLE_RADIUS:
+                            x, y = self.apple_points[i]
+                            if 0 <= x + j < self.world_map.shape[0] and self.world_map.shape[1] > y + k >= 0:
+                                if self.world_map[x + j, y + k] == b"A":
+                                    num_apples += 1
+
+                spawn_prob = SPAWN_PROB[min(num_apples, 3)]
+                sum_spawn_rate += spawn_prob
+
+        # avg_spawn_rate = sum_spawn_rate / len(self.apple_points)
+        avg_spawn_rate = sum_spawn_rate / num_spawn_rate if num_spawn_rate != 0 else max(SPAWN_PROB)
+
+        return avg_spawn_rate
+
+    def get_rew_and_fea(self, rew, fea):
+        avg_spawn_rate = self.get_avg_spawn_rate()
+        max_spawn_rate = max(SPAWN_PROB)
+        status = 1 - avg_spawn_rate / max_spawn_rate
+        for key in rew.keys():
+            if rew[key]:  # rew[key] == 1
+                rew[key] = 1 - self.lv_penalty * status
+                fea[key] = np.array([1, -status, 0])
+            else:
+                rew[key] = self.lv_incentive * status
+                fea[key] = np.array([0, 0, status])
+
+        return rew, fea
 
     def count_apples(self, window):
         # compute how many apples are in window
@@ -393,3 +444,4 @@ class HarvestEnvModified(MapEnvModified):
         else:
             plt.savefig(filename)
         plt.close(fig)
+
