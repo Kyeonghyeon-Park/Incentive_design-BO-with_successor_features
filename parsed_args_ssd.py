@@ -93,17 +93,16 @@ add_default_args(parser)
 args = parser.parse_args()
 
 # Setting for the description
-args.description = 'Experiment for the harvest environment. ' \
-                   'Test no beam.'
+args.description = 'Experiment for the harvest environment. '
 args.setting_name = 'setting_debug'
 
 # Setting for the environment
 args.env = 'harvest_modified'
-args.num_agents = 3
+args.num_agents = 4
 
 # Setting for the incentive designer's problem
-args.lv_penalty = 0.0
-args.lv_incentive = 0.0
+args.lv_penalty = 0.1
+args.lv_incentive = 0.1
 
 # Setting for the networks
 # args.mode_ac = True
@@ -124,7 +123,7 @@ args.epsilon = 0.95
 args.epsilon_decay_ver = 'linear'
 # args.boltz_beta = 1.0
 # args.mode_test = False
-# args.random_seed = 1234
+args.random_seed = 1267
 
 # Setting for the learning
 args.K = 400
@@ -140,7 +139,7 @@ args.update_freq_target = 1
 # Setting for the draw and the save
 # args.fps = 3
 # args.save_freq = 1000
-args.mode_draw = True
+args.mode_draw = False
 
 # Validate setting
 validate_setting(args)
