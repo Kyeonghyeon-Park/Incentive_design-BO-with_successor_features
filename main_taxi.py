@@ -46,8 +46,26 @@ def get_outcome(env, fare_infos):
     osc = fare_infos[0] / fare_infos[1]
     avg_rew = (fare_infos[1] - fare_infos[0]) / env.num_agents
     obj = weight * orr + (1 - weight) * (1 - osc)
-    outcome = orr, osc, avg_rew, obj
+    outcome = orr, osc, avg_rew, obj  # outcome will be tuple
     return outcome
+
+
+def get_final_networks(env, args):
+    if args.mode_kl_divergence:
+        networks_final = Networks(env, args)
+        prev_dict = torch.load(args.file_path_final)
+        if args.mode_ac:
+            networks_final.actor.load_state_dict(prev_dict['actor'])
+            networks_final.actor_target.load_state_dict(prev_dict['actor'])
+        if args.mode_psi:
+            networks_final.psi.load_state_dict(prev_dict['psi'])
+            networks_final.psi_target.load_state_dict(prev_dict['psi'])
+        else:
+            networks_final.critic.load_state_dict(prev_dict['critic'])
+            networks_final.critic_target.load_state_dict(prev_dict['critic'])
+    else:
+        networks_final = None
+    return networks_final
 
 
 if __name__ == "__main__":
@@ -62,6 +80,7 @@ if __name__ == "__main__":
 
     # Build networks.
     networks = Networks(env, args)
+    networks_final = get_final_networks(env, args)
 
     # Initial exploration probability
     init_eps = args.epsilon
@@ -80,6 +99,10 @@ if __name__ == "__main__":
     # Save current setting(args) to txt for easy check.
     utils_taxi.make_setting_txt(args, path)
 
+    # KL divergence.
+    skl = np.zeros(args.num_episodes + 1)
+    skl[0] = utils_taxi.calculate_kl_divergence(networks, networks_final) if args.mode_kl_divergence else 0
+
     # Run.
     for i in range(args.num_episodes):
         # Decayed exploration probability.
@@ -91,8 +114,6 @@ if __name__ == "__main__":
         buffer += samples
         buffer = buffer[-args.buffer_size:]
 
-        if i == 1500:
-            print("check")
         # Update networks.
         if (i + 1) % args.update_freq == 0:
             k_samples = random.choices(buffer, k=args.K)
@@ -112,6 +133,9 @@ if __name__ == "__main__":
 
         # Print status.
         utils_taxi.print_status(args, i, orr_t, osc_t, avg_rew_t, obj_t, time_start, is_train=False)
+
+        # KL divergence.
+        skl[i + 1] = utils_taxi.calculate_kl_divergence(networks, networks_final) if args.mode_kl_divergence else 0
 
         # Draw outcomes.
         if (i + 1) % args.draw_freq == 0 and args.mode_draw:
@@ -133,7 +157,9 @@ if __name__ == "__main__":
             outcomes_t = [orr_t, osc_t, avg_rew_t, obj_t]
             filename = str(i).zfill(4) + ".tar"
             filename_plt = saved_path + "outcomes_" + str(i).zfill(4) + ".png"
+            filename_plt_skl = saved_path + "skl_" + str(i).zfill(4) + ".png"
             utils_taxi.get_plt(outcomes, outcomes_t, i, mode="save", filename=filename_plt)
+            utils_taxi.get_plt_skl(skl, i, filename=filename_plt_skl)
             utils_taxi.save_data(args=args,
                                  env=env,
                                  episode_trained=i,
@@ -141,6 +167,7 @@ if __name__ == "__main__":
                                  time_start=time_start,
                                  outcomes=outcomes,
                                  outcomes_t=outcomes_t,
+                                 skl=skl,
                                  networks=networks,
                                  path=saved_path,
                                  name=filename,

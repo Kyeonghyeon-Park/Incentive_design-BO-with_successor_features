@@ -94,15 +94,15 @@ args = parser.parse_args()
 
 # Setting for the description
 args.description = 'Experiment for the harvest environment. '
-args.setting_name = 'setting_debug'
+args.setting_name = 'setting_5'
 
 # Setting for the environment
 args.env = 'harvest_modified'
 args.num_agents = 4
 
 # Setting for the incentive designer's problem
-args.lv_penalty = 0.1
-args.lv_incentive = 0.1
+args.lv_penalty = 0.33
+args.lv_incentive = 0.33
 
 # Setting for the networks
 # args.mode_ac = True
@@ -123,7 +123,7 @@ args.epsilon = 0.95
 args.epsilon_decay_ver = 'linear'
 # args.boltz_beta = 1.0
 # args.mode_test = False
-args.random_seed = 1267
+args.random_seed = 1280
 
 # Setting for the learning
 args.K = 400
@@ -133,8 +133,8 @@ args.update_freq = 1
 args.update_freq_target = 1
 # args.tau = 0.01
 # args.mode_one_hot_obs = True
-# args.mode_reuse_networks = False
-# args.file_path = ''
+args.mode_reuse_networks = True
+args.file_path = './results_ssd_final/alpha=0.50/000029999.tar'
 
 # Setting for the draw and the save
 # args.fps = 3

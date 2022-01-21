@@ -114,15 +114,22 @@ args.h_dims_p = [256, 128, 64, 32]
 
 ##### You should set this part ######
 # Set alpha which you want to test (i.e., you set w').
-args.lv_penalty = 0.0
-args.lv_incentive = 0.0
+args.num_agents = 4
+args.lv_penalty = 0.43
+args.lv_incentive = 0.43
 
 # Set network lists which you want to test (i.e., you set previous networks of w_0,...,w_n).
-prev_list = ['./results_ssd/setting_server_computer/setting_0/saved/000029999.tar',
-             ]
+# We can test multiple networks for the above setting.
+# prev_list = ['./results_ssd/setting_server_computer/trashcan/alpha=0/000029999.tar',
+#              ]
+# prev_list = []
+# for k in range(18, 22):
+#     file_name = './results_ssd_final/alpha=0.43 using alpha=0.50/'+str(k*1000-1).zfill(9)+'.tar'
+#     prev_list.append(file_name)
+prev_list = ['./results_ssd_final/alpha=0.43 using alpha=0.50/000022999.tar',]
 
 # Set the number of tests
-num_test = 1
+num_test = 50
 #####################################
 
 # Seed setting.
@@ -156,15 +163,15 @@ for j in range(len(prev_list)):
 
     c_rew_t, t_pen_t, t_inc_t, obj_t = [np.zeros(num_test) for _ in range(4)]
     print(f"-----------------------------")
-    explanation = f"Test w=({1-args.lv_penalty:.2f}, {args.lv_incentive:.2f}) using previous networks with " \
-                  f"w=({1-prev_args.lv_penalty:.2f}, {prev_args.lv_incentive:.2f})"
+    explanation = f"Test w=(1, {args.lv_penalty:.2f}, {args.lv_incentive:.2f}) using previous networks with " \
+                  f"w=(1, {prev_args.lv_penalty:.2f}, {prev_args.lv_incentive:.2f})"
     explanations.append(explanation)
     print(explanation)
     print(f"Filename: {prev_networks}")
 
     for i in range(num_test):
         print(f"Test num : {i} / {num_test-1}")
-        is_draw = True if i == 0 else False
+        is_draw = False if i == 0 else False
         samples, init_obs, collective_reward, collective_feature = roll_out(networks=networks,
                                                                             env=env,
                                                                             args=args,
@@ -178,10 +185,10 @@ for j in range(len(prev_list)):
                                                                             )
 
         c_rew_t[i] = collective_reward
-        t_pen_t[i] = collective_feature[0] * args.lv_penalty
-        t_inc_t[i] = collective_feature[1] * args.lv_incentive
+        t_pen_t[i] = -collective_feature[1] * args.lv_penalty
+        t_inc_t[i] = collective_feature[2] * args.lv_incentive
         obj_t[i] = c_rew_t[i] + t_pen_t[i] - t_inc_t[i]
-    
+
     print(f"obj mean : {np.mean(obj_t):.2f}")
     obj[j] = np.mean(obj_t)
 
@@ -189,6 +196,7 @@ idx = obj.argmax()
 print(f"-----------------------------")
 print(f"All results")
 for j in range(len(prev_list)):
+    print(j)
     print(explanations[j])
     print(f"Obj mean : {obj[j]:.2f}")
 print(f"-----------------------------")

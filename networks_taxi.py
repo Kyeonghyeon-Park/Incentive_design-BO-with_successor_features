@@ -370,11 +370,11 @@ class Networks(object):
             network = Psi(self.observation_size, self.action_size, self.mean_action_size, self.feature_size, self.args.h_dims_p)
             network.apply(init_weights)
             network_target = copy.deepcopy(network)
-            raise NotImplementedError("Critic is not tested yet in the current version.")
         elif (not self.args.mode_psi) and mode == "critic":
             network = Critic(self.observation_size, self.action_size, self.mean_action_size, self.feature_size, self.args.h_dims_c)
             network.apply(init_weights)
             network_target = copy.deepcopy(network)
+            raise NotImplementedError("Critic is not tested yet in the current version.")
         return network, network_target
 
     def reuse_networks(self):

@@ -34,7 +34,7 @@ def add_default_args(parser):
     parser.add_argument("--num_tests", type=int, default=30, help="Number of tests for each episode.")
     parser.add_argument("--random_seed", type=int, default=1234, help="Random seed.")
 
-    # setting for the learning.
+    # Setting for the learning.
     parser.add_argument("--K", type=int, default=4, help="Number of samples from the buffer.")
     parser.add_argument("--buffer_size", type=int, default=10000, help="Maximum buffer size.")
     parser.add_argument("--num_mean_actions", type=int, default=5, help="Number of samples for the mean action.")
@@ -47,7 +47,7 @@ def add_default_args(parser):
                         help="Learning rate of target networks. If tau is 1, it is hard update.")
     parser.add_argument("--mode_reuse_networks", type=bool, default=False,
                         help="True if we reuse other networks for the initialization.")
-    parser.add_argument("--file_path", type=str, default='',
+    parser.add_argument("--file_path", type=str, default="",
                         help="File path of the results of other networks. "
                              "ex. args.file_path='./results_ssd/setting_14/saved/000011999.tar'")
 
@@ -58,6 +58,16 @@ def add_default_args(parser):
                         help="Save frequency of results and networks (unit : episode).")
     parser.add_argument("--mode_draw", type=bool, default=True,
                         help="True if we draw plt during the training.")
+
+    # Setting for the KL divergence.
+    parser.add_argument("--mode_kl_divergence", type=bool, default=False,
+                        help="True if we reuse previous networks for KL divergence.")
+    parser.add_argument("--file_path_final", type=str, default="",
+                        help="File path of the final results of other networks. "
+                             "We use same args of these results and train again to calculate the KL divergence. "
+                             "You should notice that we have to overlap the description, or other things. "
+                             "ex. args.file_path='./results_ssd/setting_14/saved/000011999.tar'")
+
 
 def validate_setting(args):
     if args.mode_ac:
@@ -71,22 +81,49 @@ def validate_setting(args):
         prev_args = prev_dict['args']
         is_true = (args.mode_psi == prev_args.mode_psi) and (args.mode_ac == prev_args.mode_ac)
         assert is_true, "You can not reuse other networks which modes are not matched."
+    if args.mode_kl_divergence:
+        print("##############################################################")
+        print("You should notice that arg is overlapped (KL divergence mode).")
+        print("##############################################################")
+
+
+def overlap_setting(args):
+    if args.mode_kl_divergence:
+        description = args.description
+        setting_name = args.setting_name
+
+        random_seed = args.random_seed
+
+        mode_kl_divergence = args.mode_kl_divergence
+        file_path_final = args.file_path_final
+        prev_dict = torch.load(args.file_path_final)
+        args = prev_dict['args']
+        args.description = description
+        args.setting_name = setting_name
+
+        args.random_seed = random_seed
+
+        args.mode_kl_divergence = mode_kl_divergence
+        args.file_path_final = file_path_final
+    return args
+
 
 parser = argparse.ArgumentParser()
 add_default_args(parser)
 args = parser.parse_args()
 
 # Setting for the description.
-args.description = "Driver repositioning experiment. " \
-                   "Get priors."
-args.setting_name = "setting_16"
+args.description = "Driver repositioning experiment. Test for multiple random seeds. " \
+                   "Non-transfer. Random seed: 1238. " \
+                   "KL."
+args.setting_name = "setting_15"
 
 # Setting for the environment.
 # args.grid_size = 2
 # args.num_agents = 100
 
 # Setting for the incentive designer's problem.
-args.lv_penalty = 0.7
+args.lv_penalty = 0.63
 
 # Setting for the networks.
 # args.mode_ac = True
@@ -104,8 +141,8 @@ args.lr_p = 0.0005
 args.num_episodes = 7500
 # args.episode_length = 2
 args.epsilon = 0.5
-args.num_tests = 20
-args.random_seed = 1245
+args.num_tests = 1  # check!
+args.random_seed = 1238
 
 # setting for the learning.
 args.K = 8
@@ -116,12 +153,21 @@ args.update_freq = 1
 args.update_freq_target = 10
 # args.tau = 1
 args.mode_reuse_networks = False
-# args.file_path = ""
+args.file_path = "./results_taxi_final/alpha=0.50/7499.tar"
 
 # Setting for the draw and the save.
 args.draw_freq = 50
 args.save_freq = 500
 args.mode_draw = True
 
+# Setting for the KL divergence.
+args.mode_kl_divergence = True
+# args.file_path_final = "./results_taxi_final/alpha=0.63 using alpha=0.50/7499.tar"
+args.file_path_final = "./results_taxi/setting_14/saved/7499.tar"
+
 # Validate the setting.
 validate_setting(args)
+
+# Overlap the setting if we calculate the KL divergence.
+args = overlap_setting(args)
+
