@@ -8,8 +8,11 @@ import torch
 from networks_taxi import Networks
 
 import utils_taxi
+# TODO. "from parsed_args_taxi import args"에서 args를 직접 불러오는 것 때문에 자꾸 문구 출력됨.
+#  parsed_args_taxi에서는 add_args만 하고, 여기에서 parser 만드는 식으로 진행.
 from parsed_args_taxi import args
 from taxi import TaxiEnv
+
 
 def roll_out(networks, env, args, decayed_eps, is_train=True):
     epi_length = args.episode_length

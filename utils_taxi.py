@@ -1,3 +1,4 @@
+import copy
 import os
 import time
 
@@ -5,6 +6,11 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torch.distributions as distributions
+
+from main_taxi import *
+from networks_taxi import Networks
+from parsed_args_taxi import args
+from taxi import TaxiEnv
 
 
 def make_setting_txt(args, path):
@@ -587,3 +593,109 @@ def get_plt_cumulative_SKLD_multiseeds(skld_trans_list, skld_ntrans_list, is_nor
     plt.grid()
 
     plt.show()
+
+
+def get_approximated_gradient(network_path, w, w_bound, h=0.01, num_tests=100):
+    """
+    This function is for getting approximated gradient by calculating f(policy, w + h*e_i) - f(policy, w) / h.
+    It will require several evaluations to get the gradient.
+
+    Examples
+    ----------
+    file_path = "./results_taxi_final/alpha=0.80/7499.tar"
+    w = np.array([0.80])
+    w_bound = np.array([[0, 1]])
+    w_grad = utils_taxi.get_approximated_gradient(file_path, w, w_bound, h=0.01, num_tests=2000)
+
+    Parameters
+    ----------
+    network_path : str
+        File path for the trained network
+    w : np.array
+        Weight (or reward parameter)
+        ex. w = np.array([0.33, 0.5])
+    w_bound : np.array
+        List which contains bounds of w.
+        Each row (call w_bound[i,:]) represents the bound of w[i].
+        w[i] cannot over the bound.
+        It will be used for getting gradients.
+        For example, let w_bound = np.array([[0, 1]]) and w = np.array([1]).
+        In this case, we can't calculate f(policy, w + h*e_i).
+        It will get approximated gradient by calculating f(policy, w) - f(policy, w - h*e_i) / h.
+    h : float
+        Parameter for calculating approximated gradient (small value).
+    num_tests : int
+        The number of tests to calculate approximated gradients.
+        This function evaluate "num_tests" times to get gradients and average them.
+
+    Returns
+    -------
+    w_grad : np.array
+    """
+    def set_random_seed(rand_seed):
+        random.seed(rand_seed)
+        np.random.seed(rand_seed)
+        torch.manual_seed(rand_seed)
+
+    def get_env_and_networks(args, prev_dict):
+        env = TaxiEnv(args)
+        networks = Networks(env, args)
+        networks = load_networks(networks, prev_dict)
+        return env, networks
+
+    def load_networks(networks, prev_dict):
+        # TODO : make complete files for critics
+        networks.actor.load_state_dict(prev_dict['actor'])
+        networks.actor_target.load_state_dict(prev_dict['actor'])
+        networks.psi.load_state_dict(prev_dict['psi'])
+        networks.psi_target.load_state_dict(prev_dict['psi'])
+        return networks
+
+    set_random_seed(1234)
+    w_grad = np.zeros(w.size)
+
+    # Load previous data.
+    prev_dict = torch.load(network_path)
+    args = prev_dict['args']
+    if args.lv_penalty != w:
+        raise ValueError("args.lv_penalty and w are not the same. Please check your inputs.")
+
+    # Calculate w_grad for each dimension.
+    for i in range(w.size):
+        # Try to build f(policy, w_f) - f(policy, w_b) / h (w_f: w_front, w_b: w_back)
+        args_f, args_b = [copy.deepcopy(args) for _ in range(2)]
+        if w[i] + h > w_bound[i, 1]:
+            w_f, w_b = w, w - h * np.eye(w.size)[i]
+        else:
+            w_f, w_b = w + h * np.eye(w.size)[i], w
+        args_f.lv_penalty = w_f
+        args_b.lv_penalty = w_b
+
+        # Build the environment and networks.
+        env_f, networks_f = get_env_and_networks(args_f, prev_dict)
+        env_b, networks_b = get_env_and_networks(args_b, prev_dict)
+
+        # Build array for collecting objective values.
+        obj_f, obj_b = [np.zeros(num_tests) for _ in range(2)]
+
+        for j in range(num_tests):
+            _, outcome_f = roll_out(networks=networks_f,
+                                    env=env_f,
+                                    args=args_f,
+                                    decayed_eps=0,
+                                    is_train=False)
+            _, outcome_b = roll_out(networks=networks_b,
+                                    env=env_b,
+                                    args=args_b,
+                                    decayed_eps=0,
+                                    is_train=False)
+
+            _, _, _, obj_f[j] = outcome_f
+            _, _, _, obj_b[j] = outcome_b
+            print(f"Dim: {i+1}/{w.size}, Tests: {j+1}/{num_tests}") if (((j+1) * 10) % num_tests == 0) else None
+
+        w_grad[i] = (np.mean(obj_f) - np.mean(obj_b)) / h
+        print(f"w_grad: {w_grad}")
+
+    return w_grad
+
