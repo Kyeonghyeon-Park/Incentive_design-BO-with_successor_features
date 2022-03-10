@@ -1,5 +1,10 @@
-/backup (210313_1501)/
-/backup (~210308_2136)/
+/backups/
 /results/
 /weights_and_networks/
-/z_kl_taxi.py
+/results_ssd/
+/results_ssd_final/
+/results_taxi/
+/results_taxi_final/
+/venv/
+/BO/
+/Figures/
