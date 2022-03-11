@@ -168,7 +168,9 @@ def get_obs(optimizer):
     Returns
     -------
     x_obs : numpy.ndarray
+        shape : (N, 1) where N is the number of observations.
     y_obs : numpy.ndarray
+        shape : (N, )
     """
     x_obs = np.array([[res["params"]["alpha"]] for res in optimizer.res])
     y_obs = np.array([res["target"] for res in optimizer.res])
@@ -189,6 +191,7 @@ def plot_gp(optimizer, acquisition_function, x, is_only_acq=False, mode=''):
     acquisition_function
     x : numpy.ndarray
         x-axis of graph.
+        We need the shape (-1, 1) for x because of acquisition_function.utility.
         ex. x = np.linspace(0, 1, 10000).reshape(-1, 1)
     is_only_acq : bool
     mode : str
