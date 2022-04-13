@@ -11,12 +11,13 @@ from main_taxi import *
 from networks_taxi import Networks
 from parsed_args_taxi import args
 from taxi import TaxiEnv
+import utils_taxi
 
 args.setting_name = "setting_evaluation"
 
 ##### You should set this part ######
 # Set alpha which you want to test (i.e., you set w').
-args.lv_penalty = 0.63
+args.lv_penalty = 1.00
 
 # Set network lists which you want to test (i.e., you set previous networks of w_0,...,w_n).
 # prev_paths = {"alpha=0.00": "./results_taxi/setting_14/saved/7499.tar",
@@ -45,18 +46,25 @@ args.lv_penalty = 0.63
 #               "alpha=1.00": "./results_taxi/setting_10/saved/7499.tar",
 #               # "alpha=1.00(X)": "./results_taxi/setting_24/saved/7499.tar",
 #               }
-prev_paths = {"alpha=0.80": "./results_taxi_final/alpha=0.63 using alpha=0.50/7499.tar",
+# prev_paths = {"alpha=0.80": "./results_taxi_final/alpha=0.63 using alpha=0.50/7499.tar",
+#               }
+# 220307
+prev_paths = {
+    "alpha=0.00": "./results_taxi_final/alpha=0.00/7499.tar",
+    "alpha=0.30": "./results_taxi_final/alpha=0.30/7499.tar",
+    "alpha=0.50": "./results_taxi_final/alpha=0.50/7499.tar",
+    "alpha=0.56": "./results_taxi_final/alpha=0.56 using alpha=1.00/7499.tar",
+    "alpha=0.63": "./results_taxi_final/alpha=0.63 using alpha=0.50 (5 seeds)/seed 1234/7499.tar",
+    "alpha=0.80": "./results_taxi_final/alpha=0.80/7499.tar",
+    "alpha=1.00": "./results_taxi_final/alpha=1.00/7499.tar",
               }
 
 # Set the number of tests
-num_tests = 50
+num_tests = 1000
 #####################################
 
 # Seed setting.
-rand_seed = 1234
-random.seed(rand_seed)
-np.random.seed(rand_seed)
-torch.manual_seed(rand_seed)
+utils_taxi.set_random_seed(1238)
 
 # Build the environment.
 env = TaxiEnv(args)
@@ -90,7 +98,7 @@ for j in range(len(prev_paths_list)):
     print(f"File path: {prev_path}")
 
     for i in range(num_tests):
-        print(f"Test num : {i} / {num_tests - 1}")
+        print(f"Test num: {i + 1}/{num_tests}") if (((i + 1) * 10) % num_tests == 0) else None
         samples, outcome = roll_out(networks=networks,
                                     env=env,
                                     args=args,

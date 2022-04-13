@@ -632,24 +632,20 @@ def get_approximated_gradient(network_path, w, w_bound, h=0.01, num_tests=100):
     -------
     w_grad : np.array
     """
-    def set_random_seed(rand_seed):
-        random.seed(rand_seed)
-        np.random.seed(rand_seed)
-        torch.manual_seed(rand_seed)
-
     def get_env_and_networks(args, prev_dict):
         env = TaxiEnv(args)
         networks = Networks(env, args)
-        networks = load_networks(networks, prev_dict)
+        networks = load_networks(networks, args, prev_dict)
+        # networks = load_networks(networks, prev_dict)
         return env, networks
 
-    def load_networks(networks, prev_dict):
-        # TODO : make complete files for critics
-        networks.actor.load_state_dict(prev_dict['actor'])
-        networks.actor_target.load_state_dict(prev_dict['actor'])
-        networks.psi.load_state_dict(prev_dict['psi'])
-        networks.psi_target.load_state_dict(prev_dict['psi'])
-        return networks
+    # def load_networks(networks, prev_dict):
+    #     # TODO : make complete files for critics
+    #     networks.actor.load_state_dict(prev_dict['actor'])
+    #     networks.actor_target.load_state_dict(prev_dict['actor'])
+    #     networks.psi.load_state_dict(prev_dict['psi'])
+    #     networks.psi_target.load_state_dict(prev_dict['psi'])
+    #     return networks
 
     set_random_seed(1234)
     w_grad = np.zeros(w.size)
@@ -699,3 +695,21 @@ def get_approximated_gradient(network_path, w, w_bound, h=0.01, num_tests=100):
 
     return w_grad
 
+
+def set_random_seed(rand_seed):
+    random.seed(rand_seed)
+    np.random.seed(rand_seed)
+    torch.manual_seed(rand_seed)
+
+
+def load_networks(networks, args, dict_trained):
+    if args.mode_ac:
+        networks.actor.load_state_dict(dict_trained['actor'])
+        networks.actor_target.load_state_dict(dict_trained['actor'])
+    if args.mode_psi:
+        networks.psi.load_state_dict(dict_trained['psi'])
+        networks.psi_target.load_state_dict(dict_trained['psi'])
+    else:
+        networks.critic.load_state_dict(dict_trained['critic'])
+        networks.critic_target.load_state_dict(dict_trained['critic'])
+    return networks

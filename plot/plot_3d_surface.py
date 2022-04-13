@@ -1,25 +1,11 @@
 import copy
 
 import matplotlib.pyplot as plt
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import numpy as np
 import torch
 
-import utils_bo
+from utils_plot import remove_axis_margins
 
-
-# Patch start (removing axes margins in 3D plot).
-# https://stackoverflow.com/questions/16488182/removing-axes-margins-in-3d-plot
-from mpl_toolkits.mplot3d.axis3d import Axis
-if not hasattr(Axis, "_get_coord_info_old"):
-    def _get_coord_info_new(self, renderer):
-        mins, maxs, centers, deltas, tc, highs = self._get_coord_info_old(renderer)
-        mins += deltas / 4
-        maxs -= deltas / 4
-        return mins, maxs, centers, deltas, tc, highs
-    Axis._get_coord_info_old = Axis._get_coord_info
-    Axis._get_coord_info = _get_coord_info_new
-# Patch end.
 """
 This file requires surface data(or evaluation result) which name is "evaluate_result.tar".
 "evaluate_result.tar" is coming from "evaluate_taxi.py". 
@@ -28,6 +14,8 @@ In this case, it requires data name (e.g. evaluate_result.tar) and x_obs.
 Otherwise, it requires x, y, f, x_obs, f_obs data manually. 
 """
 
+# Remove axes margins in 3D plot.
+remove_axis_margins()
 
 # Set data.
 is_all_x_value = False  # alpha가 0.01 간격일 때 True, 7 * 7 data일 때 False
@@ -61,8 +49,8 @@ else:
 fig, ax = plt.subplots(figsize=(10, 10), subplot_kw={"projection": "3d"})
 
 # ax settings.
-ax.set_xlabel(r'x-axis: $\alpha$', fontdict={'size': 20})
-ax.set_ylabel(r'y-axis: $\pi^\alpha$', fontdict={'size': 20})
+ax.set_xlabel(r'x-axis: $\alpha_i$', fontdict={'size': 20})
+ax.set_ylabel(r'y-axis: $\pi^{\alpha_j}$', fontdict={'size': 20})
 ax.set_zlabel(r'z-axis: $f(\alpha, \pi)$', fontdict={'size': 20})
 ax.set_xlim([0, 1])
 ax.set_ylim([0, 1])

@@ -9,7 +9,7 @@ from networks_taxi import Networks
 
 import utils_taxi
 # TODO. "from parsed_args_taxi import args"에서 args를 직접 불러오는 것 때문에 자꾸 문구 출력됨.
-#  parsed_args_taxi에서는 add_args만 하고, 여기에서 parser 만드는 식으로 진행.
+#  parsed_args_taxi에서는 add_args만 하고, 여기에서 parser 만드는 식으로 진행하자.
 from parsed_args_taxi import args
 from taxi import TaxiEnv
 
@@ -56,27 +56,18 @@ def get_outcome(env, fare_infos):
 def get_final_networks(env, args):
     if args.mode_kl_divergence:
         networks_final = Networks(env, args)
-        prev_dict = torch.load(args.file_path_final)
-        if args.mode_ac:
-            networks_final.actor.load_state_dict(prev_dict['actor'])
-            networks_final.actor_target.load_state_dict(prev_dict['actor'])
-        if args.mode_psi:
-            networks_final.psi.load_state_dict(prev_dict['psi'])
-            networks_final.psi_target.load_state_dict(prev_dict['psi'])
-        else:
-            networks_final.critic.load_state_dict(prev_dict['critic'])
-            networks_final.critic_target.load_state_dict(prev_dict['critic'])
+        dict_trained = torch.load(args.file_path_final)
+        networks_final = utils_taxi.load_networks(networks_final, args, dict_trained)
     else:
         networks_final = None
     return networks_final
 
 
 if __name__ == "__main__":
+    #TODO: args 만드는 거
+
     # Set the random seed.
-    rand_seed = args.random_seed
-    random.seed(rand_seed)
-    np.random.seed(rand_seed)
-    torch.manual_seed(rand_seed)
+    utils_taxi.set_random_seed(args.random_seed)
 
     # Build the environment.
     env = TaxiEnv(args)
