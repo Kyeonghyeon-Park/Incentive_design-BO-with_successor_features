@@ -27,12 +27,12 @@ def make_dirs(args):
     return path, image_path, video_path, saved_path
 
 
-def make_video(is_train, epi_num, args, video_path, image_path):
+def make_video(is_train, epi_num, fps, video_path, image_path):
     if is_train:
         video_name = "trajectory_train_episode_" + str(epi_num)
     else:
         video_name = "trajectory_test_episode_" + str(epi_num)
-    make_video_from_image_dir(video_path, image_path, fps=args.fps, video_name=video_name)
+    make_video_from_image_dir(video_path, image_path, fps=fps, video_name=video_name)
     # Clean up images.
     for single_image_name in os.listdir(image_path):
         single_image_path = os.path.join(image_path, single_image_name)
@@ -65,6 +65,82 @@ def save_data(args, env, episode_trained, decayed_eps, time_trained, outcomes, n
         'critic_opt': critic_opt_params,
     }, path + name)
 
+
+def draw_or_save_plt(col_rews, col_rews_test, objs, objs_test, i=0, mode='draw', filename=''):
+    def get_figure_components(inputs, i):
+        rew = inputs[:i + 1]
+        moving_avg_len = 20
+        means, stds = [np.zeros(rew.size) for _ in range(2)]
+        for j in range(rew.size):
+            if j + 1 < moving_avg_len:
+                rew_part = rew[:j + 1]
+            else:
+                rew_part = rew[j - moving_avg_len + 1:j + 1]
+            means[j] = np.mean(rew_part)
+            stds[j] = np.std(rew_part)
+        return rew, means, stds
+
+    x_axis = np.arange(i+1)
+    y_axis_lim_rew = np.max(col_rews[:i + 1]) + 100
+    y_axis_lim_rew_test = np.max(col_rews_test[:i + 1]) + 100
+    y_axis_lim_obj = np.max(objs[:i + 1]) + 1
+    y_axis_lim_obj_test = np.max(objs_test[:i + 1]) + 1
+    plt.figure(figsize=(16, 14))
+
+    plt.subplot(2, 2, 1)
+    outs, means, stds = get_figure_components(col_rews, i)
+    plt.plot(x_axis, means, label='Moving avg. of collective rewards', color=(0, 1, 0))
+    plt.fill_between(x_axis, means - stds, means + stds, color=(0.85, 1, 0.85))
+    plt.scatter(x_axis, outs, label='Collective rewards')
+    plt.ylim([0, y_axis_lim_rew])
+    plt.xlabel('Episodes (1000 steps per episode)', fontsize=20)
+    plt.ylabel('Collective rewards per episode', fontsize=20)
+    plt.title('Collective rewards (train)', fontdict={'fontsize': 24})
+    plt.legend(loc='lower right', fontsize=14)
+    plt.grid()
+
+    plt.subplot(2, 2, 2)
+    outs, means, stds = get_figure_components(col_rews_test, i)
+    plt.plot(x_axis, means, label='Moving avg. of collective rewards', color=(0, 1, 0))
+    plt.fill_between(x_axis, means - stds, means + stds, color=(0.85, 1, 0.85))
+    plt.scatter(x_axis, outs, label='Collective rewards')
+    plt.ylim([0, y_axis_lim_rew_test])
+    plt.xlabel('Episodes (1000 steps per episode)', fontsize=20)
+    plt.ylabel('Collective rewards per episode', fontsize=20)
+    plt.title('Collective rewards (test)', fontdict={'fontsize': 24})
+    plt.legend(loc='lower right', fontsize=14)
+    plt.grid()
+
+    plt.subplot(2, 2, 3)
+    outs, means, stds = get_figure_components(objs, i)
+    plt.plot(x_axis, means, label='Moving avg. of designer objectives', color=(0, 1, 0))
+    plt.fill_between(x_axis, means - stds, means + stds, color=(0.85, 1, 0.85))
+    plt.scatter(x_axis, outs, label='Designer objectives')
+    plt.ylim([0, y_axis_lim_obj])
+    plt.xlabel('Episodes (1000 steps per episode)', fontsize=20)
+    plt.ylabel('Designer objectives per episode', fontsize=20)
+    plt.title('Designer objectives (train)', fontdict={'fontsize': 24})
+    plt.legend(loc='lower right', fontsize=14)
+    plt.grid()
+
+    plt.subplot(2, 2, 4)
+    outs, means, stds = get_figure_components(objs_test, i)
+    plt.plot(x_axis, means, label='Moving avg. of designer objectives', color=(0, 1, 0))
+    plt.fill_between(x_axis, means - stds, means + stds, color=(0.85, 1, 0.85))
+    plt.scatter(x_axis, outs, label='Designer objectives')
+    plt.ylim([0, y_axis_lim_obj_test])
+    plt.xlabel('Episodes (1000 steps per episode)', fontsize=20)
+    plt.ylabel('Designer objectives per episode', fontsize=20)
+    plt.title('Designer objectives (test)', fontdict={'fontsize': 24})
+    plt.legend(loc='lower right', fontsize=14)
+    plt.grid()
+
+    if mode == 'draw':
+        plt.show()
+    elif mode == 'save':
+        plt.savefig(filename)
+    else:
+        raise ValueError
 
 
 def get_plt_final(outcomes_l, outcomes_r, is_3000=False):

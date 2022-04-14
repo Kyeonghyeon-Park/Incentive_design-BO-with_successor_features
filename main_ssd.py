@@ -10,7 +10,8 @@ import torch
 from networks_ssd import Networks
 from parsed_args_ssd import args
 from sequential_social_dilemma_games.social_dilemmas.envs.env_creator import get_env_creator
-import sequential_social_dilemma_games.utility_funcs as utility_funcs
+from utils import utils, utils_ssd
+# import sequential_social_dilemma_games.utility_funcs as utility_funcs
 
 """
 Notes
@@ -19,7 +20,7 @@ Notes
 """
 
 
-def roll_out(networks, env, args, init_obs, epi_num, epi_length, decayed_eps, paths, is_draw=False, is_train=True):
+def roll_out(networks, env, init_obs, epi_num, epi_length, decayed_eps, paths, fps=5, is_draw=False, is_train=True):
     """
     Run the simulation over epi_length and get samples from it.
 
@@ -27,12 +28,12 @@ def roll_out(networks, env, args, init_obs, epi_num, epi_length, decayed_eps, pa
     ----------
     networks
     env
-    args
     init_obs
     epi_num
     epi_length
     decayed_eps
     paths
+    fps
     is_draw
     is_train
 
@@ -107,7 +108,7 @@ def roll_out(networks, env, args, init_obs, epi_num, epi_length, decayed_eps, pa
             env.render(filename=filename, i=prev_steps + i + 1, act_probs=act_probs)
 
     # Save the video.
-    utility_funcs.make_video(is_train, epi_num, args, video_path, image_path) if is_draw else None
+    utils_ssd.make_video(is_train, epi_num, fps, video_path, image_path) if is_draw else None
 
     # Reset the environment after roll_out.
     init_obs = env.reset()
@@ -118,7 +119,7 @@ def roll_out(networks, env, args, init_obs, epi_num, epi_length, decayed_eps, pa
 def get_decayed_eps(prev_decayed_eps, i, args):
     if args.mode_epsilon_decay:
         if args.epsilon_decay_ver == 'linear':
-            decayed_eps = args.epsilon * (1 - 0.98 * i / args.episode_num)
+            decayed_eps = args.epsilon * (1 - 0.98 * i / args.num_episodes)
         elif args.epsilon_decay_ver == 'exponential':
             decayed_eps = max(prev_decayed_eps * 0.9999, 0.01)
         else:
@@ -128,150 +129,148 @@ def get_decayed_eps(prev_decayed_eps, i, args):
     return decayed_eps
 
 
-# Seed setting.
-rand_seed = args.random_seed
-random.seed(rand_seed)
-np.random.seed(rand_seed)
-torch.manual_seed(rand_seed)
+if __name__ == "__main__":
+    # Seed setting.
+    utils.set_random_seed(args.random_seed)
 
-# Build the environment.
-env_creator = get_env_creator(args.env, args.num_agents, args)
-env = env_creator(args.num_agents)
-init_obs = env.reset()
+    # Build the environment.
+    env_creator = get_env_creator(args.env, args.num_agents, args)
+    env = env_creator(args.num_agents)
+    init_obs = env.reset()
 
-# Build networks
-networks = Networks(env, args)
+    # Build networks
+    networks = Networks(env, args)
 
-# Initial exploration probability
-decayed_eps = args.epsilon
+    # Initial exploration probability.
+    decayed_eps = args.epsilon
 
-# Build paths for saving images.
-path, image_path, video_path, saved_path = utility_funcs.make_dirs(args)
-paths = [image_path, video_path, saved_path]
+    # Build paths for saving images.
+    path, image_path, video_path, saved_path = utils_ssd.make_dirs(args)
+    paths = [image_path, video_path, saved_path]
 
-# Metrics
-collective_rewards, collective_rewards_test = [np.zeros(args.episode_num) for _ in range(2)]
-total_penalties, total_penalties_test = [np.zeros(args.episode_num) for _ in range(2)]
-total_incentives, total_incentives_test = [np.zeros(args.episode_num) for _ in range(2)]
-objectives, objectives_test = [np.zeros(args.episode_num) for _ in range(2)]
-time_start = time.time()
+    # Buffer
+    buffer = []
 
-# Save current setting(args) to txt for easy check
-utility_funcs.make_setting_txt(args, path)
+    # Metrics.
+    collective_rewards, collective_rewards_test = [np.zeros(args.num_episodes) for _ in range(2)]
+    total_penalties, total_penalties_test = [np.zeros(args.num_episodes) for _ in range(2)]
+    total_incentives, total_incentives_test = [np.zeros(args.num_episodes) for _ in range(2)]
+    objectives, objectives_test = [np.zeros(args.num_episodes) for _ in range(2)]
+    time_start = time.time()
 
-# Buffer
-buffer = []
+    # Save current setting(args) to txt for easy check.
+    utils.make_setting_txt(args, path)
 
-# Run
-for i in range(args.episode_num):
-    # Option for visualization.
-    is_draw = (True and args.mode_draw) if (i == 0 or (i + 1) % args.save_freq == 0) else False
+    # Run
+    for i in range(args.num_episodes):
+        # Option for visualization.
+        is_draw = (True and args.mode_draw) if (i == 0 or (i + 1) % args.save_freq == 0) else False
 
-    # Decayed exploration probability
-    decayed_eps = get_decayed_eps(decayed_eps, i, args)
+        # Decayed exploration probability.
+        decayed_eps = get_decayed_eps(decayed_eps, i, args)
 
-    # Run roll_out function. (We can get 1,000 samples and collective reward of this episode)
-    samples, init_obs, collective_reward, collective_feature = roll_out(networks=networks,
-                                                                        env=env,
-                                                                        args=args,
-                                                                        init_obs=init_obs,
-                                                                        epi_num=i,
-                                                                        epi_length=args.episode_length,
-                                                                        decayed_eps=decayed_eps,
-                                                                        paths=paths,
-                                                                        is_draw=is_draw,
-                                                                        is_train=True,
-                                                                        )
-
-    buffer += samples
-    collective_rewards[i] = collective_reward
-    total_penalties[i] = -collective_feature[1] * args.lv_penalty
-    total_incentives[i] = collective_feature[2] * args.lv_incentive
-    objectives[i] = collective_rewards[i] + total_penalties[i] - total_incentives[i]
-    buffer = buffer[-args.buffer_size:]
-
-    # Update networks
-    if (i + 1) % args.update_freq == 0:
-        k_samples = random.choices(buffer, k=args.K)
-        networks.update_networks(k_samples)
-
-    # Update target networks
-    if (i + 1) % args.update_freq_target == 0:
-        networks.update_target_networks()
-
-    # Print status
-    update = "O" if (i + 1) % args.update_freq == 0 else "X"
-    print(f"Process : {i}/{args.episode_num}, "
-          f"Time : {time.time() - time_start:.2f}, "
-          f"Collective reward : {collective_rewards[i]:.2f}, "
-          f"Objective : {objectives[i]:.2f}, "
-          f"Update : {update}, "
-          f"Train")
-
-    # Test
-    if args.mode_test:
+        # Run roll_out function (We can get 1,000 samples and collective reward of this episode).
         samples, init_obs, collective_reward, collective_feature = roll_out(networks=networks,
                                                                             env=env,
-                                                                            args=args,
                                                                             init_obs=init_obs,
                                                                             epi_num=i,
                                                                             epi_length=args.episode_length,
                                                                             decayed_eps=decayed_eps,
                                                                             paths=paths,
+                                                                            fps=args.fps,
                                                                             is_draw=is_draw,
-                                                                            is_train=False,
+                                                                            is_train=True,
                                                                             )
 
-        collective_rewards_test[i] = collective_reward
-        total_penalties_test[i] = -collective_feature[1] * args.lv_penalty
-        total_incentives_test[i] = collective_feature[2] * args.lv_incentive
-        objectives_test[i] = collective_rewards_test[i] + total_penalties_test[i] - total_incentives_test[i]
+        buffer += samples
+        collective_rewards[i] = collective_reward
+        total_penalties[i] = -collective_feature[1] * args.lv_penalty
+        total_incentives[i] = collective_feature[2] * args.lv_incentive
+        objectives[i] = collective_rewards[i] + total_penalties[i] - total_incentives[i]
+        buffer = buffer[-args.buffer_size:]
+
+        # Update networks.
+        if (i + 1) % args.update_freq == 0:
+            k_samples = random.choices(buffer, k=args.K)
+            networks.update_networks(k_samples)
+
+        # Update target networks.
+        if (i + 1) % args.update_freq_target == 0:
+            networks.update_target_networks()
 
         # Print status
-        print(f"Process : {i}/{args.episode_num}, "
+        update = "O" if (i + 1) % args.update_freq == 0 else "X"
+        print(f"Process : {i}/{args.num_episodes}, "
               f"Time : {time.time() - time_start:.2f}, "
-              f"Collective reward : {collective_rewards_test[i]:.2f}, "
-              f"Objective : {objectives_test[i]:.2f}, "
-              f"Test")
+              f"Collective reward : {collective_rewards[i]:.2f}, "
+              f"Objective : {objectives[i]:.2f}, "
+              f"Update : {update}, "
+              f"Train")
 
-    # Draw collective rewards
-    if (i + 1) % 20 == 0 and args.mode_draw:
-        utility_funcs.draw_or_save_plt_v4(collective_rewards,
-                                          collective_rewards_test,
-                                          objectives,
-                                          objectives_test,
-                                          i=i,
-                                          mode='draw',
-                                          )
+        # Test
+        if args.mode_test:
+            samples, init_obs, collective_reward, collective_feature = roll_out(networks=networks,
+                                                                                env=env,
+                                                                                init_obs=init_obs,
+                                                                                epi_num=i,
+                                                                                epi_length=args.episode_length,
+                                                                                decayed_eps=decayed_eps,
+                                                                                paths=paths,
+                                                                                fps=args.fps,
+                                                                                is_draw=is_draw,
+                                                                                is_train=False,
+                                                                                )
 
-    # Save several things
-    if (i + 1) % args.save_freq == 0:
-        time_trained = time.time() - time_start
-        filename = str(i).zfill(9) + '.tar'
-        filename_plt = saved_path + 'outcomes_' + str(i).zfill(9) + '.png'
-        utility_funcs.draw_or_save_plt_v4(collective_rewards,
-                                          collective_rewards_test,
-                                          objectives,
-                                          objectives_test,
-                                          i=i,
-                                          mode='save',
-                                          filename=filename_plt,
-                                          )
-        utility_funcs.save_data_v4(args=args,
-                                   env=env,
-                                   episode_trained=i,
-                                   decayed_eps=decayed_eps,
-                                   time_trained=time_trained,
-                                   outcomes={'collective_rewards': collective_rewards,
-                                             'collective_rewards_test': collective_rewards_test,
-                                             'total_penalties': total_penalties,
-                                             'total_penalties_test': total_penalties_test,
-                                             'total_incentives': total_incentives,
-                                             'total_incentives_test': total_incentives_test,
-                                             'objectives': objectives,
-                                             'objectives_test': objectives_test,
-                                             },
-                                   networks=networks,
-                                   path=saved_path,
-                                   name=filename,
-                                   )
+            collective_rewards_test[i] = collective_reward
+            total_penalties_test[i] = -collective_feature[1] * args.lv_penalty
+            total_incentives_test[i] = collective_feature[2] * args.lv_incentive
+            objectives_test[i] = collective_rewards_test[i] + total_penalties_test[i] - total_incentives_test[i]
+
+            # Print status
+            print(f"Process : {i}/{args.num_episodes}, "
+                  f"Time : {time.time() - time_start:.2f}, "
+                  f"Collective reward : {collective_rewards_test[i]:.2f}, "
+                  f"Objective : {objectives_test[i]:.2f}, "
+                  f"Test")
+
+        # Draw collective rewards
+        if (i + 1) % 20 == 0 and args.mode_draw:
+            utils_ssd.draw_or_save_plt(collective_rewards,
+                                       collective_rewards_test,
+                                       objectives,
+                                       objectives_test,
+                                       i=i,
+                                       mode='draw',
+                                       )
+
+        # Save several things
+        if (i + 1) % args.save_freq == 0:
+            time_trained = time.time() - time_start
+            filename = str(i).zfill(9) + '.tar'
+            filename_plt = saved_path + 'outcomes_' + str(i).zfill(9) + '.png'
+            utils_ssd.draw_or_save_plt(collective_rewards,
+                                       collective_rewards_test,
+                                       objectives,
+                                       objectives_test,
+                                       i=i,
+                                       mode='save',
+                                       filename=filename_plt,
+                                       )
+            utils_ssd.save_data(args=args,
+                                env=env,
+                                episode_trained=i,
+                                decayed_eps=decayed_eps,
+                                time_trained=time_trained,
+                                outcomes={'collective_rewards': collective_rewards,
+                                          'collective_rewards_test': collective_rewards_test,
+                                          'total_penalties': total_penalties,
+                                          'total_penalties_test': total_penalties_test,
+                                          'total_incentives': total_incentives,
+                                          'total_incentives_test': total_incentives_test,
+                                          'objectives': objectives,
+                                          'objectives_test': objectives_test,
+                                          },
+                                networks=networks,
+                                path=saved_path,
+                                name=filename,
+                                )

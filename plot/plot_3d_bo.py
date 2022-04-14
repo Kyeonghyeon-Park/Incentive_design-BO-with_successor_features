@@ -3,7 +3,7 @@ import copy
 import matplotlib.pyplot as plt
 import numpy as np
 
-import utils_bo
+from utils import utils_bo
 from utils_plot import remove_axis_margins, fill_between_3d
 
 # Remove axes margins in 3D plot.
