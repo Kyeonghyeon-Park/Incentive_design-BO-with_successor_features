@@ -1,5 +1,4 @@
 import random
-import sys
 import time
 
 import numpy as np
@@ -7,15 +6,13 @@ import torch
 
 from networks_taxi import Networks
 
-import utils_taxi
-# TODO. "from parsed_args_taxi import args"에서 args를 직접 불러오는 것 때문에 자꾸 문구 출력됨.
-#  parsed_args_taxi에서는 add_args만 하고, 여기에서 parser 만드는 식으로 진행하자.
+from utils import utils, utils_taxi
 from parsed_args_taxi import args
 from taxi import TaxiEnv
 
 
-def roll_out(networks, env, args, decayed_eps, is_train=True):
-    epi_length = args.episode_length
+def roll_out(networks, env, decayed_eps, is_train=True):
+    epi_length = env.episode_length
     samples = [None] * epi_length
     fare_infos = np.array([0, 0], dtype=float)
     for global_time in range(epi_length):
@@ -44,8 +41,8 @@ def get_decayed_eps(i, init_eps):
 def get_outcome(env, fare_infos):
     weight = 3 / 5
     num_demands = env.demand[:, 3].shape[0]
-    fulfilled_demands = np.sum(env.demand[:, 3])
-    orr = fulfilled_demands / num_demands
+    num_fulfilled_demands = np.sum(env.demand[:, 3])
+    orr = num_fulfilled_demands / num_demands
     osc = fare_infos[0] / fare_infos[1]
     avg_rew = (fare_infos[1] - fare_infos[0]) / env.num_agents
     obj = weight * orr + (1 - weight) * (1 - osc)
@@ -54,20 +51,31 @@ def get_outcome(env, fare_infos):
 
 
 def get_final_networks(env, args):
+    """
+    If args.mode_kl_divergence is True (= want to calculate kl divergences),
+    we have to get final(last trained) networks.
+
+    Parameters
+    ----------
+    env: TaxiEnv
+    args: Namespace
+
+    Returns
+    -------
+    networks_final: Networks
+    """
     if args.mode_kl_divergence:
         networks_final = Networks(env, args)
         dict_trained = torch.load(args.file_path_final)
-        networks_final = utils_taxi.load_networks(networks_final, args, dict_trained)
+        networks_final = utils.load_networks(networks_final, args, dict_trained)
     else:
         networks_final = None
     return networks_final
 
 
 if __name__ == "__main__":
-    #TODO: args 만드는 거
-
     # Set the random seed.
-    utils_taxi.set_random_seed(args.random_seed)
+    utils.set_random_seed(args.random_seed)
 
     # Build the environment.
     env = TaxiEnv(args)
@@ -76,7 +84,7 @@ if __name__ == "__main__":
     networks = Networks(env, args)
     networks_final = get_final_networks(env, args)
 
-    # Initial exploration probability
+    # Initial exploration probability.
     init_eps = args.epsilon
 
     # Build paths for saving files.
@@ -91,7 +99,7 @@ if __name__ == "__main__":
     time_start = time.time()
 
     # Save current setting(args) to txt for easy check.
-    utils_taxi.make_setting_txt(args, path)
+    utils.make_setting_txt(args, path)
 
     # KL divergence.
     skl = np.zeros(args.num_episodes + 1)
@@ -103,7 +111,7 @@ if __name__ == "__main__":
         decayed_eps = get_decayed_eps(i, init_eps)
 
         # Run roll_out function for the training (We can get samples and outcomes of this episode).
-        samples, outcome = roll_out(networks, env, args, decayed_eps, is_train=True)
+        samples, outcome = roll_out(networks, env,decayed_eps, is_train=True)
         orr[0, i], osc[0, i], avg_rew[0, i], obj[0, i] = outcome
         buffer += samples
         buffer = buffer[-args.buffer_size:]
@@ -122,7 +130,7 @@ if __name__ == "__main__":
 
         # Run roll_out function for the testing.
         for j in range(args.num_tests):
-            _, outcome = roll_out(networks, env, args, decayed_eps, is_train=False)
+            _, outcome = roll_out(networks, env, decayed_eps, is_train=False)
             orr_t[j, i], osc_t[j, i], avg_rew_t[j, i], obj_t[j, i] = outcome
 
         # Print status.
@@ -139,7 +147,6 @@ if __name__ == "__main__":
 
         # Print values and policies.
         if (i + 1) % 1 == 0:
-            # utils_taxi.print_updated_q(networks)
             utils_taxi.print_action_dist(networks)
 
         if (i + 1) % 10 == 0:

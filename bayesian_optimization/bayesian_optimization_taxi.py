@@ -1,5 +1,5 @@
 import numpy as np
-import utils_bo
+from utils import utils_bo
 
 # Observations.
 observations = {0.00: 0.8287,

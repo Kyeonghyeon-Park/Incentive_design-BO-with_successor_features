@@ -1,6 +1,8 @@
 import argparse
 import torch
 
+from utils import utils
+
 
 def add_default_args(parser):
     # Setting for the description.
@@ -69,63 +71,46 @@ def add_default_args(parser):
                              "ex. args.file_path='./results_ssd/setting_14/saved/000011999.tar'")
 
 
-def validate_setting(args):
-    if args.mode_ac:
-        assert len(args.h_dims_a) != 0 and args.lr_a != 0, "Actor network setting error."
-    if args.mode_psi:
-        assert len(args.h_dims_p) != 0 and args.lr_p != 0, "Psi network setting error."
-    else:
-        assert len(args.h_dims_c) != 0 and args.lr_c != 0, "Critic network setting error."
-    if args.mode_reuse_networks:
-        prev_dict = torch.load(args.file_path)
-        prev_args = prev_dict['args']
-        is_true = (args.mode_psi == prev_args.mode_psi) and (args.mode_ac == prev_args.mode_ac)
-        assert is_true, "You can not reuse other networks which modes are not matched."
+def overlap_setting(args):
     if args.mode_kl_divergence:
+        # Caution.
         print("##############################################################")
         print("You should notice that arg is overlapped (KL divergence mode).")
         print("##############################################################")
 
+        # Information from trained files.
+        dict_trained = torch.load(args.file_path_final)
+        args_trained = dict_trained['args']
 
-def overlap_setting(args):
-    if args.mode_kl_divergence:
-        description = args.description
-        setting_name = args.setting_name
-
-        random_seed = args.random_seed
-
-        mode_kl_divergence = args.mode_kl_divergence
-        file_path_final = args.file_path_final
-        prev_dict = torch.load(args.file_path_final)
-        args = prev_dict['args']
-        args.description = description
-        args.setting_name = setting_name
-
-        args.random_seed = random_seed
-
-        args.mode_kl_divergence = mode_kl_divergence
-        args.file_path_final = file_path_final
-    return args
+        # Overlap information.
+        args_trained.description = args.description
+        args_trained.setting_name = args.setting_name
+        args_trained.random_seed = args.random_seed
+        args_trained.mode_kl_divergence = args.mode_kl_divergence
+        args_trained.file_path_final = args.file_path_final
+    else:
+        args_trained = args
+    return args_trained
 
 
 parser = argparse.ArgumentParser()
 add_default_args(parser)
 args = parser.parse_args()
 
-# Setting for the description.
+""" Setting for the description. """
 args.description = "Driver repositioning experiment. Test for multiple random seeds. " \
                    "Non-transfer. Random seed: 1238. " \
                    "KL."
 args.setting_name = "setting_15"
 
-# Setting for the environment.
+""" Setting for the environment. """
 # args.grid_size = 2
 # args.num_agents = 100
 
-# Setting for the incentive designer's problem.
+""" Setting for the incentive designer's problem. """
 args.lv_penalty = 0.63
 
-# Setting for the networks.
+""" Setting for the networks. """
 # args.mode_ac = True
 args.mode_psi = True
 # args.h_dims_a = [32, 16, 8]
@@ -137,14 +122,14 @@ args.lr_a = 0.0001
 args.lr_p = 0.0005
 # args.gamma = 1
 
-# Setting for the experiment.
+""" Setting for the experiment. """
 args.num_episodes = 7500
 # args.episode_length = 2
 args.epsilon = 0.5
 args.num_tests = 1  # check!
 args.random_seed = 1238
 
-# setting for the learning.
+""" Setting for the learning. """
 args.K = 8
 args.buffer_size = 100
 # args.num_mean_actions = 5
@@ -155,19 +140,19 @@ args.update_freq_target = 10
 args.mode_reuse_networks = False
 args.file_path = "./results_taxi_final/alpha=0.50/7499.tar"
 
-# Setting for the draw and the save.
+""" Setting for the draw and the save. """
 args.draw_freq = 50
 args.save_freq = 500
 args.mode_draw = True
 
-# Setting for the KL divergence.
+""" Setting for the KL divergence."""
 args.mode_kl_divergence = True
 # args.file_path_final = "./results_taxi_final/alpha=0.63 using alpha=0.50/7499.tar"
 args.file_path_final = "./results_taxi/setting_14/saved/7499.tar"
 
-# Validate the setting.
-validate_setting(args)
+""" Validate the setting. """
+utils.validate_setting(args)
 
-# Overlap the setting if we calculate the KL divergence.
+""" Overlap the setting if we calculate the KL divergence. """
 args = overlap_setting(args)
 

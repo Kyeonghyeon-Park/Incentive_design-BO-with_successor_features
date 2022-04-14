@@ -7,29 +7,10 @@ import numpy as np
 import torch
 import torch.distributions as distributions
 
-from main_taxi import *
+from main_taxi import roll_out
 from networks_taxi import Networks
-from parsed_args_taxi import args
 from taxi import TaxiEnv
-
-
-def make_setting_txt(args, path):
-    """
-    Save current setting(args) to txt for easy check.
-
-    Parameters
-    ----------
-    args
-        args which contains current setting.
-    path : str
-        Path where txt file is stored.
-    """
-    txt_path = os.path.join(path, 'args.txt')
-    f = open(txt_path, 'w')
-    for arg in vars(args):
-        content = arg + ': ' + str(getattr(args, arg)) + '\n'
-        f.write(content)
-    f.close()
+import utils
 
 
 def make_dirs(args):
@@ -42,17 +23,8 @@ def make_dirs(args):
 
 
 def save_data(args, env, episode_trained, decayed_eps, time_start, outcomes, outcomes_t, skl, networks, path, name):
-    actor_params, actor_opt_params, critic_params, critic_opt_params, psi_params, psi_opt_params = [None] * 6
-
-    if args.mode_ac:
-        actor_params = networks.actor.state_dict()
-        actor_opt_params = networks.actor_opt.state_dict()
-    if args.mode_psi:
-        psi_params = networks.psi.state_dict()
-        psi_opt_params = networks.psi_opt.state_dict()
-    else:
-        critic_params = networks.critic.state_dict()
-        critic_opt_params = networks.critic_opt.state_dict()
+    params = utils.get_networks_params(args, networks)
+    actor_params, actor_opt_params, critic_params, critic_opt_params, psi_params, psi_opt_params = params
 
     torch.save({
         'args': args,
@@ -72,30 +44,71 @@ def save_data(args, env, episode_trained, decayed_eps, time_start, outcomes, out
     }, path + name)
 
 
-def print_status(args, i, orr, osc, avg_rew, obj, time_start, is_train=True):
+def get_one_hot_obs_tensor(ind_obs, observation_size):
     """
-    This function prints serveral status for each episode.
+    Get one-hot encoded version of the individual observation and return resized tensor of one-hot obs.
 
     Parameters
     ----------
-    args
-    i : int
+    ind_obs: numpy.ndarray
+        shape: (2, )
+    observation_size: int
+
+    Returns
+    -------
+    ind_obs_one_hot: numpy.ndarray
+        shape : (num_grids, episode_length + 1)
+    """
+    num_grids = 4
+    episode_length = 2
+    ind_obs_one_hot = np.zeros([num_grids, episode_length + 1])
+    loc = ind_obs[0]
+    time = ind_obs[1] if ind_obs[1] <= episode_length else episode_length
+    ind_obs_one_hot[loc, time] = 1
+
+    obs_tensor = torch.tensor([ind_obs_one_hot], dtype=torch.float)
+    obs_tensor = obs_tensor.view(-1, observation_size)
+
+    return obs_tensor
+
+
+def get_masked_categorical_dists(action_probs, masks):
+    probs = torch.mul(action_probs, masks)
+    action_dists = distributions.Categorical(probs)
+    return action_dists
+
+
+def get_env_and_networks(args, dict_trained):
+    env = TaxiEnv(args)
+    networks = Networks(env, args)
+    networks = utils.load_networks(networks, args, dict_trained)
+    return env, networks
+
+
+def print_status(args, i, orr, osc, avg_rew, obj, time_start, is_train=True):
+    """
+    This function prints major status for each episode.
+
+    Parameters
+    ----------
+    args: Namespace
+    i: int
         The number which represents the current episode.
-    orr : numpy.ndarray
+    orr: numpy.ndarray
         Array of order response rate.
         Size : (1, num_episodes) or (num_tests, num_episodes)
-    osc : numpy.ndarray
+    osc: numpy.ndarray
         Array of overall service charge.
         Size : (1, num_episodes) or (num_tests, num_episodes)
-    avg_rew : numpy.ndarray
+    avg_rew: numpy.ndarray
         Array of average rewards of all agents.
         Size : (1, num_episodes) or (num_tests, num_episodes)
-    obj : numpy.ndarray
+    obj: numpy.ndarray
         Array of objective values.
         Size : (1, num_episodes) or (num_tests, num_episodes)
-    time_start : float
+    time_start: float
         The time when the training starts.
-    is_train : boolean
+    is_train: boolean
         True if train
     """
     update = "O" if (i + 1) % args.update_freq == 0 and is_train else "X"
@@ -113,42 +126,19 @@ def print_status(args, i, orr, osc, avg_rew, obj, time_start, is_train=True):
 
 
 def print_updated_q(networks):
-    def get_one_hot_obs(ind_obs):
-        """
-        Text.
-
-        Parameters
-        ----------
-        ind_obs : numpy.ndarray
-            shape : (2, )
-
-        Returns
-        -------
-        ind_obs : numpy.ndarray
-            shape : (num_grids, episode_length + 1)
-        """
-        num_grids = 4
-        episode_length = 2
-        ind_obs_one_hot = np.zeros([num_grids, episode_length + 1])
-        loc = ind_obs[0]
-        time = ind_obs[1] if ind_obs[1] <= episode_length else episode_length
-        ind_obs_one_hot[loc, time] = 1
-        return ind_obs_one_hot
-
+    """
+    Print current trained Q values for each location, action, and mean_action(0, 0.1, ..., 1).
+    """
     torch.set_printoptions(linewidth=200, sci_mode=False)
-
     for loc in [1, 2]:
         for t in [0]:
             print("Q at (#", loc, ", ", t, ")")
             q_all = torch.zeros([11, networks.action_size])
             for i in range(11):
                 m_act = i / 10
-            # for m_act in np.arange(0.0, 1.1, 0.1):
                 with torch.no_grad():
                     ind_obs = np.array([loc, t])
-                    ind_obs_1 = get_one_hot_obs(ind_obs)
-                    obs_tensor = torch.tensor([ind_obs_1], dtype=torch.float)
-                    obs_tensor = obs_tensor.view(-1, networks.observation_size)
+                    obs_tensor = get_one_hot_obs_tensor(ind_obs, networks.observation_size)
 
                     m_act_tensor = torch.tensor(m_act, dtype=torch.float)
                     m_act_tensor = m_act_tensor.view(-1, networks.mean_action_size)
@@ -160,90 +150,44 @@ def print_updated_q(networks):
 
 
 def print_action_dist(networks):
-    def get_one_hot_obs(ind_obs):
-        """
-        Text.
-
-        Parameters
-        ----------
-        ind_obs : numpy.ndarray
-            shape : (2, )
-
-        Returns
-        -------
-        ind_obs : numpy.ndarray
-            shape : (num_grids, episode_length + 1)
-        """
-        num_grids = 4
-        episode_length = 2
-        ind_obs_one_hot = np.zeros([num_grids, episode_length + 1])
-        loc = ind_obs[0]
-        time = ind_obs[1] if ind_obs[1] <= episode_length else episode_length
-        ind_obs_one_hot[loc, time] = 1
-        return ind_obs_one_hot
-
-    def get_masked_categorical(action_probs, masks):
-        probs = torch.mul(action_probs, masks)
-        action_dists = distributions.Categorical(probs)
-        return action_dists
-
     for loc in [1, 2]:
         for t in [0]:
             ind_obs = np.array([loc, t])
-            ind_obs_1 = get_one_hot_obs(ind_obs)
-            obs_tensor = torch.tensor([ind_obs_1], dtype=torch.float)
-            obs_tensor = obs_tensor.view(-1, networks.observation_size)
+            obs_tensor = get_one_hot_obs_tensor(ind_obs, networks.observation_size)
             obs_mask = networks.get_masks([ind_obs])
 
             act_probs = networks.actor(obs_tensor)
-            dists = get_masked_categorical(act_probs, obs_mask)
+            dists = get_masked_categorical_dists(act_probs, obs_mask)
             act_probs = dists.probs
+
             act_probs = act_probs.detach()
             print("Action distribution at (#", loc, ", ", t, ") : ", act_probs)
 
 
 def calculate_kl_divergence(networks, networks_final):
-    def get_one_hot_obs(ind_obs):
-        """
-        Text.
+    """
+    Get kl divergence for the locations [1, 0] and [2, 0].
 
-        Parameters
-        ----------
-        ind_obs : numpy.ndarray
-            shape : (2, )
+    Parameters
+    ----------
+    networks: Networks
+    networks_final: Networks
 
-        Returns
-        -------
-        ind_obs : numpy.ndarray
-            shape : (num_grids, episode_length + 1)
-        """
-        num_grids = 4
-        episode_length = 2
-        ind_obs_one_hot = np.zeros([num_grids, episode_length + 1])
-        loc = ind_obs[0]
-        time = ind_obs[1] if ind_obs[1] <= episode_length else episode_length
-        ind_obs_one_hot[loc, time] = 1
-        return ind_obs_one_hot
-
-    def get_masked_categorical(action_probs, masks):
-        probs = torch.mul(action_probs, masks)
-        action_dists = distributions.Categorical(probs)
-        return action_dists
-
-    kl = 0
-
+    Returns
+    -------
+    kld: float
+    """
+    kld = 0
     for ind_obs in [np.array([1, 0]), np.array([2, 0])]:
-        ind_obs_1 = get_one_hot_obs(ind_obs)
-        obs_tensor = torch.tensor([ind_obs_1], dtype=torch.float)
-        obs_tensor = obs_tensor.view(-1, networks.observation_size)
+        obs_tensor = get_one_hot_obs_tensor(ind_obs, networks.observation_size)
         obs_mask = networks.get_masks([ind_obs])  # obs_mask: tensor([[1., 1., 0., 1.]]) for ind_obs: [1 0]
 
         act_probs = networks.actor_target(obs_tensor)
-        dists = get_masked_categorical(act_probs, obs_mask)
+        dists = get_masked_categorical_dists(act_probs, obs_mask)
         act_probs = dists.probs  # ex. act_probs: tensor([[0.3911, 0.4301, 0.0000, 0.1788]])
 
         act_probs_final = networks_final.actor_target(obs_tensor)
-        dists_final = get_masked_categorical(act_probs_final, obs_mask)
+        dists_final = get_masked_categorical_dists(act_probs_final, obs_mask)
         act_probs_final = dists_final.probs  # ex. act_probs_final: tensor([[0.1724, 0.0000, 0.0000, 0.8276]])
 
         obs_mask = obs_mask.squeeze()
@@ -256,9 +200,9 @@ def calculate_kl_divergence(networks, networks_final):
                 p = max(p, 1e-12)
                 q = act_probs[i].item()
                 q = max(q, 1e-12)
-                kl -= p * np.log(q / p)
+                kld -= p * np.log(q / p)
 
-    return kl
+    return kld
 
 
 def get_plt(outcomes, outcomes_t, i, mode="draw", filename=""):
@@ -272,10 +216,6 @@ def get_plt(outcomes, outcomes_t, i, mode="draw", filename=""):
     i
     mode
     filename
-
-    Returns
-    -------
-
     """
     def get_status(inputs, i):
         inputs = inputs[:, :i+1]
@@ -347,26 +287,26 @@ def get_plt(outcomes, outcomes_t, i, mode="draw", filename=""):
         raise ValueError
 
 
-def get_plt_skl(skl, i, filename=""):
+def get_plt_skld(skld, i, filename=""):
     """
     Get the figure of the sum of KL divergences during the training.
 
     Parameters
     ----------
-    skl : numpy.ndarray
+    skld: numpy.ndarray
         Array of sum of KL divergences.
-    i
-    filename
+    i: int
+    filename: str
     """
-    # skl : sum of kl divergences
-    skl = skl[:i + 2]
+    # skld : sum of kl divergences
+    skld = skld[:i + 2]
     x = np.arange(i + 2)
-    y_lim_all = np.max(skl) + 0.01
+    y_lim_all = np.max(skld) + 0.01
     y_lim_partial = 0.1
 
     plt.figure(figsize=(16, 7))
     plt.subplot(1, 2, 1)
-    plt.plot(x, skl, label="KL divergence", color=(0, 0, 1))
+    plt.plot(x, skld, label="KL divergence", color=(0, 0, 1))
     plt.ylim([0, y_lim_all])
     plt.xlabel("Episodes", fontsize=20)
     plt.ylabel("Sum of KL divergences", fontsize=20)
@@ -375,7 +315,7 @@ def get_plt_skl(skl, i, filename=""):
     plt.grid()
 
     plt.subplot(1, 2, 2)
-    plt.plot(x, skl, label="KL divergence", color=(0, 0, 1))
+    plt.plot(x, skld, label="KL divergence", color=(0, 0, 1))
     plt.ylim([0, y_lim_partial])
     plt.xlabel("Episodes", fontsize=20)
     plt.ylabel("Sum of KL divergences", fontsize=20)
@@ -475,57 +415,7 @@ def get_plt_final(outcomes_l, outcomes_r):
     plt.show()
 
 
-def get_plt_cumulative_SKLD(skld_trans, skld_ntrans):
-    """
-    Get the figure of two cumulative SKLDs (sum of KL divergences).
-    SKLD of the transfer scenario will be shown in the left.
-    SKLD is divided by the maximum value of SKLDs.
-
-    Examples
-    ----------
-    data_trans = torch.load("./results_taxi_final/alpha=0.63 using alpha=0.50/kl/7499.tar")
-    skl_trans = data_trans["skl"]
-    data_ntrans = torch.load("./results_taxi_final/alpha=0.63/kl/7499.tar")
-    skl_ntrans = data_ntrans["skl"]
-    utils_taxi.get_plt_cumulative_SKLD(skl_trans, skl_ntrans)
-
-    Parameters
-    ----------
-    skld_trans
-    skld_ntrans
-    """
-    # skld : sum of kl divergences
-    skld_trans = skld_trans / max(skld_trans)
-    skld_ntrans = skld_ntrans / max(skld_ntrans)
-
-    x = np.arange(len(skld_trans))
-    # y_lim = np.max([np.sum(skld_trans), np.sum(skld_ntrans)]) + 0.01
-    # y_lim = 1000
-    y_lim = None
-    cskld_trans = np.zeros(len(skld_trans))
-    cskld_ntrans = np.zeros(len(skld_ntrans))
-    for i in range(len(skld_trans)):
-        if i == 0:
-            cskld_trans[i] = skld_trans[i]
-            cskld_ntrans[i] = skld_ntrans[i]
-        else:
-            cskld_trans[i] = skld_trans[i] + cskld_trans[i - 1]
-            cskld_ntrans[i] = skld_ntrans[i] + cskld_ntrans[i - 1]
-
-    plt.figure(figsize=(16, 8))
-    plt.plot(x, cskld_trans, label="Cumulative SKLD (transfer)", color=(0, 0, 1))
-    plt.plot(x, cskld_ntrans, label="Cumulative SKLD (non-transfer)", color=(1, 0, 0))
-    plt.ylim([0, y_lim])
-    plt.xlabel("Episodes", fontsize=24)
-    plt.ylabel("Cumulative SKLD", fontsize=24)
-    plt.legend(loc='best', fontsize=20)
-    plt.tick_params(axis='both', labelsize=20)
-    plt.grid()
-
-    plt.show()
-
-
-def get_plt_cumulative_SKLD_multiseeds(skld_trans_list, skld_ntrans_list, is_normalized=False):
+def get_plt_cumulative_skld_multiseeds(skld_trans_list, skld_ntrans_list, is_normalized=False):
     """
     Get the figure of two cumulative SKLDs(sum of KL divergences) for multiple random seeds.
     SKLD of the transfer scenario will be shown in the left.
@@ -542,13 +432,15 @@ def get_plt_cumulative_SKLD_multiseeds(skld_trans_list, skld_ntrans_list, is_nor
         data_ntrans = torch.load(ntrans_path)
         skld_trans_list.append(data_trans["skl"])
         skld_ntrans_list.append(data_ntrans["skl"])
-    utils_taxi.get_plt_cumulative_SKLD_multiseeds(skld_trans_list, skld_ntrans_list)
+    utils_taxi.get_plt_cumulative_skld_multiseeds(skld_trans_list, skld_ntrans_list)
 
     Parameters
     ----------
-    skld_trans_list : list
-    skld_ntrans_list : list
-    is_normalized : bool
+    skld_trans_list: List
+        list of skl from dict_trained for multiple random seeds.
+    skld_ntrans_list: List
+        list of skl from dict_trained for multiple random seeds.
+    is_normalized: bool
     """
     num_seeds = len(skld_trans_list)
     num_episodes = len(skld_trans_list[0])
@@ -632,27 +524,12 @@ def get_approximated_gradient(network_path, w, w_bound, h=0.01, num_tests=100):
     -------
     w_grad : np.array
     """
-    def get_env_and_networks(args, prev_dict):
-        env = TaxiEnv(args)
-        networks = Networks(env, args)
-        networks = load_networks(networks, args, prev_dict)
-        # networks = load_networks(networks, prev_dict)
-        return env, networks
-
-    # def load_networks(networks, prev_dict):
-    #     # TODO : make complete files for critics
-    #     networks.actor.load_state_dict(prev_dict['actor'])
-    #     networks.actor_target.load_state_dict(prev_dict['actor'])
-    #     networks.psi.load_state_dict(prev_dict['psi'])
-    #     networks.psi_target.load_state_dict(prev_dict['psi'])
-    #     return networks
-
-    set_random_seed(1234)
+    utils.set_random_seed(1234)
     w_grad = np.zeros(w.size)
 
-    # Load previous data.
-    prev_dict = torch.load(network_path)
-    args = prev_dict['args']
+    # Load trained data.
+    dict_trained = torch.load(network_path)
+    args = dict_trained['args']
     if args.lv_penalty != w:
         raise ValueError("args.lv_penalty and w are not the same. Please check your inputs.")
 
@@ -668,8 +545,8 @@ def get_approximated_gradient(network_path, w, w_bound, h=0.01, num_tests=100):
         args_b.lv_penalty = w_b
 
         # Build the environment and networks.
-        env_f, networks_f = get_env_and_networks(args_f, prev_dict)
-        env_b, networks_b = get_env_and_networks(args_b, prev_dict)
+        env_f, networks_f = get_env_and_networks(args_f, dict_trained)
+        env_b, networks_b = get_env_and_networks(args_b, dict_trained)
 
         # Build array for collecting objective values.
         obj_f, obj_b = [np.zeros(num_tests) for _ in range(2)]
@@ -677,12 +554,10 @@ def get_approximated_gradient(network_path, w, w_bound, h=0.01, num_tests=100):
         for j in range(num_tests):
             _, outcome_f = roll_out(networks=networks_f,
                                     env=env_f,
-                                    args=args_f,
                                     decayed_eps=0,
                                     is_train=False)
             _, outcome_b = roll_out(networks=networks_b,
                                     env=env_b,
-                                    args=args_b,
                                     decayed_eps=0,
                                     is_train=False)
 
@@ -694,22 +569,3 @@ def get_approximated_gradient(network_path, w, w_bound, h=0.01, num_tests=100):
         print(f"w_grad: {w_grad}")
 
     return w_grad
-
-
-def set_random_seed(rand_seed):
-    random.seed(rand_seed)
-    np.random.seed(rand_seed)
-    torch.manual_seed(rand_seed)
-
-
-def load_networks(networks, args, dict_trained):
-    if args.mode_ac:
-        networks.actor.load_state_dict(dict_trained['actor'])
-        networks.actor_target.load_state_dict(dict_trained['actor'])
-    if args.mode_psi:
-        networks.psi.load_state_dict(dict_trained['psi'])
-        networks.psi_target.load_state_dict(dict_trained['psi'])
-    else:
-        networks.critic.load_state_dict(dict_trained['critic'])
-        networks.critic_target.load_state_dict(dict_trained['critic'])
-    return networks

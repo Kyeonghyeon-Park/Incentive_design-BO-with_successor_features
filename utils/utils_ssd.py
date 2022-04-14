@@ -1,6 +1,70 @@
+import os
+
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
+
+import utils
+from ..sequential_social_dilemma_games.utility_funcs import make_video_from_image_dir
+
+
+def make_dirs(args):
+    path = "results_ssd/" + args.setting_name
+    if path is None:
+        path = os.path.abspath(os.path.dirname(__file__)) + "/results_ssd" + args.setting_name
+        if not os.path.exists(path):
+            os.makedirs(path)
+    image_path = os.path.join(path, "frames/")
+    if not os.path.exists(image_path):
+        os.makedirs(image_path)
+    video_path = os.path.join(path, "videos/")
+    if not os.path.exists(video_path):
+        os.makedirs(video_path)
+    saved_path = os.path.join(path, "saved/")
+    if not os.path.exists(saved_path):
+        os.makedirs(saved_path)
+
+    return path, image_path, video_path, saved_path
+
+
+def make_video(is_train, epi_num, args, video_path, image_path):
+    if is_train:
+        video_name = "trajectory_train_episode_" + str(epi_num)
+    else:
+        video_name = "trajectory_test_episode_" + str(epi_num)
+    make_video_from_image_dir(video_path, image_path, fps=args.fps, video_name=video_name)
+    # Clean up images.
+    for single_image_name in os.listdir(image_path):
+        single_image_path = os.path.join(image_path, single_image_name)
+        try:
+            if os.path.isfile(single_image_path) or os.path.islink(single_image_path):
+                os.unlink(single_image_path)
+        except Exception as e:
+            print('Failed to delete %s. Reason: %s' % (single_image_path, e))
+
+
+def save_data(args, env, episode_trained, decayed_eps, time_trained, outcomes, networks, path, name):
+    """
+    Save several data.
+    """
+    params = utils.get_networks_params(args, networks)
+    actor_params, actor_opt_params, critic_params, critic_opt_params, psi_params, psi_opt_params = params
+
+    torch.save({
+        'args': args,
+        'env': env,
+        'episode_trained': episode_trained,
+        'time_trained': time_trained,
+        'decayed_eps': decayed_eps,
+        'outcomes': outcomes,
+        'actor': actor_params,
+        'actor_opt': actor_opt_params,
+        'psi': psi_params,
+        'psi_opt': psi_opt_params,
+        'critic': critic_params,
+        'critic_opt': critic_opt_params,
+    }, path + name)
+
 
 
 def get_plt_final(outcomes_l, outcomes_r, is_3000=False):
@@ -290,39 +354,3 @@ def get_plt_cumulative_SKLD_multiseeds(skld_l_list, skld_r_list, is_3000=False, 
     plt.grid()
 
     plt.show()
-
-    # def get_CSKLD(skl):
-    #     cskld = np.zeros(len(skl))
-    #     for i in range(len(skl)):
-    #         cskld[i] = skl[i] if i == 0 else skl[i] + cskld[i - 1]
-    #     return cskld
-    #
-    # if is_3000:
-    #     skl_l = skl_l[2::3]
-    #     skl_r = skl_r[2::3]
-    #     x = 3000 * np.arange(1, 11)
-    #     x_lim = [3000, 30000]
-    # else:
-    #     x = 1000 * np.arange(1, 31)
-    #     x_lim = [None, None]
-    #
-    # skl_l = skl_l / max(skl_l)
-    # skl_r = skl_r / max(skl_r)
-    #
-    # y_lim = [None, None]
-    #
-    # cskld_l = get_CSKLD(skl_l)
-    # cskld_r = get_CSKLD(skl_r)
-
-    # plt.figure(figsize=(16, 8))
-    # plt.plot(x, cskld_l, label="Cumulative SKLD (transfer)", color=(0, 0, 1))
-    # plt.plot(x, cskld_r, label="Cumulative SKLD (non-transfer)", color=(1, 0, 0))
-    # plt.xlim(x_lim)
-    # plt.ylim(y_lim)
-    # plt.xlabel("Episodes", fontsize=24)
-    # plt.ylabel("Cumulative SKLD", fontsize=24)
-    # plt.legend(loc='lower right', fontsize=20)
-    # plt.tick_params(axis='both', labelsize=20)
-    # plt.grid()
-    #
-    # plt.show()

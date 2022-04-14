@@ -1,17 +1,12 @@
-import os
-import random
-import shutil
-import sys
-import time
-
-import numpy as np
-import torch
-
 from main_taxi import *
 from networks_taxi import Networks
 from parsed_args_taxi import args
 from taxi import TaxiEnv
-import utils_taxi
+from utils import utils, utils_taxi
+
+"""
+Deprecated. Use evaluate_taxi_multi.py. 
+"""
 
 args.setting_name = "setting_evaluation"
 
@@ -64,7 +59,7 @@ num_tests = 1000
 #####################################
 
 # Seed setting.
-utils_taxi.set_random_seed(1238)
+utils.set_random_seed(1238)
 
 # Build the environment.
 env = TaxiEnv(args)
@@ -80,14 +75,10 @@ explanations = []
 prev_paths_list = list(prev_paths.values())
 for j in range(len(prev_paths_list)):
     prev_path = prev_paths_list[j]
-    prev_dict = torch.load(prev_path)
-    prev_args = prev_dict['args']
+    dict_trained = torch.load(prev_path)
+    prev_args = dict_trained['args']
     # Load
-    # TODO : make complete files for critics
-    networks.actor.load_state_dict(prev_dict['actor'])
-    networks.actor_target.load_state_dict(prev_dict['actor'])
-    networks.psi.load_state_dict(prev_dict['psi'])
-    networks.psi_target.load_state_dict(prev_dict['psi'])
+    networks = utils.load_networks(networks, args, dict_trained)
 
     orr, osc, avg_rew, obj = [np.zeros(num_tests) for _ in range(4)]
     print(f"-----------------------------")
