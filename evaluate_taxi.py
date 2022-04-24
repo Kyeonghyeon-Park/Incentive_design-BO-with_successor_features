@@ -2,7 +2,7 @@ from main_taxi import *
 from networks_taxi import Networks
 from parsed_args_taxi import args
 from taxi import TaxiEnv
-from utils import utils, utils_taxi
+from utils import utils_all, utils_taxi
 
 """
 Deprecated. Use evaluate_taxi_multi.py. 
@@ -59,7 +59,7 @@ num_tests = 1000
 #####################################
 
 # Seed setting.
-utils.set_random_seed(1238)
+utils_all.set_random_seed(1238)
 
 # Build the environment.
 env = TaxiEnv(args)
@@ -78,7 +78,7 @@ for j in range(len(prev_paths_list)):
     dict_trained = torch.load(prev_path)
     prev_args = dict_trained['args']
     # Load
-    networks = utils.load_networks(networks, args, dict_trained)
+    networks = utils_all.load_networks(networks, args, dict_trained)
 
     orr, osc, avg_rew, obj = [np.zeros(num_tests) for _ in range(4)]
     print(f"-----------------------------")

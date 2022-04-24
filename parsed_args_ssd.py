@@ -1,6 +1,6 @@
 import argparse
 
-from utils import utils
+from utils import utils_all
 
 
 def add_default_args(parser):
@@ -129,4 +129,4 @@ args.file_path = './results_ssd_final/alpha=0.50/000029999.tar'
 args.mode_draw = False
 
 """ Validate the setting. """
-utils.validate_setting(args)
+utils_all.validate_setting(args)

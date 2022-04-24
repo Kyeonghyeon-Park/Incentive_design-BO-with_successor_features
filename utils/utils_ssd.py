@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-import utils
+import utils_all
 from ..sequential_social_dilemma_games.utility_funcs import make_video_from_image_dir
 
 
@@ -47,7 +47,7 @@ def save_data(args, env, episode_trained, decayed_eps, time_trained, outcomes, n
     """
     Save several data.
     """
-    params = utils.get_networks_params(args, networks)
+    params = utils_all.get_networks_params(args, networks)
     actor_params, actor_opt_params, critic_params, critic_opt_params, psi_params, psi_opt_params = params
 
     torch.save({

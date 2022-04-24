@@ -1,7 +1,7 @@
 import argparse
 import torch
 
-from utils import utils
+from utils import utils_all
 
 
 def add_default_args(parser):
@@ -98,17 +98,15 @@ add_default_args(parser)
 args = parser.parse_args()
 
 """ Setting for the description. """
-args.description = "Driver repositioning experiment. Test for multiple random seeds. " \
-                   "Non-transfer. Random seed: 1238. " \
-                   "KL."
-args.setting_name = "setting_15"
+args.description = "Test existing selection algorithm. alpha=0.93 using alpha=1."
+args.setting_name = "setting_0"
 
 """ Setting for the environment. """
 # args.grid_size = 2
 # args.num_agents = 100
 
 """ Setting for the incentive designer's problem. """
-args.lv_penalty = 0.63
+args.lv_penalty = 0.93
 
 """ Setting for the networks. """
 # args.mode_ac = True
@@ -137,8 +135,8 @@ args.mode_lr_decay = False
 args.update_freq = 1
 args.update_freq_target = 10
 # args.tau = 1
-args.mode_reuse_networks = False
-args.file_path = "./results_taxi_final/alpha=0.50/7499.tar"
+args.mode_reuse_networks = True
+args.file_path = "./results/211008 submitted version/results_taxi_final/alpha=1.00/7499.tar"
 
 """ Setting for the draw and the save. """
 args.draw_freq = 50
@@ -146,12 +144,12 @@ args.save_freq = 500
 args.mode_draw = True
 
 """ Setting for the KL divergence."""
-args.mode_kl_divergence = True
+args.mode_kl_divergence = False
 # args.file_path_final = "./results_taxi_final/alpha=0.63 using alpha=0.50/7499.tar"
 args.file_path_final = "./results_taxi/setting_14/saved/7499.tar"
 
 """ Validate the setting. """
-utils.validate_setting(args)
+utils_all.validate_setting(args)
 
 """ Overlap the setting if we calculate the KL divergence. """
 args = overlap_setting(args)

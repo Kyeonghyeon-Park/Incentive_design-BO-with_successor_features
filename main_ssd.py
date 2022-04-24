@@ -10,7 +10,7 @@ import torch
 from networks_ssd import Networks
 from parsed_args_ssd import args
 from sequential_social_dilemma_games.social_dilemmas.envs.env_creator import get_env_creator
-from utils import utils, utils_ssd
+from utils import utils_all, utils_ssd
 # import sequential_social_dilemma_games.utility_funcs as utility_funcs
 
 """
@@ -131,7 +131,7 @@ def get_decayed_eps(prev_decayed_eps, i, args):
 
 if __name__ == "__main__":
     # Seed setting.
-    utils.set_random_seed(args.random_seed)
+    utils_all.set_random_seed(args.random_seed)
 
     # Build the environment.
     env_creator = get_env_creator(args.env, args.num_agents, args)
@@ -159,7 +159,7 @@ if __name__ == "__main__":
     time_start = time.time()
 
     # Save current setting(args) to txt for easy check.
-    utils.make_setting_txt(args, path)
+    utils_all.make_setting_txt(args, path)
 
     # Run
     for i in range(args.num_episodes):

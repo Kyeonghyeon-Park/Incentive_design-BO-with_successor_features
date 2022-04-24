@@ -1,6 +1,6 @@
 from main_taxi import *
 from parsed_args_taxi import args
-from utils import utils, utils_taxi
+from utils import utils_all, utils_taxi
 
 """
 This code is extended version of evaluate_taxi.py for multi-environments and multi-policies. 
@@ -32,7 +32,7 @@ num_tests = 1000
 
 objs = np.zeros([num_env, num_pol])
 explanations = [[] for i in range(num_env)]
-utils.set_random_seed(1234)
+utils_all.set_random_seed(1234)
 
 for i in range(num_env):
     for j in range(num_pol):

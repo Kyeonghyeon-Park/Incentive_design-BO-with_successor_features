@@ -6,7 +6,7 @@ import torch
 
 from networks_taxi import Networks
 
-from utils import utils, utils_taxi
+from utils import utils_all, utils_taxi
 from parsed_args_taxi import args
 from taxi import TaxiEnv
 
@@ -67,7 +67,7 @@ def get_final_networks(env, args):
     if args.mode_kl_divergence:
         networks_final = Networks(env, args)
         dict_trained = torch.load(args.file_path_final)
-        networks_final = utils.load_networks(networks_final, args, dict_trained)
+        networks_final = utils_all.load_networks(networks_final, args, dict_trained)
     else:
         networks_final = None
     return networks_final
@@ -75,7 +75,7 @@ def get_final_networks(env, args):
 
 if __name__ == "__main__":
     # Set the random seed.
-    utils.set_random_seed(args.random_seed)
+    utils_all.set_random_seed(args.random_seed)
 
     # Build the environment.
     env = TaxiEnv(args)
@@ -99,7 +99,7 @@ if __name__ == "__main__":
     time_start = time.time()
 
     # Save current setting(args) to txt for easy check.
-    utils.make_setting_txt(args, path)
+    utils_all.make_setting_txt(args, path)
 
     # KL divergence.
     skl = np.zeros(args.num_episodes + 1)
@@ -160,7 +160,7 @@ if __name__ == "__main__":
             filename_plt = saved_path + "outcomes_" + str(i).zfill(4) + ".png"
             filename_plt_skl = saved_path + "skl_" + str(i).zfill(4) + ".png"
             utils_taxi.get_plt(outcomes, outcomes_t, i, mode="save", filename=filename_plt)
-            utils_taxi.get_plt_skl(skl, i, filename=filename_plt_skl)
+            utils_taxi.get_plt_skld(skl, i, filename=filename_plt_skl)
             utils_taxi.save_data(args=args,
                                  env=env,
                                  episode_trained=i,

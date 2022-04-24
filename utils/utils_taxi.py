@@ -10,7 +10,7 @@ import torch.distributions as distributions
 from main_taxi import roll_out
 from networks_taxi import Networks
 from taxi import TaxiEnv
-import utils
+import utils_all
 
 
 def make_dirs(args):
@@ -23,7 +23,7 @@ def make_dirs(args):
 
 
 def save_data(args, env, episode_trained, decayed_eps, time_start, outcomes, outcomes_t, skl, networks, path, name):
-    params = utils.get_networks_params(args, networks)
+    params = utils_all.get_networks_params(args, networks)
     actor_params, actor_opt_params, critic_params, critic_opt_params, psi_params, psi_opt_params = params
 
     torch.save({
@@ -81,7 +81,7 @@ def get_masked_categorical_dists(action_probs, masks):
 def get_env_and_networks(args, dict_trained):
     env = TaxiEnv(args)
     networks = Networks(env, args)
-    networks = utils.load_networks(networks, args, dict_trained)
+    networks = utils_all.load_networks(networks, args, dict_trained)
     return env, networks
 
 
@@ -524,7 +524,7 @@ def get_approximated_gradient(network_path, w, w_bound, h=0.01, num_tests=100):
     -------
     w_grad : np.array
     """
-    utils.set_random_seed(1234)
+    utils_all.set_random_seed(1234)
     w_grad = np.zeros(w.size)
 
     # Load trained data.
