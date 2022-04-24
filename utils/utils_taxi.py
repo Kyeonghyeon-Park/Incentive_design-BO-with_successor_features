@@ -10,7 +10,7 @@ import torch.distributions as distributions
 from main_taxi import roll_out
 from networks_taxi import Networks
 from taxi import TaxiEnv
-import utils_all
+from . import utils_all
 
 
 def make_dirs(args):

@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-import utils_all
+from . import utils_all
 from ..sequential_social_dilemma_games.utility_funcs import make_video_from_image_dir
 
 
