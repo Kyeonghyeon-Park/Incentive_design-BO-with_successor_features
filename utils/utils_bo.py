@@ -50,9 +50,10 @@ def sqrt_beta(t=6, d=1, delta=0.5):
     return value
 
 
-class BayesianOptimizationAlpha(BayesianOptimization):
+class BayesianOptimizationModified(BayesianOptimization):
     """
     Update self._gp to easily change alpha and length_scale_bounds of GaussianProcessRegressor.
+    Build useful functions to easily access the GaussianProcessRegressor and other things.
     """
     def __init__(self, f, pbounds, random_state=None, verbose=2, length_scale_bounds=(1e-5, 1e5), alpha=1e-6):
         super().__init__(f, pbounds, random_state=random_state, verbose=verbose,)
@@ -78,19 +79,18 @@ class BayesianOptimizationAlpha(BayesianOptimization):
         for params, target in observations.items():
             super().register(params=params, target=target)
 
-    def fit(self, x_obs, y_obs):
+    def fit(self):
         """
         Fit Gaussian process regression model.
-
-        Parameters
-        ----------
-        x_obs: numpy.ndarray
+        GaussianProcessRegressor requires
+        1) x_obs: numpy.ndarray
             Feature vectors or other representations of training data.
             shape: (N, 1) where N is the number of observations.
-        y_obs: numpy.ndarray
+        2) y_obs: numpy.ndarray
             Target values.
             shape: (N, )
         """
+        x_obs, y_obs = self.get_obs()
         self._gp.fit(x_obs, y_obs)
 
     def get_posterior(self, grid):
@@ -123,8 +123,10 @@ class BayesianOptimizationAlpha(BayesianOptimization):
         Returns
         -------
         x_obs: numpy.ndarray
+            Feature vectors or other representations of training data.
             shape: (N, 1) where N is the number of observations.
         y_obs: numpy.ndarray
+            Target values.
             shape: (N, )
         """
         x_obs = np.array([[res["params"]["alpha"]] for res in self.res])
@@ -177,6 +179,7 @@ class BayesianOptimizationAlpha(BayesianOptimization):
 def get_opt_and_acq(observations, pbounds=None, **kwargs):
     """
     Get the optimizer and the acquisition function.
+    Optimizer is fitted to observed points(observations).
 
     Parameters
     ----------
@@ -185,54 +188,54 @@ def get_opt_and_acq(observations, pbounds=None, **kwargs):
 
     Returns
     -------
-    optimizer: BayesianOptimizationAlpha
+    optimizer: BayesianOptimizationModified
     acquisition_function: UtilityFunction
     """
     if pbounds is None:
         pbounds = {'alpha': (0, 1)}
-    optimizer = BayesianOptimizationAlpha(
+    optimizer = BayesianOptimizationModified(
         f=black_box_function,
         pbounds=pbounds,
         **kwargs,
     )
     optimizer.register(observations)
+    optimizer.fit()
     acquisition_function = optimizer.get_acq()
     return optimizer, acquisition_function
 
 
-def plot_gp(optimizer, acquisition_function, x, gp_lim=None, acq_lim=None):
+def plot_gp_utility(optimizer, utility, x, gp_lim=None, acq_lim=None, next_point_suggestion=None):
     """
-    Plot posterior and acquisition function.
-    If figure shows weird posterior, please change random_state or length_scale_bounds when you build the optimizer.
+    Plot posterior and values of acquisition function.
 
     Parameters
     ----------
-    optimizer : BayesianOptimizationAlpha
-    acquisition_function : UtilityFunction
+    optimizer: BayesianOptimizationModified
+    utility: numpy.ndarray
     x: numpy.ndarray
-        x-axis of graph.
-        We need the shape (-1, 1) for x because of acquisition_function.utility.
+        x-axis of graph. We need the shape (-1, 1) for x.
         ex. x = np.linspace(0, 1, 10000).reshape(-1, 1)
     gp_lim: None or List
         List of xlim and ylim for the GP graph.
-        ex. gp_lim=[(0, 1), (0.81, 0.92)]
+        ex. gp_lim = [(0, 1), (0.81, 0.92)]
     acq_lim: None or List
         List of xlim and ylim for the acquisition graph.
-        ex. acq_lim=[(0, 1), (0.83, 0.935)]
+        ex. acq_lim = [(0, 1), (0.83, 0.935)]
+    next_point_suggestion: None or dict
+        If next_point_suggestion is coming from acquisition function, it should be dict.
+        Otherwise, it will be None.
+        ex. next_point_suggestion = {'alpha': 0.5313201435572625}
     """
     plot_time = time.time()
 
     # Observations and posterior distributions.
     x_obs, y_obs = optimizer.get_obs()
-    optimizer.fit(x_obs, y_obs)
     mu, sigma = optimizer.get_posterior(x)
-    # We can check the fitted length_scale.
-    # print(optimizer._gp.kernel_.length_scale)
 
     # Find a value of alpha to be evaluated.
-    next_point_suggestion = optimizer.suggest(acquisition_function)
+    if next_point_suggestion is None:
+        next_point_suggestion = "{'alpha': " + str(x[np.argmax(utility)].item()) + "}"
     print("Next point suggestion: ", next_point_suggestion)
-    utility = acquisition_function.utility(x, optimizer._gp, 0)
 
     # Plot settings.
     fig = plt.figure(figsize=(18, 12))
@@ -275,3 +278,28 @@ def plot_gp(optimizer, acquisition_function, x, gp_lim=None, acq_lim=None):
     plt.savefig(PATH + file_name)
 
     plt.show()
+
+
+def plot_gp_acq(optimizer, acquisition_function, x, gp_lim=None, acq_lim=None):
+    """
+    Plot posterior and acquisition function.
+    If figure shows weird posterior, please change random_state or length_scale_bounds when you build the optimizer.
+
+    Parameters
+    ----------
+    optimizer: BayesianOptimizationModified
+    acquisition_function: UtilityFunction
+    x: numpy.ndarray
+        x-axis of graph.
+        We need the shape (-1, 1) for x because of acquisition_function.utility.
+        ex. x = np.linspace(0, 1, 10000).reshape(-1, 1)
+    gp_lim: None or List
+        List of xlim and ylim for the GP graph.
+        ex. gp_lim=[(0, 1), (0.81, 0.92)]
+    acq_lim: None or List
+        List of xlim and ylim for the acquisition graph.
+        ex. acq_lim=[(0, 1), (0.83, 0.935)]
+    """
+    next_point_suggestion = optimizer.suggest(acquisition_function)
+    utility = acquisition_function.utility(x, optimizer._gp, 0)
+    plot_gp_utility(optimizer, utility, x, gp_lim=gp_lim, acq_lim=acq_lim, next_point_suggestion=next_point_suggestion)
