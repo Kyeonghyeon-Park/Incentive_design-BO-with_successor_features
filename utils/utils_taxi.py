@@ -7,7 +7,8 @@ import numpy as np
 import torch
 import torch.distributions as distributions
 
-from main_taxi import roll_out
+# TODO: remove circular import issue
+# from main_taxi import roll_out
 from networks_taxi import Networks
 from taxi import TaxiEnv
 from . import utils_all

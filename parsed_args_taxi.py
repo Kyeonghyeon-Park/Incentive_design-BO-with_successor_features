@@ -98,15 +98,15 @@ add_default_args(parser)
 args = parser.parse_args()
 
 """ Setting for the description. """
-args.description = "Test existing selection algorithm. alpha=0.93 using alpha=1."
-args.setting_name = "setting_0"
+args.description = "Test new selection algorithm."
+args.setting_name = "setting_18"
 
 """ Setting for the environment. """
 # args.grid_size = 2
 # args.num_agents = 100
 
 """ Setting for the incentive designer's problem. """
-args.lv_penalty = 0.93
+args.lv_penalty = 0.50
 
 """ Setting for the networks. """
 # args.mode_ac = True
@@ -125,7 +125,7 @@ args.num_episodes = 7500
 # args.episode_length = 2
 args.epsilon = 0.5
 args.num_tests = 1  # check!
-args.random_seed = 1238
+args.random_seed = 1239
 
 """ Setting for the learning. """
 args.K = 8
@@ -136,12 +136,13 @@ args.update_freq = 1
 args.update_freq_target = 10
 # args.tau = 1
 args.mode_reuse_networks = True
-args.file_path = "./results/211008 submitted version/results_taxi_final/alpha=1.00/7499.tar"
+# args.file_path = "./results/211008 submitted version/results_taxi_final/alpha=0.30/7499.tar"
+args.file_path = "./results_taxi/setting_7/saved/7499.tar"
 
 """ Setting for the draw and the save. """
 args.draw_freq = 50
 args.save_freq = 500
-args.mode_draw = True
+args.mode_draw = False
 
 """ Setting for the KL divergence."""
 args.mode_kl_divergence = False

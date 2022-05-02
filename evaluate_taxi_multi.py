@@ -1,4 +1,7 @@
-from main_taxi import *
+import numpy as np
+import torch
+
+from main_taxi import roll_out
 from parsed_args_taxi import args
 from utils import utils_all, utils_taxi
 
@@ -10,16 +13,20 @@ paths_pol_dict contains paths of trained policies.
 """
 
 # HERE #####
-alphas_env = [0.00, 0.30, 0.50, 0.56, 0.63, 0.80, 1.00]
-# alphas_env = np.linspace(0, 1, 101)
+alphas_env = [0, 0.13, 0.3, 0.45, 0.50, 0.54, 0.64, 0.85, 1]
 paths_pol_dict = {
-    0.00: "./results_taxi_final/alpha=0.00/7499.tar",
-    0.30: "./results_taxi_final/alpha=0.30/7499.tar",
-    0.50: "./results_taxi_final/alpha=0.50/7499.tar",
-    0.56: "./results_taxi_final/alpha=0.56 using alpha=1.00/7499.tar",
-    0.63: "./results_taxi_final/alpha=0.63 using alpha=0.50 (5 seeds)/seed 1234/7499.tar",
-    0.80: "./results_taxi_final/alpha=0.80/7499.tar",
-    1.00: "./results_taxi_final/alpha=1.00/7499.tar",
+    0.00: "./results/211008 submitted version/results_taxi_final/alpha=0.00/7499.tar",
+    0.13: "./results_taxi/setting_15/saved/7499.tar",
+    0.30: "./results/211008 submitted version/results_taxi_final/alpha=0.30/7499.tar",
+    0.45: "./results_taxi/setting_17/saved/7499.tar",
+    # 0.47: "./results_taxi/setting_14/saved/7499.tar",
+    # 0.53: "./results_taxi/setting_10/saved/7499.tar",
+    0.50: "./results_taxi/setting_18/saved/7499.tar",
+    0.54: "./results_taxi/setting_7/saved/7499.tar",
+    0.64: "./results_taxi/setting_16/saved/7499.tar",
+    # 0.81: "./results_taxi/setting_12/saved/7499.tar",
+    0.85: "./results_taxi/setting_11/saved/7499.tar",
+    1.00: "./results/211008 submitted version/results_taxi_final/alpha=1.00/7499.tar",
 }
 ############
 
@@ -32,7 +39,7 @@ num_tests = 1000
 
 objs = np.zeros([num_env, num_pol])
 explanations = [[] for i in range(num_env)]
-utils_all.set_random_seed(1234)
+utils_all.set_random_seed(1235)
 
 for i in range(num_env):
     for j in range(num_pol):
@@ -60,6 +67,8 @@ for i in range(num_env):
         obj_mean = np.mean(obj)
         print(f"Obj mean : {obj_mean:.4f}")
         objs[i][j] = obj_mean
+
+print(objs)
 
 torch.save(
     {
