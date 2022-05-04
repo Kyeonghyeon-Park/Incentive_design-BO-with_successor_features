@@ -5,6 +5,13 @@ from utils import utils_all
 
 
 def add_default_args(parser):
+    """
+    Build default ArgumentParser.
+
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser
+    """
     # Setting for the description.
     parser.add_argument("--description", type=str, default='Experiment',
                         help="General description for this experiment (or setting). It is only used for the reminder.",)
@@ -72,6 +79,20 @@ def add_default_args(parser):
 
 
 def overlap_setting(args):
+    """
+    Overlap some arguments of args of last-trained networks with new ones if we try to calculate KL-divergence.
+    To calculate KL-divergence, we compare the last-trained network and the current (training) network.
+    Thus, we load the last-trained network's setting(=args).
+    Then, we update some arguments with the setting of the current args.
+
+    Parameters
+    ----------
+    args: argparse.Namespace
+
+    Returns
+    -------
+    args_trained: argparse.Namespace
+    """
     if args.mode_kl_divergence:
         # Caution.
         print("##############################################################")
@@ -99,7 +120,7 @@ args = parser.parse_args()
 
 """ Setting for the description. """
 args.description = "Test new selection algorithm."
-args.setting_name = "setting_18"
+args.setting_name = "setting_18"+utils_all.get_current_time_tag()
 
 """ Setting for the environment. """
 # args.grid_size = 2
@@ -155,3 +176,5 @@ utils_all.validate_setting(args)
 """ Overlap the setting if we calculate the KL divergence. """
 args = overlap_setting(args)
 
+# Execute main_taxi.py file.
+exec(open('main_taxi.py').read())

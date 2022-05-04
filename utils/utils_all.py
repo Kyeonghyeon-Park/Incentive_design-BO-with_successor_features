@@ -1,8 +1,21 @@
 import os
 import random
+import time
 
 import numpy as np
 import torch
+
+
+def get_current_time_tag():
+    """
+    Return string of current time.
+
+    Returns
+    -------
+    time_tag: str
+    """
+    time_tag = "_"+time.strftime('%y%m%d_%H%M', time.localtime(time.time()))
+    return time_tag
 
 
 def make_setting_txt(args, path):
