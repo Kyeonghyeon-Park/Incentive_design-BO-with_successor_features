@@ -24,9 +24,9 @@ def make_setting_txt(args, path):
 
     Parameters
     ----------
-    args
+    args: argparse.Namespace
         args which contains current setting.
-    path : str
+    path: str
         Path where txt file is stored.
     """
     txt_path = os.path.join(path, 'args.txt')
@@ -38,12 +38,33 @@ def make_setting_txt(args, path):
 
 
 def set_random_seed(rand_seed):
+    """
+    Set random seeds.
+    We might use np.random.RandomState() to update this function.
+
+    Parameters
+    ----------
+    rand_seed: int
+    """
     random.seed(rand_seed)
     np.random.seed(rand_seed)
     torch.manual_seed(rand_seed)
 
 
 def load_networks(networks, args, dict_trained):
+    """
+    Load trained networks' parameters.
+
+    Parameters
+    ----------
+    networks: networks_taxi.Networks or networks_ssd.Networks
+    args: argparse.Namespace
+    dict_trained: dict
+
+    Returns
+    -------
+    networks: networks_taxi.Networks or networks_ssd.Networks
+    """
     if args.mode_ac:
         networks.actor.load_state_dict(dict_trained['actor'])
         networks.actor_target.load_state_dict(dict_trained['actor'])
@@ -57,6 +78,13 @@ def load_networks(networks, args, dict_trained):
 
 
 def validate_setting(args):
+    """
+    Validate the current setting(=args).
+
+    Parameters
+    ----------
+    args: argparse.Namespace
+    """
     if args.mode_ac:
         assert len(args.h_dims_a) != 0 and args.lr_a != 0, "Actor network setting error."
     if args.mode_psi:
@@ -71,6 +99,23 @@ def validate_setting(args):
 
 
 def get_networks_params(args, networks):
+    """
+    Get current networks' parameters.
+
+    Parameters
+    ----------
+    args: argparse.Namespace
+    networks: networks_taxi.Networks or networks_ssd.Networks
+
+    Returns
+    -------
+    actor_params: None or collections.OrderedDict
+    actor_opt_params: None or collections.OrderedDict
+    critic_params: None or collections.OrderedDict
+    critic_opt_params: None or collections.OrderedDict
+    psi_params: None or collections.OrderedDict
+    psi_opt_params: None or collections.OrderedDict
+    """
     actor_params, actor_opt_params, critic_params, critic_opt_params, psi_params, psi_opt_params = [None] * 6
 
     if args.mode_ac:

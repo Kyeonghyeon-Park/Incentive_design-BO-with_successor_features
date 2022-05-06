@@ -12,8 +12,25 @@ from taxi import TaxiEnv
 
 
 def roll_out(networks, env, decayed_eps, is_train=True):
+    """
+    Run the taxi simulation.
+
+    Parameters
+    ----------
+    networks: Networks
+    env: TaxiEnv
+    decayed_eps: float
+    is_train: bool
+
+    Returns
+    -------
+    samples: list
+        (obs, act, rew, m_act, n_obs, fea, done).
+    outcome: tuple
+        (orr, osc, avg_rew, obj).
+    """
     epi_length = env.episode_length
-    samples = [None] * epi_length
+    samples = [None] * epi_length  # [None, None, ..., None]
     fare_infos = np.array([0, 0], dtype=float)
     for global_time in range(epi_length):
         available_agents = env.get_available_agents(global_time)
@@ -34,11 +51,42 @@ def roll_out(networks, env, decayed_eps, is_train=True):
 
 
 def get_decayed_eps(i, init_eps):
+    """
+    Get decayed exploration rate(epsilon).
+
+    Parameters
+    ----------
+    i: int
+        Episode number.
+    init_eps: float
+        Initial epsilon.
+
+    Returns
+    -------
+    decayed_eps: float
+    """
     decayed_eps = max(init_eps - 0.01 * (i // 20), 0.01)
     return decayed_eps
 
 
 def get_outcome(env, fare_infos):
+    """
+    Get outcomes of the current environment.
+
+    Parameters
+    ----------
+    env: TaxiEnv
+    fare_infos: numpy.ndarray
+        fare_infos is the sum of fare_info.
+            fare_infos = np.array([0, 0], dtype=float)
+            fare_infos += fare_info
+        fare_info is the sum of the below term.
+            fare_info += np.array([fare * sc_ratio, fare])
+
+    Returns
+    -------
+    outcome: tuple
+    """
     weight = 3 / 5
     num_demands = env.demand[:, 3].shape[0]
     num_fulfilled_demands = np.sum(env.demand[:, 3])
@@ -58,7 +106,7 @@ def get_final_networks(env, args):
     Parameters
     ----------
     env: TaxiEnv
-    args: Namespace
+    args: argparse.Namespace
 
     Returns
     -------
@@ -102,8 +150,8 @@ if __name__ == "__main__":
     utils_all.make_setting_txt(args, path)
 
     # KL divergence.
-    skl = np.zeros(args.num_episodes + 1)
-    skl[0] = utils_taxi.calculate_kl_divergence(networks, networks_final) if args.mode_kl_divergence else 0
+    skld = np.zeros(args.num_episodes + 1)
+    skld[0] = utils_taxi.calculate_kl_divergence(networks, networks_final) if args.mode_kl_divergence else 0
 
     # Run.
     for i in range(args.num_episodes):
@@ -137,7 +185,7 @@ if __name__ == "__main__":
         utils_taxi.print_status(args, i, orr_t, osc_t, avg_rew_t, obj_t, time_start, is_train=False)
 
         # KL divergence.
-        skl[i + 1] = utils_taxi.calculate_kl_divergence(networks, networks_final) if args.mode_kl_divergence else 0
+        skld[i + 1] = utils_taxi.calculate_kl_divergence(networks, networks_final) if args.mode_kl_divergence else 0
 
         # Draw outcomes.
         if (i + 1) % args.draw_freq == 0 and args.mode_draw:
@@ -158,9 +206,9 @@ if __name__ == "__main__":
             outcomes_t = [orr_t, osc_t, avg_rew_t, obj_t]
             filename = str(i).zfill(4) + ".tar"
             filename_plt = saved_path + "outcomes_" + str(i).zfill(4) + ".png"
-            filename_plt_skl = saved_path + "skl_" + str(i).zfill(4) + ".png"
+            filename_plt_skld = saved_path + "skld_" + str(i).zfill(4) + ".png"
             utils_taxi.get_plt(outcomes, outcomes_t, i, mode="save", filename=filename_plt)
-            utils_taxi.get_plt_skld(skl, i, filename=filename_plt_skl)
+            utils_taxi.get_plt_skld(skld, i, filename=filename_plt_skld)
             utils_taxi.save_data(args=args,
                                  env=env,
                                  episode_trained=i,
@@ -168,7 +216,7 @@ if __name__ == "__main__":
                                  time_start=time_start,
                                  outcomes=outcomes,
                                  outcomes_t=outcomes_t,
-                                 skl=skl,
+                                 skld=skld,
                                  networks=networks,
                                  path=saved_path,
                                  name=filename,

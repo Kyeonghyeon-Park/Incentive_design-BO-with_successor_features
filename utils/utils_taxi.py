@@ -7,14 +7,23 @@ import numpy as np
 import torch
 import torch.distributions as distributions
 
-# TODO: remove circular import issue
-# from main_taxi import roll_out
-from networks_taxi import Networks
 from taxi import TaxiEnv
 from . import utils_all
 
 
 def make_dirs(args):
+    """
+    Make directories of the current setting.
+
+    Parameters
+    ----------
+    args: argparse.Namespace
+
+    Returns
+    -------
+    path: str
+    saved_path: str
+    """
     path = "results_taxi/" + args.setting_name
     saved_path = os.path.join(path, "saved/")
     if not os.path.exists(saved_path):
@@ -23,7 +32,30 @@ def make_dirs(args):
     return path, saved_path
 
 
-def save_data(args, env, episode_trained, decayed_eps, time_start, outcomes, outcomes_t, skl, networks, path, name):
+def save_data(args, env, episode_trained, decayed_eps, time_start, outcomes, outcomes_t, skld, networks, path, name):
+    """
+    Save several data including training-and-test results.
+
+    Parameters
+    ----------
+    args: argparse.Namespace
+    env: TaxiEnv
+    episode_trained: int
+    decayed_eps: float
+    time_start: float
+    outcomes: list
+        outcomes = [orr, osc, avg_rew, obj]
+    outcomes_t: list
+        outcomes_t = [orr_t, osc_t, avg_rew_t, obj_t]
+    skld: numpy.ndarray
+        Size: (args.num_episodes + 1, )
+        ex. skld[i + 1] = utils_taxi.calculate_kl_divergence(networks, networks_final) if args.mode_kl_divergence else 0
+    networks: Networks
+    path: str
+        File path.
+    name: str
+        File name.
+    """
     params = utils_all.get_networks_params(args, networks)
     actor_params, actor_opt_params, critic_params, critic_opt_params, psi_params, psi_opt_params = params
 
@@ -35,7 +67,7 @@ def save_data(args, env, episode_trained, decayed_eps, time_start, outcomes, out
         'decayed_eps': decayed_eps,
         'outcomes': outcomes,
         'outcomes_t': outcomes_t,
-        'skl': skl,
+        'skld': skld,
         'actor': actor_params,
         'actor_opt': actor_opt_params,
         'psi': psi_params,
@@ -45,33 +77,53 @@ def save_data(args, env, episode_trained, decayed_eps, time_start, outcomes, out
     }, path + name)
 
 
-def get_one_hot_obs_tensor(ind_obs, observation_size):
+def get_one_hot_obs(obs, env):
     """
-    Get one-hot encoded version of the individual observation and return resized tensor of one-hot obs.
+    Get one-hot encoded version of obs.
+    obs is a list of ind_obs.
 
     Parameters
     ----------
-    ind_obs: numpy.ndarray
-        shape: (2, )
-    observation_size: int
+    obs: List
+        ex. [np.array([1, 0], ...)]
+    env: taxi.TaxiEnv
 
     Returns
     -------
-    ind_obs_one_hot: numpy.ndarray
-        shape : (num_grids, episode_length + 1)
+    one_hot_obs: numpy.ndarray
     """
-    num_grids = 4
-    episode_length = 2
-    ind_obs_one_hot = np.zeros([num_grids, episode_length + 1])
-    loc = ind_obs[0]
-    time = ind_obs[1] if ind_obs[1] <= episode_length else episode_length
-    ind_obs_one_hot[loc, time] = 1
+    len_obs = len(obs)
+    num_grids = env.num_grids
+    epi_length = env.episode_length
+    one_hot_obs = np.zeros([len(obs), num_grids, epi_length+1])
 
-    obs_tensor = torch.tensor([ind_obs_one_hot], dtype=torch.float)
-    obs_tensor = obs_tensor.view(-1, observation_size)
+    for i in range(len_obs):
+        ind_obs = obs[i]
+        loc = ind_obs[0]
+        time = ind_obs[1] if ind_obs[1] <= epi_length else epi_length
+        one_hot_obs[i, loc, time] = 1
 
-    return obs_tensor
+    return one_hot_obs
 
+
+def make_vars(n, mode):
+    """
+    Return n list or dict.
+    Not used.
+
+    Parameters
+    ----------
+    n: int
+    mode: str
+        It should be 'list' or 'dict'.
+    """
+    for _ in range(n):
+        if mode == 'list':
+            yield []
+        elif mode == 'dict':
+            yield {}
+        else:
+            raise NotImplementedError("Possible options of mode are list and dict.")
 
 def get_masked_categorical_dists(action_probs, masks):
     probs = torch.mul(action_probs, masks)
@@ -79,11 +131,11 @@ def get_masked_categorical_dists(action_probs, masks):
     return action_dists
 
 
-def get_env_and_networks(args, dict_trained):
-    env = TaxiEnv(args)
-    networks = Networks(env, args)
-    networks = utils_all.load_networks(networks, args, dict_trained)
-    return env, networks
+# def get_env_and_networks(args, dict_trained):
+#     env = TaxiEnv(args)
+#     networks = networks_taxi.Networks(env, args)
+#     networks = utils_all.load_networks(networks, args, dict_trained)
+#     return env, networks
 
 
 def print_status(args, i, orr, osc, avg_rew, obj, time_start, is_train=True):
@@ -92,7 +144,7 @@ def print_status(args, i, orr, osc, avg_rew, obj, time_start, is_train=True):
 
     Parameters
     ----------
-    args: Namespace
+    args: argparse.Namespace
     i: int
         The number which represents the current episode.
     orr: numpy.ndarray
@@ -114,7 +166,7 @@ def print_status(args, i, orr, osc, avg_rew, obj, time_start, is_train=True):
     """
     update = "O" if (i + 1) % args.update_freq == 0 and is_train else "X"
     mode = "  Train  " if is_train else "Test(avg)"
-    print(f"Process : {i}/{args.num_episodes}, "
+    print(f"Process : {i + 1}/{args.num_episodes}, "
           f"Time : {time.time() - time_start:.2f}, "
           f"Update : {update}"
           ) if is_train else None
@@ -139,7 +191,9 @@ def print_updated_q(networks):
                 m_act = i / 10
                 with torch.no_grad():
                     ind_obs = np.array([loc, t])
-                    obs_tensor = get_one_hot_obs_tensor(ind_obs, networks.observation_size)
+                    obs_tensor = torch.tensor(get_one_hot_obs([ind_obs], networks.env), dtype=torch.float)
+                    obs_tensor = obs_tensor.view(-1, networks.observation_size)
+                    # obs_tensor = get_one_hot_obs_tensor(ind_obs, networks.observation_size)
 
                     m_act_tensor = torch.tensor(m_act, dtype=torch.float)
                     m_act_tensor = m_act_tensor.view(-1, networks.mean_action_size)
@@ -154,7 +208,9 @@ def print_action_dist(networks):
     for loc in [1, 2]:
         for t in [0]:
             ind_obs = np.array([loc, t])
-            obs_tensor = get_one_hot_obs_tensor(ind_obs, networks.observation_size)
+            obs_tensor = torch.tensor(get_one_hot_obs([ind_obs], networks.env), dtype=torch.float)
+            obs_tensor = obs_tensor.view(-1, networks.observation_size)
+            # obs_tensor = get_one_hot_obs_tensor(ind_obs, networks.observation_size)
             obs_mask = networks.get_masks([ind_obs])
 
             act_probs = networks.actor(obs_tensor)
@@ -180,7 +236,10 @@ def calculate_kl_divergence(networks, networks_final):
     """
     kld = 0
     for ind_obs in [np.array([1, 0]), np.array([2, 0])]:
-        obs_tensor = get_one_hot_obs_tensor(ind_obs, networks.observation_size)
+
+        obs_tensor = torch.tensor(get_one_hot_obs([ind_obs], networks.env), dtype=torch.float)
+        obs_tensor = obs_tensor.view(-1, networks.observation_size)
+        # obs_tensor = get_one_hot_obs_tensor(ind_obs, networks.observation_size)
         obs_mask = networks.get_masks([ind_obs])  # obs_mask: tensor([[1., 1., 0., 1.]]) for ind_obs: [1 0]
 
         act_probs = networks.actor_target(obs_tensor)
@@ -431,16 +490,16 @@ def get_plt_cumulative_skld_multiseeds(skld_trans_list, skld_ntrans_list, is_nor
         ntrans_path = "./results_taxi_final/alpha=0.63 (5 seeds)/seed "+str(i)+"/kl/7499.tar"
         data_trans = torch.load(trans_path)
         data_ntrans = torch.load(ntrans_path)
-        skld_trans_list.append(data_trans["skl"])
-        skld_ntrans_list.append(data_ntrans["skl"])
+        skld_trans_list.append(data_trans["skld"])
+        skld_ntrans_list.append(data_ntrans["skld"])
     utils_taxi.get_plt_cumulative_skld_multiseeds(skld_trans_list, skld_ntrans_list)
 
     Parameters
     ----------
     skld_trans_list: List
-        list of skl from dict_trained for multiple random seeds.
+        list of skld from dict_trained for multiple random seeds.
     skld_ntrans_list: List
-        list of skl from dict_trained for multiple random seeds.
+        list of skld from dict_trained for multiple random seeds.
     is_normalized: bool
     """
     num_seeds = len(skld_trans_list)
@@ -486,87 +545,3 @@ def get_plt_cumulative_skld_multiseeds(skld_trans_list, skld_ntrans_list, is_nor
     plt.grid()
 
     plt.show()
-
-
-def get_approximated_gradient(network_path, w, w_bound, h=0.01, num_tests=100):
-    """
-    This function is for getting approximated gradient by calculating f(policy, w + h*e_i) - f(policy, w) / h.
-    It will require several evaluations to get the gradient.
-
-    Examples
-    ----------
-    file_path = "./results_taxi_final/alpha=0.80/7499.tar"
-    w = np.array([0.80])
-    w_bound = np.array([[0, 1]])
-    w_grad = utils_taxi.get_approximated_gradient(file_path, w, w_bound, h=0.01, num_tests=2000)
-
-    Parameters
-    ----------
-    network_path : str
-        File path for the trained network
-    w : np.array
-        Weight (or reward parameter)
-        ex. w = np.array([0.33, 0.5])
-    w_bound : np.array
-        List which contains bounds of w.
-        Each row (call w_bound[i,:]) represents the bound of w[i].
-        w[i] cannot over the bound.
-        It will be used for getting gradients.
-        For example, let w_bound = np.array([[0, 1]]) and w = np.array([1]).
-        In this case, we can't calculate f(policy, w + h*e_i).
-        It will get approximated gradient by calculating f(policy, w) - f(policy, w - h*e_i) / h.
-    h : float
-        Parameter for calculating approximated gradient (small value).
-    num_tests : int
-        The number of tests to calculate approximated gradients.
-        This function evaluate "num_tests" times to get gradients and average them.
-
-    Returns
-    -------
-    w_grad : np.array
-    """
-    utils_all.set_random_seed(1234)
-    w_grad = np.zeros(w.size)
-
-    # Load trained data.
-    dict_trained = torch.load(network_path)
-    args = dict_trained['args']
-    if args.lv_penalty != w:
-        raise ValueError("args.lv_penalty and w are not the same. Please check your inputs.")
-
-    # Calculate w_grad for each dimension.
-    for i in range(w.size):
-        # Try to build f(policy, w_f) - f(policy, w_b) / h (w_f: w_front, w_b: w_back)
-        args_f, args_b = [copy.deepcopy(args) for _ in range(2)]
-        if w[i] + h > w_bound[i, 1]:
-            w_f, w_b = w, w - h * np.eye(w.size)[i]
-        else:
-            w_f, w_b = w + h * np.eye(w.size)[i], w
-        args_f.lv_penalty = w_f
-        args_b.lv_penalty = w_b
-
-        # Build the environment and networks.
-        env_f, networks_f = get_env_and_networks(args_f, dict_trained)
-        env_b, networks_b = get_env_and_networks(args_b, dict_trained)
-
-        # Build array for collecting objective values.
-        obj_f, obj_b = [np.zeros(num_tests) for _ in range(2)]
-
-        for j in range(num_tests):
-            _, outcome_f = roll_out(networks=networks_f,
-                                    env=env_f,
-                                    decayed_eps=0,
-                                    is_train=False)
-            _, outcome_b = roll_out(networks=networks_b,
-                                    env=env_b,
-                                    decayed_eps=0,
-                                    is_train=False)
-
-            _, _, _, obj_f[j] = outcome_f
-            _, _, _, obj_b[j] = outcome_b
-            print(f"Dim: {i+1}/{w.size}, Tests: {j+1}/{num_tests}") if (((j+1) * 10) % num_tests == 0) else None
-
-        w_grad[i] = (np.mean(obj_f) - np.mean(obj_b)) / h
-        print(f"w_grad: {w_grad}")
-
-    return w_grad

@@ -7,55 +7,39 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-
-def make_vars(n, mode):
-    for _ in range(n):
-        if mode == 'list':
-            yield []
-        elif mode == 'dict':
-            yield {}
-        else:
-            raise NotImplementedError("Possible options of mode are list and dict.")
+from utils.utils_taxi import get_one_hot_obs
 
 
 def init_weights(m):
     """
-    Define the initialization function for the layers
+    Define the initialization function for the layers.
 
     Parameters
     ----------
     m
-        Type of the layer
+        Type of the layer.
     """
     if type(m) == nn.Linear:
         torch.nn.init.kaiming_normal_(m.weight)
         m.bias.data.fill_(0)
 
 
-def get_one_hot_obs(ind_obs):
+def get_masked_categorical(action_probs, masks):
     """
-    Text.
+    Based on action_probs and masks, get masked Categorical.
+    Because agents in some state cannot do some actions.
 
     Parameters
     ----------
-    ind_obs : numpy.ndarray
-        shape : (2, )
+    action_probs: torch.Tensor
+        Size: (N, action_size).
+    masks: torch.Tensor
+        Size: (N, action_size).
 
     Returns
     -------
-    ind_obs : numpy.ndarray
-        shape : (num_grids, episode_length + 1)
+    actions_dists: distributions.Categorical
     """
-    num_grids = 4
-    episode_length = 2
-    ind_obs_one_hot = np.zeros([num_grids, episode_length + 1])
-    loc = ind_obs[0]
-    time = ind_obs[1] if ind_obs[1] <= episode_length else episode_length
-    ind_obs_one_hot[loc, time] = 1
-    return ind_obs_one_hot
-
-
-def get_masked_categorical(action_probs, masks):
     probs = torch.mul(action_probs, masks)
     action_dists = distributions.Categorical(probs)
     return action_dists
@@ -70,20 +54,20 @@ def make_layer_dims(observation_size, action_size, mean_action_size, feature_siz
 
     Parameters
     ----------
-    observation_size : int
-    action_size : int
-    mean_action_size : int
-    feature_size : int
-    hidden_dims : list
-        List of hidden layers' size
-    mode : str
-        'actor' or 'critic' or 'psi'
+    observation_size: int
+    action_size: int
+    mean_action_size: int
+    feature_size: int
+    hidden_dims: List
+        List of hidden layers' size.
+    mode: str
+        'actor' or 'critic' or 'psi'.
 
     Returns
     -------
-    layer_dims : list
-        List of list
-        Each element is the dimension of layers ([input_dim, output_dim])
+    layer_dims: list
+        List of list.
+        Each element is the dimension of layers ([input_dim, output_dim]).
     """
     layer_dims = []
     if mode == 'actor':
@@ -136,11 +120,11 @@ class Actor(nn.Module):
 
         Parameters
         ----------
-        obs_size
-        act_size
-        m_act_size
-        fea_size
-        hidden_dims : list
+        obs_size: int
+        act_size: int
+        m_act_size: int
+        fea_size: int
+        hidden_dims: list
             Dimensions of hidden layers.
             ex. if hidden_dims = [128, 64, 32],
                 layer_dims = [[observation_size, 128], [128, 64], [64, 32], [32, action_size]].
@@ -171,15 +155,15 @@ class Actor(nn.Module):
 
         Parameters
         ----------
-        x : torch.Tensor
-            Input for the actor network (observation)
-            The shape should be (N, input_size)
+        x: torch.Tensor
+            Input for the actor network (observation).
+            The shape should be (N, input_size).
 
         Returns
         -------
-        x : torch.Tensor
-            Return the action probability using softmax (action)
-            The shape will be (N, output_size: action_size)
+        x: torch.Tensor
+            Return the action probability using softmax (action).
+            The shape will be (N, output_size: action_size).
         """
         for i in range(self.num_layers):
             x = self.layers[i](x)
@@ -203,10 +187,10 @@ class Critic(nn.Module):
 
         Parameters
         ----------
-        obs_size
-        act_size
-        fea_size
-        hidden_dims : list
+        obs_size: int
+        act_size: int
+        fea_size: int
+        hidden_dims: list
             Dimensions of hidden layers.
             ex. if hidden_dims = [128, 64, 32],
                 layer_dims = [[observation_size, 128], [128 + action_size, 64], [64, 32], [32, action_size]].
@@ -238,18 +222,18 @@ class Critic(nn.Module):
 
         Parameters
         ----------
-        observation : torch.Tensor
-            Batches of individual observations
-            The shape should be (N, observation_size)
-        mean_action : torch.Tensor
-            Batches of individual mean actions
-            The shape should be (N, mean_action_size)
+        observation: torch.Tensor
+            Batches of individual observations.
+            The shape should be (N, observation_size).
+        mean_action: torch.Tensor
+            Batches of individual mean actions.
+            The shape should be (N, mean_action_size).
 
         Returns
         -------
-        x : torch.Tensor
-            Return the q value for all actions
-            The shape will be (N, action_size)
+        x: torch.Tensor
+            Return the q value for all actions.
+            The shape will be (N, action_size).
         """
         x = self.layers[0](observation)
         x = F.relu(x)
@@ -277,11 +261,11 @@ class Psi(nn.Module):
 
         Parameters
         ----------
-        obs_size
-        act_size
-        m_act_size
-        fea_size
-        hidden_dims : list
+        obs_size: int
+        act_size: int
+        m_act_size: int
+        fea_size: int
+        hidden_dims: list
             Dimensions of hidden layers.
             ex. if hidden_dims = [128, 64, 32],
                 layer_dims = [[observation_size, 128], [128 + mean_action_size, 64], [64, 32], [32, action_size * feature_size]].
@@ -314,18 +298,18 @@ class Psi(nn.Module):
 
         Parameters
         ----------
-        observation : torch.Tensor
-            Batches of individual observations
-            The shape should be (N, observation_size)
-        mean_action : torch.Tensor
-            Batches of individual mean actions
-            The shape should be (N, mean_action_size)
+        observation: torch.Tensor
+            Batches of individual observations.
+            The shape should be (N, observation_size).
+        mean_action: torch.Tensor
+            Batches of individual mean actions.
+            The shape should be (N, mean_action_size).
 
         Returns
         -------
-        x : torch.Tensor
-            Return the psi value for all actions
-            The shape will be (N, action_size, feature_size)
+        x: torch.Tensor
+            Return the psi value for all actions.
+            The shape will be (N, action_size, feature_size).
         """
         x = self.layers[0](observation)
         x = F.relu(x)
@@ -341,7 +325,7 @@ class Psi(nn.Module):
 
 class Networks(object):
     """
-    Define networks (actor-critic / actor-psi / critic / psi)
+    Define networks (actor-critic / actor-psi / critic / psi).
     """
     def __init__(self, env, args):
         self.env = env
@@ -361,23 +345,51 @@ class Networks(object):
         self.critic_opt, self.critic_skd = self.get_opt_and_skd("critic")
 
     def get_network(self, mode):
+        """
+        Build network and target network.
+
+        Parameters
+        ----------
+        mode: str
+            It should be 'actor', 'psi', or 'critic'.
+
+        Returns
+        -------
+        network: None or Actor or Psi or Critic
+        network_target: None or Actor or Psi or Critic
+        """
         network, network_target = [None] * 2
         if self.args.mode_ac and mode == "actor":
-            network = Actor(self.observation_size, self.action_size, self.mean_action_size, self.feature_size, self.args.h_dims_a)
+            network = Actor(self.observation_size,
+                            self.action_size,
+                            self.mean_action_size,
+                            self.feature_size,
+                            self.args.h_dims_a)
             network.apply(init_weights)
             network_target = copy.deepcopy(network)
         elif self.args.mode_psi and mode == "psi":
-            network = Psi(self.observation_size, self.action_size, self.mean_action_size, self.feature_size, self.args.h_dims_p)
+            network = Psi(self.observation_size,
+                          self.action_size,
+                          self.mean_action_size,
+                          self.feature_size,
+                          self.args.h_dims_p)
             network.apply(init_weights)
             network_target = copy.deepcopy(network)
         elif (not self.args.mode_psi) and mode == "critic":
-            network = Critic(self.observation_size, self.action_size, self.mean_action_size, self.feature_size, self.args.h_dims_c)
+            network = Critic(self.observation_size,
+                             self.action_size,
+                             self.mean_action_size,
+                             self.feature_size,
+                             self.args.h_dims_c)
             network.apply(init_weights)
             network_target = copy.deepcopy(network)
             raise NotImplementedError("Critic is not tested yet in the current version.")
         return network, network_target
 
     def reuse_networks(self):
+        """
+        Update network parameters if we reuse previous networks.
+        """
         if self.args.mode_reuse_networks:
             prev_dict = torch.load(self.args.file_path)
             if self.args.mode_ac:
@@ -391,6 +403,19 @@ class Networks(object):
                 self.critic_target.load_state_dict(prev_dict['critic'])
 
     def get_opt_and_skd(self, mode):
+        """
+        Get the optimizer and the learning rate scheduler.
+
+        Parameters
+        ----------
+        mode: str
+            It should be 'actor', 'psi', or 'critic'.
+
+        Returns
+        -------
+        opt: None or optim.Adam
+        skd: None or optim.lr_scheduler.StepLR
+        """
         opt, skd = [None] * 2
         if self.args.mode_ac and mode == "actor":
             opt = optim.Adam(self.actor.parameters(), lr=self.args.lr_a)
@@ -403,6 +428,23 @@ class Networks(object):
         return opt, skd
 
     def get_actions(self, av_obs, is_target=True, is_random=False):
+        """
+        Get actions using networks or random actions.
+
+        Parameters
+        ----------
+        av_obs: dict
+            ex. {0: array([1, 0]), 1: array([1, 0]), ..., 99: array([2, 0])}
+        is_target: bool
+            True if we use target networks.
+        is_random: bool
+            True if we get random actions.
+
+        Returns
+        -------
+        actions: dict
+            ex. {0: 3, 1: 3, ..., 99: 3}
+        """
         av_agent_ids = list(av_obs.keys())
         obs = list(av_obs.values())
         masks = self.get_masks(obs)
@@ -417,7 +459,20 @@ class Networks(object):
         return actions
 
     def get_masks(self, obs):
-        # obs : av_obs, list of ind_obs
+        """
+        Get masks for the current observation.
+
+        Parameters
+        ----------
+        obs: list
+            av_obs (list of ind_obs).
+            ex. [array([1, 0]), array([1, 0]), ..., array([2, 0])]
+
+        Returns
+        -------
+        masks: torch.Tensor
+            Size: (N, action_size).
+        """
         masks = torch.zeros([len(obs), self.action_size])
         for i in range(len(obs)):
             loc = obs[i][0]
@@ -430,19 +485,40 @@ class Networks(object):
 
         Parameters
         ----------
-        q_values : torch.Tensor
+        q_values: torch.Tensor
             Q values for possible actions (size : [N, self.action_size])
 
         Returns
         -------
-        policy : torch.Tensor
+        policy: torch.Tensor
             Probabilities for possible actions (size : [N, self.action_size])
         """
         policy = None
         raise NotImplementedError
 
     def preprocess(self, samples):
-        obs, act, rew, m_act, n_obs, fea, done, m_act_s = make_vars(8, mode="list")
+        """
+        Preprocess the data to use samples in the network.
+        It collects obs, act, ... of available agents (who can do an action).
+
+        Parameters
+        ----------
+        samples: list
+            List of N samples.
+            Each sample is a tuple.
+
+        Returns
+        -------
+        obs: list
+        act: list
+        rew: list
+        m_act: list
+        n_obs: list
+        fea: list
+        done: list
+        m_act_s: list
+        """
+        obs, act, rew, m_act, n_obs, fea, done, m_act_s = [[] for _ in range(8)]
         for sample in samples:
             av_agent_ids = [k for k, v in sample[1].items() if v is not None]
             m_act_samples = self.get_mean_action_samples(sample, av_agent_ids)
@@ -458,6 +534,19 @@ class Networks(object):
         return obs, act, rew, m_act, n_obs, fea, done, m_act_s
 
     def get_mean_action_samples(self, sample, av_agent_ids):
+        """
+        Get sampled mean action.
+
+        Parameters
+        ----------
+        sample: tuple
+        av_agent_ids: list
+
+        Returns
+        -------
+        m_act_samples: numpy.ndarray
+            Size: (num_mean_actions, action_size).
+        """
         av_obs = {agent_id: sample[0][agent_id] for agent_id in av_agent_ids}
         t = sample[0][av_agent_ids[0]][1]
         m_act_samples = np.zeros([self.args.num_mean_actions, self.action_size])
@@ -469,11 +558,31 @@ class Networks(object):
         return m_act_samples
 
     def to_tensors(self, obs=None, act=None, rew=None, m_act=None, n_obs=None, fea=None, done=None, m_act_s=None):
+        """
+        It returns tensors.
+        For the observations, it returns ont-hot encoded version.
+
+        Parameters
+        ----------
+        obs: None or list
+        act: None or list
+        rew: None or list
+        m_act: None or list
+        n_obs: None or list
+        fea: None or list
+        done: None or list
+        m_act_s: None or list
+
+        Returns
+        -------
+        tensors: dict
+            {'obs': ..., 'act': ..., ...}
+        """
         keys = ['obs', 'act', 'rew', 'm_act', 'n_obs', 'fea', 'done', 'obs_mask', 'n_obs_mask', 'm_act_s']
         tensors = {i: None for i in keys}
         if obs is not None:
             masks = self.get_masks(obs)  # Shape : (N, action_size)
-            obs_tensor = torch.tensor([get_one_hot_obs(ind_obs) for ind_obs in obs], dtype=torch.float)  # Shape : (N, num_grids, episode_length + 1)
+            obs_tensor = torch.tensor(get_one_hot_obs(obs, self.env), dtype=torch.float)  # Shape : (N, num_grids, episode_length + 1)
             obs_tensor = obs_tensor.view(-1, self.observation_size)  # Shape : (N, observation_size)
             tensors['obs'] = obs_tensor
             tensors['obs_mask'] = masks
@@ -490,12 +599,12 @@ class Networks(object):
             tensors['m_act'] = m_act_tensor
         if n_obs is not None:
             n_masks = self.get_masks(n_obs)  # Shape : (N, action_size)
-            n_obs_tensor = torch.tensor([get_one_hot_obs(ind_obs) for ind_obs in n_obs], dtype=torch.float)  # Shape : (N, num_grids, episode_length + 1)
+            n_obs_tensor = torch.tensor(get_one_hot_obs(n_obs, self.env), dtype=torch.float)  # Shape : (N, num_grids, episode_length + 1)
             n_obs_tensor = n_obs_tensor.view(-1, self.observation_size)  # Shape : (N, observation_size)
             tensors['n_obs'] = n_obs_tensor
             tensors['n_obs_mask'] = n_masks
         if fea is not None:
-            fea_tensor = torch.tensor(fea, dtype=torch.float)
+            fea_tensor = torch.tensor(np.array(fea), dtype=torch.float)
             fea_tensor = fea_tensor.view(-1, self.feature_size)  # Shape : (N, feature_size)
             tensors['fea'] = fea_tensor
         if done is not None:
@@ -503,12 +612,28 @@ class Networks(object):
             done_tensor = done_tensor.view(-1, 1)  # Shape : (N, 1)
             tensors['done'] = done_tensor
         if m_act_s is not None:
-            m_act_s_tensor = torch.tensor(m_act_s, dtype=torch.float)
+            m_act_s_tensor = torch.tensor(np.array(m_act_s), dtype=torch.float)
             m_act_s_tensor = m_act_s_tensor.view(-1, self.args.num_mean_actions, self.action_size)  # Shape : (N, num_mean_actions, action_size)
             tensors['m_act_s'] = m_act_s_tensor
         return tensors
 
     def calculate_losses(self, tensors):
+        """
+        Calculate losses.
+
+        Parameters
+        ----------
+        tensors: dict
+            Dict which contains tensors of samples.
+
+        Returns
+        -------
+        actor_loss: None or torch.Tensor
+            ex. tensor(-0.2188, grad_fn=<MeanBackward0>)
+        psi_loss: None or torch.Tensor
+            ex. tensor([20.1826,  3.6522], grad_fn=<MeanBackward1>)
+        critic_loss: None or torch.Tensor
+        """
         actor_loss, psi_loss, critic_loss = [None] * 3
         if self.args.mode_ac:
             actor_loss = self.calculate_actor_loss(tensors)
@@ -520,13 +645,14 @@ class Networks(object):
 
     def get_expected_psi_target(self, obs, m_act_s):
         """
+        Get expected psi value using the target network.
 
         Parameters
         ----------
-        obs : torch.Tensor
-            Shape : (N, observation_size)
-        m_act_s : torch.Tensor
-            Shape : (N, num_mean_actions, action_size)
+        obs: torch.Tensor
+            Shape : (N, observation_size).
+        m_act_s: torch.Tensor
+            Shape : (N, num_mean_actions, action_size).
         """
         expected_psi_target = torch.zeros(obs.shape[0], self.action_size, self.feature_size)  # Shape : (N, action_size, feature_size)
         for loc in range(self.action_size):
@@ -540,6 +666,18 @@ class Networks(object):
         return expected_psi_target
 
     def calculate_actor_loss(self, tensors):
+        """
+        Calculate an actor loss.
+
+        Parameters
+        ----------
+        tensors: dict
+            Dict which contains tensors of samples.
+        Returns
+        -------
+        actor_loss: torch.Tensor
+            ex. tensor(-0.2188, grad_fn=<MeanBackward0>)
+        """
         obs = tensors['obs']  # Shape : (N, observation_size)
         obs_mask = tensors['obs_mask']  # Shape : (N, action_size)
         act = tensors['act']  # Shape : (N, )
@@ -574,6 +712,19 @@ class Networks(object):
         return actor_loss
 
     def calculate_psi_loss(self, tensors):
+        """
+        Calculate a psi loss.
+
+        Parameters
+        ----------
+        tensors: dict
+            Dict which contains tensors of samples.
+        Returns
+        -------
+        psi_loss: torch.Tensor
+            Size: (2, ).
+            ex. tensor([20.1826,  3.6522], grad_fn=<MeanBackward1>)
+        """
         obs = tensors['obs']  # Shape : (N, observation_size)
         act = tensors['act']  # Shape : (N, )
         m_act = tensors['m_act']  # Shape : (N, 1)
@@ -608,6 +759,17 @@ class Networks(object):
         return psi_loss
 
     def calculate_critic_loss(self, tensors):
+        """
+        Calculate a critic loss.
+
+        Parameters
+        ----------
+        tensors: dict
+            Dict which contains tensors of samples.
+        Returns
+        -------
+        critic_loss: torch.Tensor
+        """
         obs = tensors['obs']
         act = tensors['act']
         rew = tensors['rew']
@@ -638,6 +800,14 @@ class Networks(object):
         return critic_loss
 
     def update_networks(self, samples):
+        """
+        Update networks(actor, critic, psi) using samples.
+
+        Parameters
+        ----------
+        samples: list
+            List of N samples.
+        """
         obs, act, rew, m_act, n_obs, fea, done, m_act_s = self.preprocess(samples)
         tensors = self.to_tensors(obs=obs, act=act, rew=rew, m_act=m_act, n_obs=n_obs, fea=fea, done=done, m_act_s=m_act_s)
         actor_loss, psi_loss, critic_loss = self.calculate_losses(tensors)
@@ -659,10 +829,21 @@ class Networks(object):
             self.critic_skd.step() if self.args.mode_lr_decay else None
 
     def update_target_network(self, network, target_network):
+        """
+        Update target network using network's parameters.
+
+        Parameters
+        ----------
+        network: Actor or Psi or Critic
+        target_network: Actor or Psi or Critic
+        """
         for param, target_param in zip(network.parameters(), target_network.parameters()):
             target_param.data.copy_(param.data * self.args.tau + target_param.data * (1.0 - self.args.tau))
 
     def update_target_networks(self):
+        """
+        Update target networks (Actor, Psi, Critic).
+        """
         if self.args.mode_ac:
             self.update_target_network(self.actor, self.actor_target)
         if self.args.mode_psi:

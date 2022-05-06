@@ -3,13 +3,14 @@ import torch
 
 from main_taxi import roll_out
 from parsed_args_taxi import args
-from utils import utils_all, utils_taxi
+from utils import utils_all, funcs_taxi
 
 """
 This code is extended version of evaluate_taxi.py for multi-environments and multi-policies. 
 You should set alphas_env and paths_pol_dict.
 Set alpha which you want to test (i.e., you set w').
 paths_pol_dict contains paths of trained policies.
+It will save evaluated results. 
 """
 
 # HERE #####
@@ -47,7 +48,7 @@ for i in range(num_env):
         path_pol = paths_pol[j]
         dict_pol = torch.load(path_pol)
         args_pol = dict_pol['args']
-        env, networks = utils_taxi.get_env_and_networks(args, dict_pol)
+        env, networks = funcs_taxi.get_env_and_networks(args, dict_pol)
 
         obj = np.zeros(num_tests)
         print(f"-----------------------------")
