@@ -86,13 +86,13 @@ class TaxiEnv:
 
         Parameters
         ----------
-        global_time : int
-            World (or episode)'s time
+        global_time: int
+            World (or episode)'s time.
 
         Returns
         -------
-        available_agent : list
-            Return the list of ids of available agents
+        available_agent: list
+            Return the list of ids of available agents.
         """
         available_agents = []
         for agent_id, ind_obs in self.obs.items():  # ind_obs : individual observation
@@ -114,14 +114,15 @@ class TaxiEnv:
     def move_agents(self, av_obs, actions):
         """
         Move (available) agents.
+        It will return the temporal observations(before matching).
 
         Parameters
         ----------
-        actions
+        actions: dict
 
         Returns
         -------
-
+        temp_obs: dict
         """
         temp_obs = {}
         for agent_id in actions.keys():
@@ -131,11 +132,42 @@ class TaxiEnv:
         return temp_obs
 
     def get_ratios(self, num_orders, num_agents):
+        """
+        Get demand-to-supply ratio and service-charge ratio.
+        If the number of agents in the current grid is 0, demand-to-supply ratio will be infinite.
+
+        Parameters
+        ----------
+        num_orders: int
+        num_agents: int
+
+        Returns
+        -------
+        ds_ratio: float
+        sc_ratio: float
+        """
         ds_ratio = float("inf") if num_agents == 0 else num_orders / num_agents
         sc_ratio = self.lv_penalty * (1 - ds_ratio) if ds_ratio <= 1 else 0
         return ds_ratio, sc_ratio
 
     def match_orders(self, temp_obs, global_time):
+        """
+        Based on the temporal observations(state + move action),
+        we have to match drivers and requests.
+
+        Parameters
+        ----------
+        temp_obs: dict
+        global_time: int
+
+        Returns
+        -------
+        matched_orders: dict
+        ds_ratios: numpy.ndarray
+            demand-to-supply ratios of whole grids.
+        sc_ratios: numpy.ndarray
+            service-charge ratios of whole grids.
+        """
         matched_orders = {}
         ds_ratios = np.zeros(self.num_grids)
         sc_ratios = np.zeros(self.num_grids)
@@ -166,18 +198,20 @@ class TaxiEnv:
 
     def step(self, actions, global_time):
         """
-        # available actions 받아서 all agents에 대한 actions return
-        # actions = {available_agent_id: action}
-        # 바깥에서 None 처리하는 가공하기 (networks 안에서)
+        It receives available actions(actions of available agents).
+        These actions are changed into actions for all agents (Non-available agents' actions are None).
+        None actions will be preprocessed in the Networks.
 
         Parameters
         ----------
-        actions
-        global_time
+        actions: dict
+            actions = {available_agent_id: action}
+        global_time: int
 
         Returns
         -------
-
+        object: tuple
+        fare_info: numpy.ndarray
         """
         av_obs = {agent_id: self.obs[agent_id] for agent_id in actions.keys()}
 
