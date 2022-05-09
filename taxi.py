@@ -1,6 +1,7 @@
 import numpy as np
 import copy
 
+
 class TaxiEnv:
     def __init__(self, args):
         self.grid_size = args.grid_size
