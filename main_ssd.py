@@ -1,18 +1,13 @@
-import os
 import random
-import shutil
 import sys
 import time
 
 import numpy as np
-import torch
 
 from networks_ssd import Networks
 from parsed_args_ssd import args
 from sequential_social_dilemma_games.social_dilemmas.envs.env_creator import get_env_creator
 from utils import utils_all, utils_ssd
-# import sequential_social_dilemma_games.utility_funcs as utility_funcs
-
 """
 Notes
 
@@ -39,16 +34,16 @@ def roll_out(networks, env, init_obs, epi_num, epi_length, decayed_eps, paths, f
 
     Returns
     ----------
-    samples : list
+    samples: list
         List of samples which are tuples.
         Length of samples will be the epi_length.
         ex. [(obs, act, rew, m_act, fea), (obs, act, rew, m_act, fea), ...]
-    init_obs : list
+    init_obs: list
         It is the list of numpy.ndarray.
         Initial observation of agents after reset().
-    collective_reward : int
+    collective_reward: int
         Collective reward of this episode.
-    collective_feature : np.ndarray
+    collective_feature: np.ndarray
         Collective feature of this episode.
         This is used for calculating total_incentives and total_penalties.
         ex. np.array([x, y])
@@ -234,7 +229,8 @@ if __name__ == "__main__":
                   f"Test")
 
         # Draw collective rewards
-        if (i + 1) % 20 == 0 and args.mode_draw:
+        # TODO: add draw_freq.
+        if (i + 1) % 50 == 0 and args.mode_draw:
             utils_ssd.draw_or_save_plt(collective_rewards,
                                        collective_rewards_test,
                                        objectives,

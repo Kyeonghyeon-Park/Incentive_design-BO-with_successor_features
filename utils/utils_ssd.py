@@ -5,7 +5,7 @@ import numpy as np
 import torch
 
 from . import utils_all
-from ..sequential_social_dilemma_games.utility_funcs import make_video_from_image_dir
+from sequential_social_dilemma_games.utility_funcs import make_video_from_image_dir
 
 
 def make_dirs(args):

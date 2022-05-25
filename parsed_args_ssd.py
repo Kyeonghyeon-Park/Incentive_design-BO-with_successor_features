@@ -3,6 +3,8 @@ import argparse
 from utils import utils_all
 
 
+#TODO: add draw_freq.
+
 def add_default_args(parser):
     # Setting for the description.
     parser.add_argument("--description", type=str, default='Experiment',
@@ -80,16 +82,16 @@ add_default_args(parser)
 args = parser.parse_args()
 
 """ Setting for the description. """
-args.description = 'Experiment for the harvest environment. '
-args.setting_name = 'setting_5'
+args.description = 'Experiment for the new harvest map(15x15). Larger episodes and smaller episode length.'
+args.setting_name = 'setting_0'+utils_all.get_current_time_tag()
 
 """ Setting for the environment. """
-args.env = 'harvest_modified'
+args.env = 'harvest_modified_v2'
 args.num_agents = 4
 
 """ Setting for the incentive designer's problem. """
-args.lv_penalty = 0.33
-args.lv_incentive = 0.33
+args.lv_penalty = 0.00
+args.lv_incentive = 0.00
 
 """ Setting for the networks. """
 # args.mode_ac = True
@@ -103,8 +105,8 @@ args.lr_p = 0.001
 # args.gamma = 0.99
 
 """ Setting for the experiment. """
-args.num_episodes = 30000
-# args.episode_length = 1000
+args.num_episodes = 100000
+args.episode_length = 100
 args.epsilon = 0.95
 # args.mode_epsilon_decay = True
 args.epsilon_decay_ver = 'linear'
@@ -120,13 +122,16 @@ args.update_freq = 1
 args.update_freq_target = 1
 # args.tau = 0.01
 # args.mode_one_hot_obs = True
-args.mode_reuse_networks = True
+args.mode_reuse_networks = False
 args.file_path = './results_ssd_final/alpha=0.50/000029999.tar'
 
 """ Setting for the draw and the save. """
 # args.fps = 3
-# args.save_freq = 1000
-args.mode_draw = False
+args.save_freq = 2000
+args.mode_draw = True
 
 """ Validate the setting. """
 utils_all.validate_setting(args)
+
+""" Execute main_ssd.py file. """
+exec(open('main_ssd.py').read())
