@@ -120,14 +120,14 @@ args = parser.parse_args()
 
 """ Setting for the description. """
 args.description = "Test new selection algorithm."
-args.setting_name = "setting_18"+utils_all.get_current_time_tag()
+args.setting_name = "setting_23"+utils_all.get_current_time_tag()
 
 """ Setting for the environment. """
 # args.grid_size = 2
 # args.num_agents = 100
 
 """ Setting for the incentive designer's problem. """
-args.lv_penalty = 0.50
+args.lv_penalty = 0.73
 
 """ Setting for the networks. """
 # args.mode_ac = True
@@ -158,7 +158,7 @@ args.update_freq_target = 10
 # args.tau = 1
 args.mode_reuse_networks = True
 # args.file_path = "./results/211008 submitted version/results_taxi_final/alpha=0.30/7499.tar"
-args.file_path = "./results_taxi/setting_7/saved/7499.tar"
+args.file_path = "./results_taxi/setting_19_220518_1723/saved/7499.tar"
 
 """ Setting for the draw and the save. """
 args.draw_freq = 50
@@ -176,5 +176,5 @@ utils_all.validate_setting(args)
 """ Overlap the setting if we calculate the KL divergence. """
 args = overlap_setting(args)
 
-# Execute main_taxi.py file.
+""" Execute main_taxi.py file. """
 exec(open('main_taxi.py').read())

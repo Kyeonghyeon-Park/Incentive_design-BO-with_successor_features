@@ -3,26 +3,55 @@ from scipy.spatial import distance
 import torch
 
 from utils import utils_bo
-
 """
 220426 Test for mixed utility. 
 It uses saved results which comes from evaluate_taxi_multi.py. 
+
+220518 Test for mixed utility with increasing proportion_main.
 """
+
+
+def get_proportion_main(num_samples, sensitivity=0.25, is_increasing=False):
+    """
+    Get the proportion of main(original or true) UCB.
+
+    Parameters
+    ----------
+    num_samples: int
+        Number of policies(or samples).
+    sensitivity: float
+        The high sensitivity gives a high proportion of main UCB for same number of samples.
+    is_increasing: bool
+        False if the proportion is constant.
+
+    Returns
+    -------
+    proportion
+    """
+    if is_increasing:
+        proportion = 1 / (1 + np.exp(-sensitivity * num_samples))
+    else:
+        proportion = 0.5
+    return proportion
+
 
 # x_axis points.
 num_x_pts = 10000
 x = np.linspace(0, 1, num_x_pts).reshape(-1, 1)
 
 # Load data.
-data = torch.load("../test.tar")
+# data = torch.load("../test.tar")
+data = torch.load("../results/220518 objs/8_alpha=0,0.3,0.43,0.50,0.54,0.62,0.73,0.85,1.tar")
 alphas_env, alphas_pol, objs = data.values()
 
 # Set some variables.
 num_pol = len(alphas_pol)
-utilities = np.zeros([num_pol+1, num_x_pts])
-weights = np.ones([num_pol+1, num_x_pts])
+utilities = np.zeros([num_pol + 1, num_x_pts])
+weights = np.ones([num_pol + 1, num_x_pts])
 alpha_range = 1
-proportion_main = 0.5
+# proportion_main = get_proportion_main(num_pol, is_increasing=True)
+# proportion_main = get_proportion_main(num_pol, is_increasing=False)
+proportion_main = 1
 
 # Original GP.
 observations = {}
@@ -57,7 +86,7 @@ for i in range(num_pol):
 
     x_obs, y_obs = optimizer.get_obs()
     utility = acquisition_function.utility(x, optimizer._gp, 0)
-    utilities[i+1] = utility
+    utilities[i + 1] = utility
     # utils_bo.plot_gp_simple(optimizer, utility, x)
 
 # Mixed utility.

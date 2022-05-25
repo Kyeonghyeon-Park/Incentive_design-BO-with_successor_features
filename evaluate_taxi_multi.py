@@ -14,17 +14,22 @@ It will save evaluated results.
 """
 
 # HERE #####
-alphas_env = [0, 0.13, 0.3, 0.45, 0.50, 0.54, 0.64, 0.85, 1]
+alphas_env = [0, 0.3, 0.43, 0.50, 0.54, 0.62, 0.85, 1]
 paths_pol_dict = {
     0.00: "./results/211008 submitted version/results_taxi_final/alpha=0.00/7499.tar",
-    0.13: "./results_taxi/setting_15/saved/7499.tar",
+    # 0.13: "./results_taxi/setting_15/saved/7499.tar",
     0.30: "./results/211008 submitted version/results_taxi_final/alpha=0.30/7499.tar",
-    0.45: "./results_taxi/setting_17/saved/7499.tar",
+    0.43: "./results_taxi/setting_21_220518_1757/saved/7499.tar",
+    # 0.45: "./results_taxi/setting_17/saved/7499.tar",
     # 0.47: "./results_taxi/setting_14/saved/7499.tar",
     # 0.53: "./results_taxi/setting_10/saved/7499.tar",
-    0.50: "./results_taxi/setting_18/saved/7499.tar",
-    0.54: "./results_taxi/setting_7/saved/7499.tar",
-    0.64: "./results_taxi/setting_16/saved/7499.tar",
+    # 0.50: "./results_taxi/setting_18/saved/7499.tar",
+    0.50: "./results_taxi/setting_20_220518_1741/saved/7499.tar",
+    # 0.54: "./results_taxi/setting_7/saved/7499.tar",
+    0.54: "./results_taxi/setting_22_220519_1158/saved/7499.tar",
+    0.62: "./results_taxi/setting_19_220518_1723/saved/7499.tar",
+    # 0.73: "./results_taxi/setting_23_220519_1242/saved/7499.tar",
+    # 0.64: "./results_taxi/setting_16/saved/7499.tar",
     # 0.81: "./results_taxi/setting_12/saved/7499.tar",
     0.85: "./results_taxi/setting_11/saved/7499.tar",
     1.00: "./results/211008 submitted version/results_taxi_final/alpha=1.00/7499.tar",
@@ -40,7 +45,7 @@ num_tests = 1000
 
 objs = np.zeros([num_env, num_pol])
 explanations = [[] for i in range(num_env)]
-utils_all.set_random_seed(1235)
+utils_all.set_random_seed(1236)
 
 for i in range(num_env):
     for j in range(num_pol):
