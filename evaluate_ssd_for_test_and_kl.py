@@ -71,7 +71,7 @@ def roll_out_kl(networks_f, networks_i, env, init_obs, epi_length):
 
     Returns
     -------
-    skl
+    skld
     """
     agent_ids = list(env.agents.keys())
     actions = [i for i in range(env.action_space.n)]

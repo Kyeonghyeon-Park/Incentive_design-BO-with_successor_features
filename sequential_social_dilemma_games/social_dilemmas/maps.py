@@ -23,6 +23,26 @@ HARVEST_MAP = [
     "@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@",
 ]
 
+# Mini harvest map which has 15x15 size.
+HARVEST_MAP_V2 = [
+    "@@@@@@@@@@@@@@@",
+    "@A PAAA A  AAP@",
+    "@AA  A A AAAAA@",
+    "@A AP AAA P A @",
+    "@ A A  AAA A A@",
+    "@A AA AA  AAA @",
+    "@AP A AA AAA A@",
+    "@  AAA  A APA @",
+    "@AA A A A A AA@",
+    "@ AA AAA AAA A@",
+    "@A APAA   A P @",
+    "@ AAAA  AA AAA@",
+    "@AA A AAA A A @",
+    "@APA A PA AAAA@",
+    "@@@@@@@@@@@@@@@",
+]
+
+
 CLEANUP_MAP = [
     "@@@@@@@@@@@@@@@@@@",
     "@RRRRRR     BBBBB@",
