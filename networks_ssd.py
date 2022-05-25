@@ -427,8 +427,8 @@ class Networks(object):
             ex. actions['agent-0'] = 3 (int)
         """
         agent_ids = list(obs.keys())
-        observation = list(obs.values())
-        prev_mean_action = list(prev_m_act.values())
+        observation = np.array(list(obs.values()))
+        prev_mean_action = np.array(list(prev_m_act.values()))
         with torch.no_grad():
             tensors = self.to_tensors(obs=observation, m_act=prev_mean_action)
             if self.args.mode_ac:
@@ -457,6 +457,7 @@ class Networks(object):
         into the list.
         All agents are treated as homogeneous agents.
         In other words, if the joint observation comes in, this function will make the list of individual observations.
+        Lastly, lists will be changed into numpy.ndarrays.
 
         Parameters
         ----------
@@ -466,19 +467,24 @@ class Networks(object):
 
         Returns
         -------
-        obs : list
-            list of individual observations.
-            ex. obs = [np.array(15,15), np.array(15,15), ...]
-        act : list
-            ex. act = [3,2,1,1,1,0,5,4,...]
-        rew : list
-            ex. rew = [0,0,0,1,0,1,0,1,1,...]
-        m_act : list
-            ex. [np.array(action_size), np.array(action_size), ...]
-        n_obs : list
-            ex. [np.array(15,15), np.array(15,15), ...]
-        fea : list
-            ex. [np.array(feature_size), np.array(feature_size), ...]
+        obs: numpy.ndarray
+            (N, 15, 15) array of individual observations (15 can be changed).
+            ex. obs = np.array([np.array(15,15), np.array(15,15), ...])
+        act: numpy.ndarray
+            (N,) array of individual actions.
+            ex. act = np.array([3,2,1,1,1,0,5,4,...])
+        rew: numpy.ndarray
+            (N,) array of individual rewards.
+            ex. rew = np.array([0,0,0,1,0,1,0,1,1,...])
+        m_act: numpy.ndarray
+            (N, action_size) array of individual mean actions.
+            ex. m_act = np.array([np.array(action_size), np.array(action_size), ...])
+        n_obs: numpy.ndarray
+            (N, 15, 15) array of individual next observations (15 can be changed).
+            ex. n_obs = np.array([np.array(15,15), np.array(15,15), ...])
+        fea: numpy.ndarray
+            (N, feature_size) array of individual features.
+            ex. fea = np.array([np.array(feature_size), np.array(feature_size), ...])
         """
         obs, act, rew, m_act, n_obs, fea = make_vars(6, mode="list")
         for sample in samples:
@@ -489,33 +495,40 @@ class Networks(object):
             n_obs += list(sample[4].values())
             fea += list(sample[5].values())
 
+        obs = np.array(obs)
+        act = np.array(act)
+        rew = np.array(rew)
+        m_act = np.array(m_act)
+        n_obs = np.array(n_obs)
+        fea = np.array(fea)
+
         return obs, act, rew, m_act, n_obs, fea
 
     def to_tensors(self, obs=None, act=None, rew=None, m_act=None, n_obs=None, fea=None):
         """
-        Make list of inputs to tensors.
+        Make ndarray of inputs to tensors.
         If args.mode_one_hot_obs, observations will be changed into one-hot encoded version.
 
         Parameters
         ----------
-        obs : list
-            List of individual observations.
-            ex. obs = [np.array(15,15), np.array(15,15), ...]
-        act : list
-            List of individual actions.
-            ex. act = [3,2,1,1,1,0,5,4,...]
-        rew : list
-            List of individual rewards.
-            ex. rew = [0,0,0,1,0,1,0,1,1,...]
-        m_act : list
-            List of individual mean actions.
-            ex. m_act = [np.array(action_size), np.array(action_size), ...]
-        n_obs
-            List of individual next observations.
-            ex. next_obs = [np.array(15,15), np.array(15,15), ...]
-        fea
-            List of individual features.
-            ex. [np.array(feature_size), np.array(feature_size), ...]
+        obs: None or numpy.ndarray
+            ndarray of individual observations.
+            ex. obs = np.array([np.array(15,15), np.array(15,15), ...])
+        act: None or numpy.ndarray
+            ndarray of individual actions.
+            ex. act = np.array([3,2,1,1,1,0,5,4,...])
+        rew: None or numpy.ndarray
+            ndarray of individual rewards.
+            ex. rew = np.array([0,0,0,1,0,1,0,1,1,...])
+        m_act: None or numpy.ndarray
+            ndarray of individual mean actions.
+            ex. m_act = np.array([np.array(action_size), np.array(action_size), ...])
+        n_obs: None or numpy.ndarray
+            ndarray of individual next observations.
+            ex. n_obs = np.array([np.array(15,15), np.array(15,15), ...])
+        fea: None or numpy.ndarray
+            ndarray of individual features.
+            ex. fea = np.array([np.array(feature_size), np.array(feature_size), ...])
 
         Returns
         -------
@@ -538,7 +551,7 @@ class Networks(object):
                     obs_tensor = obs_tensor.view(-1, self.observation_size)  # Shape should be (N, observation_size)
                     tensors['obs'] = obs_tensor
             if act is not None:
-                act_tensor = torch.tensor(act)  # Shape should be (N, )
+                act_tensor = torch.tensor(act, dtype=torch.int64)  # Shape should be (N, )
                 tensors['act'] = act_tensor
             if rew is not None:
                 rew_tensor = torch.tensor(rew, dtype=torch.float)
