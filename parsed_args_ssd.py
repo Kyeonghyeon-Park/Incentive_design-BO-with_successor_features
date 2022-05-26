@@ -3,8 +3,6 @@ import argparse
 from utils import utils_all
 
 
-#TODO: add draw_freq.
-
 def add_default_args(parser):
     # Setting for the description.
     parser.add_argument("--description", type=str, default='Experiment',
@@ -66,8 +64,10 @@ def add_default_args(parser):
 
     # Setting for the draw and the save.
     parser.add_argument("--fps", type=int, default=3, help="Frame per second for videos")
+    parser.add_argument("--draw_freq", type=int, default=100,
+                        help="Frequency of drawing results (unit : episode).")
     parser.add_argument("--save_freq", type=int, default=1000,
-                        help="Save frequency of results and networks (unit : episode).")
+                        help="Frequency of saving results and networks (unit : episode).")
     parser.add_argument("--mode_draw", type=bool, default=True,
                         help="True if we draw plt during the training.")
 
@@ -82,7 +82,9 @@ add_default_args(parser)
 args = parser.parse_args()
 
 """ Setting for the description. """
-args.description = 'Experiment for the new harvest map(15x15). Larger episodes and smaller episode length.'
+args.description = 'Experiment for the new harvest map(15x15). ' \
+                   'Larger episodes and smaller episode length. ' \
+                   'Smaller buffer size and K. '
 args.setting_name = 'setting_0'+utils_all.get_current_time_tag()
 
 """ Setting for the environment. """
@@ -115,8 +117,8 @@ args.epsilon_decay_ver = 'linear'
 args.random_seed = 1280
 
 """ Setting for the learning. """
-args.K = 400
-args.buffer_size = 1000000
+args.K = 200
+args.buffer_size = 100000
 args.mode_lr_decay = True
 args.update_freq = 1
 args.update_freq_target = 1
@@ -127,6 +129,7 @@ args.file_path = './results_ssd_final/alpha=0.50/000029999.tar'
 
 """ Setting for the draw and the save. """
 # args.fps = 3
+# args.draw_freq = 100
 args.save_freq = 2000
 args.mode_draw = True
 

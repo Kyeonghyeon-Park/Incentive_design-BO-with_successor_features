@@ -8,11 +8,6 @@ from networks_ssd import Networks
 from parsed_args_ssd import args
 from sequential_social_dilemma_games.social_dilemmas.envs.env_creator import get_env_creator
 from utils import utils_all, utils_ssd
-"""
-Notes
-
-01) You will run this 'main_ssd.py' file but you should change settings in 'parsed_args_ssd.py'
-"""
 
 
 def roll_out(networks, env, init_obs, epi_num, epi_length, decayed_eps, paths, fps=5, is_draw=False, is_train=True):
@@ -56,7 +51,7 @@ def roll_out(networks, env, init_obs, epi_num, epi_length, decayed_eps, paths, f
     collective_reward = 0
     collective_feature = np.zeros(np.prod(env.feature_space.shape))
 
-    # TODO : we can move init_m_act into env.reset()
+    # TODO: we can move init_m_act into env.reset().
     init_m_act = {agent_id: np.zeros(env.action_space.n) for agent_id in agent_ids}
 
     obs = init_obs  # Initial observations.
@@ -164,7 +159,7 @@ if __name__ == "__main__":
         # Decayed exploration probability.
         decayed_eps = get_decayed_eps(decayed_eps, i, args)
 
-        # Run roll_out function (We can get 1,000 samples and collective reward of this episode).
+        # Run roll_out function (We can get episode_length number of samples and collective reward of this episode).
         samples, init_obs, collective_reward, collective_feature = roll_out(networks=networks,
                                                                             env=env,
                                                                             init_obs=init_obs,
@@ -193,7 +188,7 @@ if __name__ == "__main__":
         if (i + 1) % args.update_freq_target == 0:
             networks.update_target_networks()
 
-        # Print status
+        # Print status.
         update = "O" if (i + 1) % args.update_freq == 0 else "X"
         print(f"Process : {i}/{args.num_episodes}, "
               f"Time : {time.time() - time_start:.2f}, "
@@ -202,7 +197,7 @@ if __name__ == "__main__":
               f"Update : {update}, "
               f"Train")
 
-        # Test
+        # Test if mode_test is True.
         if args.mode_test:
             samples, init_obs, collective_reward, collective_feature = roll_out(networks=networks,
                                                                                 env=env,
@@ -221,16 +216,15 @@ if __name__ == "__main__":
             total_incentives_test[i] = collective_feature[2] * args.lv_incentive
             objectives_test[i] = collective_rewards_test[i] + total_penalties_test[i] - total_incentives_test[i]
 
-            # Print status
+            # Print status.
             print(f"Process : {i}/{args.num_episodes}, "
                   f"Time : {time.time() - time_start:.2f}, "
                   f"Collective reward : {collective_rewards_test[i]:.2f}, "
                   f"Objective : {objectives_test[i]:.2f}, "
                   f"Test")
 
-        # Draw collective rewards
-        # TODO: add draw_freq.
-        if (i + 1) % 50 == 0 and args.mode_draw:
+        # Draw outcomes(collective rewards).
+        if (i + 1) % args.draw_freq == 0 and args.mode_draw:
             utils_ssd.draw_or_save_plt(collective_rewards,
                                        collective_rewards_test,
                                        objectives,
@@ -239,7 +233,7 @@ if __name__ == "__main__":
                                        mode='draw',
                                        )
 
-        # Save several things
+        # Save several things.
         if (i + 1) % args.save_freq == 0:
             time_trained = time.time() - time_start
             filename = str(i).zfill(9) + '.tar'
