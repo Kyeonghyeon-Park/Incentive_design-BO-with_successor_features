@@ -234,7 +234,7 @@ if __name__ == "__main__":
                                        )
 
         # Save several things.
-        if (i + 1) % args.save_freq == 0:
+        if i == 0 or (i + 1) % args.save_freq == 0:
             time_trained = time.time() - time_start
             filename = str(i).zfill(9) + '.tar'
             filename_plt = saved_path + 'outcomes_' + str(i).zfill(9) + '.png'
