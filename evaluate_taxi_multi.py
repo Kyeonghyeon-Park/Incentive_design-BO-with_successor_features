@@ -82,5 +82,5 @@ torch.save(
         'y': alphas_pol,
         'f': objs,
     },
-    'test.tar'
+    'evaluation_results_taxi.tar'
 )
