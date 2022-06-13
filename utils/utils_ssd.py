@@ -434,11 +434,16 @@ def get_plt_cumulative_SKLD_multiseeds(skld_l_list, skld_r_list, is_3000=False, 
 
 def get_plt_test(outcomes):
     """
-    Get plt of test results.
+    Show plt of test results.
 
     Examples
     ----------
-    get_plt_test(outcomes)
+    import torch
+
+    from utils import utils_ssd
+
+    outcomes = torch.load('evaluation_results_ssd.tar')
+    utils_ssd.get_plt_test(outcomes[0.0][0.0])
 
     Parameters
     ----------
@@ -482,4 +487,64 @@ def get_plt_test(outcomes):
     plt.legend(loc='lower right', fontsize=14)
     plt.grid()
 
+    plt.savefig('evaluation_results_ssd.png')
+    plt.show()
+
+
+def get_plt_test_axis_fixed(outcomes):
+    """
+    Show plt of test results.
+
+    Examples
+    ----------
+    import torch
+
+    from utils import utils_ssd
+
+    outcomes = torch.load('evaluation_results_ssd.tar')
+    utils_ssd.get_plt_test_axis_fixed(outcomes[0.0][0.0])
+
+    Parameters
+    ----------
+    outcomes: dict
+        ex. {'rew': ndarray: (num_tests, num_net),
+             'pen': ndarray: (num_tests, num_net),
+             'inc': ndarray: (num_tests, num_net),
+             'obj': ndarray: (num_tests, num_net),
+             'x_axis':  ndarray: (num_net,),
+             }
+    """
+    def get_mean_and_std(inputs):
+        mean = np.mean(inputs, axis=0)
+        std = np.std(inputs, axis=0)
+        return mean, std
+
+    x_axis = outcomes['x_axis']
+    plt.figure(figsize=(8, 14))
+
+    plt.subplot(2, 1, 1)
+    mean, std = get_mean_and_std(outcomes['rew'])
+    plt.plot(x_axis, mean, label='Mean of collective rewards', color=(0, 1, 0))
+    plt.fill_between(x_axis, mean - std, mean + std, color=(0.85, 1, 0.85))
+    # plt.scatter(x_axis, outs, label='Collective rewards')
+    # plt.ylim([0, y_axis_lim_rew])
+    plt.xlabel('Episodes (100 steps per episode)', fontsize=20)
+    plt.ylabel('Collective rewards per episode', fontsize=20)
+    plt.title('Collective rewards (test)', fontdict={'fontsize': 24})
+    plt.legend(loc='lower right', fontsize=14)
+    plt.grid()
+
+    plt.subplot(2, 1, 2)
+    mean, std = get_mean_and_std(outcomes['obj'])
+    plt.plot(x_axis, mean, label='Mean of the designer objective', color=(0, 1, 0))
+    plt.fill_between(x_axis, mean - std, mean + std, color=(0.85, 1, 0.85))
+    # plt.scatter(x_axis, outs, label='Collective rewards')
+    plt.ylim([50, 110])
+    plt.xlabel('Episodes (100 steps per episode)', fontsize=20)
+    plt.ylabel("The designer's objective per episode", fontsize=20)
+    plt.title("The designer's objective (test)", fontdict={'fontsize': 24})
+    plt.legend(loc='lower right', fontsize=14)
+    plt.grid()
+
+    plt.savefig('evaluation_results_ssd_axis_fixed.png')
     plt.show()

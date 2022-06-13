@@ -12,6 +12,10 @@ from parsed_args_ssd import args
 from sequential_social_dilemma_games.social_dilemmas.envs.env_creator import get_env_creator
 import sequential_social_dilemma_games.utility_funcs as utility_funcs
 
+
+"""
+Deprecated.
+"""
 def roll_out(networks, env, args, init_obs, epi_num, epi_length, decayed_eps, paths, is_draw=False, is_train=True):
     """
     Run the simulation over epi_length and get samples from it.

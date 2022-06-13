@@ -27,10 +27,17 @@ Lastly, it saves results in the "folder_name" folder.
 To run this code, you should set check line 115.
 """
 # HERE #####
-alphas_env = [0.00]
+alphas_env = [1.00]
 paths_pol_dir_dict = {
-    0.00: "./results_ssd/setting_0_220525_1520/saved/*.tar",
-    # 1.00: "./results_ssd/setting_0_220526_1507/saved/*.tar",
+    # 0.00: "./results_ssd/setting_0_220525_1520/saved/*.tar",
+    # 0.20: "./results_ssd/setting_5_220529_0009/saved/*.tar",
+    # 0.20: "./results_ssd/setting_6_220605_0138/saved/*.tar",  # reuse
+    # 0.33: "./results_ssd/setting_1_220528_0210/saved/*.tar",
+    # 0.50: "./results_ssd/setting_3_220528_1314/saved/*.tar",
+    # 0.50: "./results_ssd/setting_7_220605_1320/saved/*.tar",  # reuse
+    # 0.80: "./results_ssd/setting_2_220528_0213/saved/*.tar",
+    # 1.00: "./results_ssd/setting_4_220528_1710/saved/*.tar",
+    1.00: "./results_ssd/setting_8_220605_2233/saved/*.tar",  # reuse
 }
 ############
 

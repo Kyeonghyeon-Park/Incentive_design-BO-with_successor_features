@@ -82,9 +82,7 @@ add_default_args(parser)
 args = parser.parse_args()
 
 """ Setting for the description. """
-args.description = 'Experiment for the new harvest map(15x15). ' \
-                   'Larger episodes and smaller episode length. ' \
-                   'Smaller buffer size and K. '
+args.description = 'Come back to our SPAWN_PROB.'
 args.setting_name = 'setting_0'+utils_all.get_current_time_tag()
 
 """ Setting for the environment. """
@@ -118,19 +116,19 @@ args.random_seed = 1280
 
 """ Setting for the learning. """
 args.K = 200
-args.buffer_size = 100000
+args.buffer_size = 200000
 args.mode_lr_decay = True
 args.update_freq = 1
 args.update_freq_target = 1
 # args.tau = 0.01
 # args.mode_one_hot_obs = True
 args.mode_reuse_networks = False
-args.file_path = './results_ssd_final/alpha=0.50/000029999.tar'
+args.file_path = './results_ssd/setting_1_220528_0210/saved/000099999.tar'
 
 """ Setting for the draw and the save. """
 # args.fps = 3
-# args.draw_freq = 100
-args.save_freq = 2000
+args.draw_freq = 100000000  # not drawing figure during the training
+args.save_freq = 1000
 args.mode_draw = True
 
 """ Validate the setting. """
