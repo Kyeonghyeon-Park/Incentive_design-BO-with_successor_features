@@ -1,0 +1,37 @@
+description: Run for UCB.
+setting_name: 7_UCB_alpha=0.28_using_alpha=0.33_220706_1544
+env: harvest_modified
+num_agents: 4
+lv_penalty: 0.28
+lv_incentive: 0.28
+mode_ac: True
+mode_psi: True
+h_dims_a: [256, 128, 64, 32]
+h_dims_c: []
+h_dims_p: [256, 128, 64, 32]
+lr_a: 0.0001
+lr_c: 0
+lr_p: 0.001
+gamma: 0.99
+num_episodes: 30000
+episode_length: 1000
+epsilon: 0.95
+mode_epsilon_decay: True
+epsilon_decay_ver: linear
+boltz_beta: 1
+mode_test: False
+random_seed: 1268
+K: 400
+buffer_size: 1000000
+mode_lr_decay: True
+update_freq: 1
+update_freq_target: 1
+tau: 0.01
+mode_one_hot_obs: True
+mode_reuse_networks: True
+file_path: ./results_misucb_ucb_temp/0_init_prior_alpha=0.33/000029999.tar
+fps: 3
+draw_freq: 100000000
+save_freq: 1000
+mode_draw: True
+use_collective_reward: False
