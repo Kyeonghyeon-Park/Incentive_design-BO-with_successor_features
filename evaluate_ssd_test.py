@@ -28,18 +28,33 @@ To run this code, you should set check line 115.
 """
 # HERE #####
 # For misUCB
-# alphas_env = [0.00, 0.26, 0.33, 1.00]
+# alphas_env = [0.00, 0.05, 0.08, 0.14, 0.23, 0.26, 0.29, 0.33, 0.56, 0.79, 1.00]
 # paths_pol_dir_dict = {
+#     0.00: "./results_misucb_ucb_temp/3_misUCB_alpha=0.00_using_alpha=0.26/000029999.tar",
+#     0.05: "",
+#     0.08: "./results_misucb_ucb_temp/5_misUCB_alpha=0.08_using_alpha=0.14/000029999.tar",
+#     0.14: "./results_misucb_ucb_temp/4_misUCB_alpha=0.14_using_alpha=0.26/000029999.tar",
+#     0.23: "./results_misucb_ucb_temp/7_misUCB_alpha=0.23_using_alpha=0.26/000029999.tar",
 #     0.26: "./results_misucb_ucb_temp/2_misUCB_alpha=0.26_using_alpha=0.33/000029999.tar",
+#     0.29: "./results_misucb_ucb_temp/9_misUCB_alpha=0.29_using_alpha=0.26/000029999.tar",
 #     0.33: "./results_misucb_ucb_temp/0_init_prior_alpha=0.33/000029999.tar",
+#     0.56: "./results_misucb_ucb_temp/6_misUCB_alpha=0.56_using_alpha=0.33/000029999.tar",
+#     0.79: "./results_misucb_ucb_temp/8_misUCB_alpha=0.79_using_alpha=1.00/000029999.tar",
 #     1.00: "./results_misucb_ucb_temp/1_init_eval_alpha=1.00_using_alpha=0.33/000029999.tar",
 # }
 
 # For UCB
-alphas_env = [0.33, 0.40, 1.00]
+alphas_env = [0.00, 0.05, 0.10, 0.21, 0.26, 0.28, 0.33, 0.40, 0.69, 1.00]
 paths_pol_dir_dict = {
+    0.00: "./results_misucb_ucb_temp/3_misUCB_alpha=0.00_using_alpha=0.26/000029999.tar",
+    0.05: "./results_misucb_ucb_temp/8_UCB_alpha=0.05_using_alpha=0.00/000029999.tar",
+    0.10: "./results_misucb_ucb_temp/6_UCB_alpha=0.10_using_alpha=0.00/000029999.tar",
+    0.21: "./results_misucb_ucb_temp/3_UCB_alpha=0.21_using_alpha=0.33/000029999.tar",
+    0.26: "",
+    0.28: "./results_misucb_ucb_temp/7_UCB_alpha=0.28_using_alpha=0.33/000029999.tar",
     0.33: "./results_misucb_ucb_temp/0_init_prior_alpha=0.33/000029999.tar",
     0.40: "./results_misucb_ucb_temp/2_UCB_alpha=0.40_using_alpha=0.33/000029999.tar",
+    0.69: "./results_misucb_ucb_temp/5_UCB_alpha=0.69_using_alpha=0.40/000029999.tar",
     1.00: "./results_misucb_ucb_temp/1_init_eval_alpha=1.00_using_alpha=0.33/000029999.tar",
 }
 ############
