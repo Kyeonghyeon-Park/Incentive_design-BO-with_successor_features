@@ -4,20 +4,29 @@ from utils import utils_all
 
 
 def add_default_args(parser):
+    """
+    Build default ArgumentParser.
+
+    Parameters
+    ----------
+    parser: argparse.ArgumentParser
+    """
     # Setting for the description.
     parser.add_argument("--description", type=str, default='Experiment',
-                        help="General description for this experiment (or setting). It is only used for the reminder.",)
+                        help="General description for this experiment (or setting). It is only used for the reminder.")
     parser.add_argument("--setting_name", type=str, default='setting_0',
-                        help="Setting name for the current setup. This name will be used for the folder name.",)
+                        help="Setting name for the current setup. This name will be used for the folder name.")
 
     # Setting for the environment.
-    parser.add_argument("--env", type=str, default="cleanup",
-                        help="Name of the environment to use. Can be cleanup_modified or harvest_modified.",)
+    parser.add_argument("--env", type=str, default="cleanup_modified",
+                        help="Name of the environment to use. Can be cleanup_modified or harvest_modified.")
     parser.add_argument("--num_agents", type=int, default=2, help="Number of agents. Maximum number of agents is 10.")
 
-    # Setting for the incentive designer's problem.
+    # Setting for the reward designer's problem.
     parser.add_argument("--lv_penalty", type=float, default=0, help="Penalty level for agents who eat apple.")
-    parser.add_argument("--lv_incentive", type=float, default=0, help="Incentive level for agents who clean the river.")
+    parser.add_argument("--lv_incentive", type=float, default=0,
+                        help="Incentive level for agents 1) who clean the river if the environment is cleanup, "
+                             "2) who don't eat apple if the environment is harvest.")
 
     # Setting for the networks.
     parser.add_argument("--mode_ac", type=bool, default=True, help="Mode selection (Actor-critic/psi or critic/psi).")
@@ -39,7 +48,7 @@ def add_default_args(parser):
                         help="If mode_epsilon_decay is True, we have to choose the version of epsilon decay."
                              "'linear', 'exponential' can be used.")
     parser.add_argument("--boltz_beta", type=float, default=1,
-                        help="Parameter for Boltzmann policy. Not used yet.")
+                        help="Parameter for Boltzmann policy.")
     parser.add_argument("--mode_test", type=bool, default=False,
                         help="True if we do test during the learning. It require double time.")
     parser.add_argument("--random_seed", type=int, default=1234, help="Random seed.")
@@ -82,14 +91,14 @@ add_default_args(parser)
 args = parser.parse_args()
 
 """ Setting for the description. """
-args.description = 'Come back to our SPAWN_PROB.'
+args.description = 'SSD environment.'
 args.setting_name = 'setting_0'+utils_all.get_current_time_tag()
 
 """ Setting for the environment. """
 args.env = 'harvest_modified_v2'
 args.num_agents = 4
 
-""" Setting for the incentive designer's problem. """
+""" Setting for the reward designer's problem. """
 args.lv_penalty = 0.00
 args.lv_incentive = 0.00
 
@@ -105,25 +114,25 @@ args.lr_p = 0.001
 # args.gamma = 0.99
 
 """ Setting for the experiment. """
-args.num_episodes = 100000
-args.episode_length = 100
+args.num_episodes = 30000
+args.episode_length = 1000
 args.epsilon = 0.95
 # args.mode_epsilon_decay = True
 args.epsilon_decay_ver = 'linear'
 # args.boltz_beta = 1.0
 # args.mode_test = False
-args.random_seed = 1280
+args.random_seed = 1234
 
 """ Setting for the learning. """
-args.K = 200
-args.buffer_size = 200000
+args.K = 400
+args.buffer_size = 1000000
 args.mode_lr_decay = True
 args.update_freq = 1
 args.update_freq_target = 1
 # args.tau = 0.01
 # args.mode_one_hot_obs = True
 args.mode_reuse_networks = False
-args.file_path = './results_ssd/setting_1_220528_0210/saved/000099999.tar'
+args.file_path = './some_paths/000029999.tar'
 
 """ Setting for the draw and the save. """
 # args.fps = 3

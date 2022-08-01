@@ -218,7 +218,7 @@ class Critic(nn.Module):
         """
         Forward propagation.
         Input of the critic network will be the concatenated batches of individual observations and mean actions.
-        Unlike the previous implementation, Critic will return the q values for all actions.
+        Critic will return the q values for all actions.
 
         Parameters
         ----------
@@ -430,6 +430,7 @@ class Networks(object):
     def get_actions(self, av_obs, is_target=True, is_random=False):
         """
         Get actions using networks or random actions.
+        It will return actions from the target networks if is_target is True.
 
         Parameters
         ----------

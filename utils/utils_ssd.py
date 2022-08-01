@@ -43,6 +43,24 @@ def make_video(is_train, epi_num, fps, video_path, image_path):
             print('Failed to delete %s. Reason: %s' % (single_image_path, e))
 
 
+def make_vars(n, mode):
+    """
+    Return n number of variables(list or dict).
+
+    Parameters
+    ----------
+    n: int
+    mode: str
+    """
+    for _ in range(n):
+        if mode == 'list':
+            yield []
+        elif mode == 'dict':
+            yield {}
+        else:
+            raise NotImplementedError("Possible options of mode are list and dict.")
+
+
 def save_data(args, env, episode_trained, decayed_eps, time_trained, outcomes, networks, path, name):
     """
     Save several data.
@@ -230,11 +248,14 @@ def get_plt_final_aggregate(outcomes_l, outcomes_r, is_3000=False):
     Examples
     ----------
     # Efficiency of the transfer: visual comparison
-    dict_l = torch.load("./results_ssd_final/alpha=0.33 using alpha=0.50/outcomes.tar")
-    dict_r = torch.load("./results_ssd_final/alpha=0.33/outcomes.tar")
+    import torch
+    from utils import utils_ssd
+
+    dict_l = torch.load("./results/211008 submitted version/results_ssd_final/alpha=0.33 using alpha=0.50 (2 seeds)/seed 1278 (original)/outcomes.tar")
+    dict_r = torch.load("./results/211008 submitted version/results_ssd_final/alpha=0.33 (5 seeds)/seed 1267 (original)/outcomes.tar")
     outcomes_l = dict_l["obj_full"]
     outcomes_r = dict_r["obj_full"]
-    utils_ssd.get_plt_final_aggregate(outcomes_l, outcomes_r, is_3000=True)
+    utils_ssd.get_plt_final_aggregate(outcomes_l, outcomes_r, is_3000=False)
 
     Parameters
     ----------
@@ -257,7 +278,7 @@ def get_plt_final_aggregate(outcomes_l, outcomes_r, is_3000=False):
         x_lim = [3000, 30000]
     else:
         x = 1000 * np.arange(1, 31)
-        x_lim = [None, None]
+        x_lim = [1000, 30000]
 
     # y_lim = [None, None]
     # y_lim = [None, 265]  # Convergence of the lower-level
@@ -271,6 +292,72 @@ def get_plt_final_aggregate(outcomes_l, outcomes_r, is_3000=False):
     means_r, stds_r = get_status(outcomes_r)
     plt.plot(x, means_r, label="Mean objective value (non-transfer)", alpha=0.5, color=(1, 0, 0))
     plt.fill_between(x, means_r - stds_r, means_r + stds_r, alpha=0.5, color=(1, 0.75, 0.75))
+
+    plt.xlabel("Episodes", fontsize=24)
+    plt.ylabel("Value", fontsize=24)
+    plt.xlim(x_lim)
+    plt.ylim(y_lim)
+    plt.legend(loc='lower right', fontsize=20)
+    plt.tick_params(axis='both', labelsize=20)
+    plt.grid()
+
+    plt.show()
+
+
+def get_plt_final_aggregate_grayscale(outcomes_l, outcomes_r, is_3000=False):
+    """
+    Get the figure of two final outcomes.
+    This function uses the evaluation results.
+    If you want to draw the outcome per 3000 episodes, you have to set is_3000=True.
+    Unlike the previous function(get_plt_final), this figure put two outcomes into one figure.
+
+    Examples
+    ----------
+    # Efficiency of the transfer: visual comparison
+    import torch
+    from utils import utils_ssd
+
+    dict_l = torch.load("./results/211008 submitted version/results_ssd_final/alpha=0.33 using alpha=0.50 (2 seeds)/seed 1278 (original)/outcomes.tar")
+    dict_r = torch.load("./results/211008 submitted version/results_ssd_final/alpha=0.33 (5 seeds)/seed 1267 (original)/outcomes.tar")
+    outcomes_l = dict_l["obj_full"]
+    outcomes_r = dict_r["obj_full"]
+    utils_ssd.get_plt_final_aggregate(outcomes_l, outcomes_r, is_3000=False)
+
+    Parameters
+    ----------
+    outcomes_l
+        Outcomes which will be shown in the left figure
+    outcomes_r
+        Outcomes which will be shown in the right figure
+    is_3000 : boolean
+        True if we want to draw the outcome per 3000 episodes
+    """
+    def get_status(inputs):
+        means = np.mean(inputs, axis=1)
+        stds = np.std(inputs, axis=1)
+        return means, stds
+
+    if is_3000:
+        outcomes_l = outcomes_l[2::3, :]
+        outcomes_r = outcomes_r[2::3, :]
+        x = 3000 * np.arange(1, 11)
+        x_lim = [3000, 30000]
+    else:
+        x = 1000 * np.arange(1, 31)
+        x_lim = [1000, 30000]
+
+    # y_lim = [None, None]
+    # y_lim = [None, 265]  # Convergence of the lower-level
+    y_lim = [0, 375]  # Efficiency of the transfer: visual comparison
+
+    plt.figure(figsize=(15, 8))
+
+    means_l, stds_l = get_status(outcomes_l)
+    plt.plot(x, means_l, label="Mean objective value (SF-based)", color=(0, 0, 0))
+    plt.fill_between(x, means_l - stds_l, means_l + stds_l, color=(0.5, 0.5, 0.5))
+    means_r, stds_r = get_status(outcomes_r)
+    plt.plot(x, means_r, label="Mean objective value (Shou & Di)", alpha=0.5, color=(0, 0, 0), linestyle='--')
+    plt.fill_between(x, means_r - stds_r, means_r + stds_r, alpha=0.5, color=(0.75, 0.75, 0.75), hatch='/')
 
     plt.xlabel("Episodes", fontsize=24)
     plt.ylabel("Value", fontsize=24)

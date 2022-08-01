@@ -14,15 +14,15 @@ def add_default_args(parser):
     """
     # Setting for the description.
     parser.add_argument("--description", type=str, default='Experiment',
-                        help="General description for this experiment (or setting). It is only used for the reminder.",)
+                        help="General description for this experiment (or setting). It is only used for the reminder.")
     parser.add_argument("--setting_name", type=str, default='setting_0',
-                        help="Setting name for the current setup. This name will be used for the folder name.",)
+                        help="Setting name for the current setup. This name will be used for the folder name.")
 
     # Setting for the environment.
-    parser.add_argument("--grid_size", type=int, default=2, help="Grid size (each axis).",)
-    parser.add_argument("--num_agents", type=int, default=100, help="Number of agents.",)
+    parser.add_argument("--grid_size", type=int, default=2, help="Grid size (each axis).")
+    parser.add_argument("--num_agents", type=int, default=100, help="Number of agents.")
 
-    # Setting for the incentive designer's problem.
+    # Setting for the reward designer's problem.
     parser.add_argument("--lv_penalty", type=float, default=0, help="Penalty level for the oversupplied grid.")
 
     # Setting for the networks.
@@ -62,15 +62,15 @@ def add_default_args(parser):
 
     # Setting for the draw and the save.
     parser.add_argument("--draw_freq", type=int, default=100,
-                        help="Draw frequency of results (unit : episode).")
+                        help="Draw frequency of results (unit: episode).")
     parser.add_argument("--save_freq", type=int, default=100,
-                        help="Save frequency of results and networks (unit : episode).")
+                        help="Save frequency of results and networks (unit: episode).")
     parser.add_argument("--mode_draw", type=bool, default=True,
-                        help="True if we draw plt during the training.")
+                        help="True if we draw a figure(plot) during the training.")
 
     # Setting for the KL divergence.
     parser.add_argument("--mode_kl_divergence", type=bool, default=False,
-                        help="True if we reuse previous networks for KL divergence.")
+                        help="True if we reuse previous networks for calculating a KL divergence.")
     parser.add_argument("--file_path_final", type=str, default="",
                         help="File path of the final results of other networks. "
                              "We use same args of these results and train again to calculate the KL divergence. "
@@ -119,15 +119,15 @@ add_default_args(parser)
 args = parser.parse_args()
 
 """ Setting for the description. """
-args.description = "Test new selection algorithm."
-args.setting_name = "setting_23"+utils_all.get_current_time_tag()
+args.description = "Taxi environment."
+args.setting_name = "setting_0"+utils_all.get_current_time_tag()
 
 """ Setting for the environment. """
 # args.grid_size = 2
 # args.num_agents = 100
 
-""" Setting for the incentive designer's problem. """
-args.lv_penalty = 0.73
+""" Setting for the reward designer's problem. """
+args.lv_penalty = 0.00
 
 """ Setting for the networks. """
 # args.mode_ac = True
@@ -145,8 +145,8 @@ args.lr_p = 0.0005
 args.num_episodes = 7500
 # args.episode_length = 2
 args.epsilon = 0.5
-args.num_tests = 1  # check!
-args.random_seed = 1239
+args.num_tests = 30
+args.random_seed = 1234
 
 """ Setting for the learning. """
 args.K = 8
@@ -157,8 +157,7 @@ args.update_freq = 1
 args.update_freq_target = 10
 # args.tau = 1
 args.mode_reuse_networks = True
-# args.file_path = "./results/211008 submitted version/results_taxi_final/alpha=0.30/7499.tar"
-args.file_path = "./results_taxi/setting_19_220518_1723/saved/7499.tar"
+# args.file_path = "./results/results_taxi_final/alpha=0.30/7499.tar"
 
 """ Setting for the draw and the save. """
 args.draw_freq = 50
@@ -167,8 +166,7 @@ args.mode_draw = False
 
 """ Setting for the KL divergence."""
 args.mode_kl_divergence = False
-# args.file_path_final = "./results_taxi_final/alpha=0.63 using alpha=0.50/7499.tar"
-args.file_path_final = "./results_taxi/setting_14/saved/7499.tar"
+# args.file_path_final = "./results/results_taxi_final/alpha=0.63 using alpha=0.50/7499.tar"
 
 """ Validate the setting. """
 utils_all.validate_setting(args)

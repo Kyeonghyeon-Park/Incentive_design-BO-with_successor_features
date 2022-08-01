@@ -7,15 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-
-def make_vars(n, mode):
-    for _ in range(n):
-        if mode == 'list':
-            yield []
-        elif mode == 'dict':
-            yield {}
-        else:
-            raise NotImplementedError("Possible options of mode are list and dict.")
+from utils.utils_ssd import make_vars
 
 
 def init_weights(m):
@@ -41,17 +33,17 @@ def make_layer_dims(observation_size, action_size, feature_size, hidden_dims, mo
 
     Parameters
     ----------
-    observation_size : int
-    action_size : int
-    feature_size : int
-    hidden_dims : list
+    observation_size: int
+    action_size: int
+    feature_size: int
+    hidden_dims: List
         List of hidden layers' size
-    mode : str
+    mode: str
         'actor' or 'critic' or 'psi'
 
     Returns
     -------
-    layer_dims : list
+    layer_dims: list
         List of list
         Each element is the dimension of layers ([input_dim, output_dim])
     """

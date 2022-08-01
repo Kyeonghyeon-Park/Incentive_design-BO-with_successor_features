@@ -1,9 +1,9 @@
-import copy
 import os
 import time
 
 import matplotlib.pyplot as plt
 import numpy as np
+from scipy.signal import savgol_filter
 import torch
 import torch.distributions as distributions
 
@@ -131,11 +131,7 @@ def get_masked_categorical_dists(action_probs, masks):
     return action_dists
 
 
-# def get_env_and_networks(args, dict_trained):
-#     env = TaxiEnv(args)
-#     networks = networks_taxi.Networks(env, args)
-#     networks = utils_all.load_networks(networks, args, dict_trained)
-#     return env, networks
+
 
 
 def print_status(args, i, orr, osc, avg_rew, obj, time_start, is_train=True):
@@ -468,6 +464,194 @@ def get_plt_final(outcomes_l, outcomes_r):
     plt.xlabel("Episodes", fontsize=24)
     plt.ylabel("Value", fontsize=24)
     plt.title("ORR, OSC, and Objective values", fontdict={"fontsize": 24})
+    plt.legend(loc='lower right', fontsize=20)
+    plt.tick_params(axis='both', labelsize=20)
+    plt.grid()
+
+    plt.show()
+
+
+def get_plt_final_grayscale(outcomes_l, outcomes_r):
+    """
+    Get the figure of two outcomes.
+    Unlike the previous function, this is for the final outcomes, i.e., after the training.
+
+    Examples
+    ----------
+    data_l = torch.load("./results_taxi_final/alpha=0.63 using alpha=0.50/7499.tar")
+    outcomes_l = data_l["outcomes_t"]
+    data_r = torch.load("./results_taxi_final/alpha=0.63/7499.tar")
+    outcomes_r = data_r["outcomes_t"]
+    utils_taxi.get_plt_final(outcomes_l, outcomes_r)
+
+    Parameters
+    ----------
+    outcomes_l
+        Outcomes which will be shown in the left figure
+    outcomes_r
+        Outcomes which will be shown in the right figure
+    """
+    # def get_figure_components(inputs, i):
+    #     rew = inputs[:i + 1]
+    #     moving_avg_len = 20
+    #     means, stds = [np.zeros(rew.size) for _ in range(2)]
+    #     for j in range(rew.size):
+    #         if j + 1 < moving_avg_len:
+    #             rew_part = rew[:j + 1]
+    #         else:
+    #             rew_part = rew[j - moving_avg_len + 1:j + 1]
+    #         means[j] = np.mean(rew_part)
+    #         stds[j] = np.std(rew_part)
+    #     return rew, means, stds
+    def get_status(inputs):
+        means = np.mean(inputs, axis=0)
+        stds = np.std(inputs, axis=0)
+        return means, stds
+
+    x = np.arange(7500)
+    y_lim_rew = [2, 6]
+    y_lim_others = [0, 1.1]
+
+    plt.figure(figsize=(20, 16))
+
+    plt.subplot(2, 2, 1)
+    means, stds = get_status(outcomes_l[2])
+    plt.plot(x, means, label="Avg reward", color=(0, 0, 0))
+    plt.fill_between(x, means - stds, means + stds, color=(0.75, 0.75, 0.75))
+    plt.ylim(y_lim_rew)
+    plt.xlabel("Episodes", fontsize=24)
+    plt.ylabel("Reward", fontsize=24)
+    plt.title("Average rewards", fontdict={"fontsize": 24})
+    plt.legend(loc='lower right', fontsize=20)
+    plt.tick_params(axis='both', labelsize=20)
+    plt.grid()
+
+    plt.subplot(2, 2, 2)
+    means, stds = get_status(outcomes_r[2])
+    plt.plot(x, means, label="Avg reward", color=(0, 0, 0))
+    plt.fill_between(x, means - stds, means + stds, color=(0.75, 0.75, 0.75))
+    plt.ylim(y_lim_rew)
+    plt.xlabel("Episodes", fontsize=24)
+    plt.ylabel("Reward", fontsize=24)
+    plt.title("Average rewards", fontdict={"fontsize": 24})
+    plt.legend(loc='lower right', fontsize=20)
+    plt.tick_params(axis='both', labelsize=20)
+    plt.grid()
+
+    idxs = [0, 1, 3]
+    labels = ["ORR", "OSC", "Obj"]
+    colors = [(0, 0, 0), (0, 0, 0), (0, 0, 0)]
+    colors_fill = [(0.75, 0.75, 0.75), (0.75, 0.75, 0.75), (0.75, 0.75, 0.75)]
+    # colors_fill = [(1, 1, 1), (1, 1, 1), (0.75, 0.75, 0.75)]
+    # linestyles = ['', '', '-']
+    linestyles = ['-', '--', ':']
+
+    plt.subplot(2, 2, 3)
+    for j in range(3):
+        means, stds = get_status(outcomes_l[idxs[j]])
+        plt.plot(x, means, label=labels[j], color=colors[j], linestyle=linestyles[j])
+        plt.fill_between(x, means - stds, means + stds, color=colors_fill[j])
+    plt.ylim(y_lim_others)
+    plt.xlabel("Episodes", fontsize=24)
+    plt.ylabel("Value", fontsize=24)
+    plt.title("ORR, OSC, and Objective values", fontdict={"fontsize": 24})
+    plt.legend(loc='lower right', fontsize=20)
+    plt.tick_params(axis='both', labelsize=20)
+    plt.grid()
+
+    plt.subplot(2, 2, 4)
+    for j in range(3):
+        means, stds = get_status(outcomes_r[idxs[j]])
+        plt.plot(x, means, label=labels[j], color=colors[j], linestyle=linestyles[j])
+        plt.fill_between(x, means - stds, means + stds, color=colors_fill[j])
+    plt.ylim(y_lim_others)
+    plt.xlabel("Episodes", fontsize=24)
+    plt.ylabel("Value", fontsize=24)
+    plt.title("ORR, OSC, and Objective values", fontdict={"fontsize": 24})
+    plt.legend(loc='lower right', fontsize=20)
+    plt.tick_params(axis='both', labelsize=20)
+    plt.grid()
+
+    plt.show()
+
+
+def get_plt_final_grayscale_only_obj(outcomes_l, outcomes_r, is_3000=False):
+    """
+    Get the figure of two final outcomes.
+    This function uses the evaluation results.
+    If you want to draw the outcome per 3000 episodes, you have to set is_3000=True.
+    Unlike the previous function(get_plt_final), this figure put two outcomes into one figure.
+
+    Examples
+    ----------
+    # Efficiency of the transfer: visual comparison
+    import torch
+    from utils import utils_ssd
+
+    dict_l = torch.load("./results/211008 submitted version/results_ssd_final/alpha=0.33 using alpha=0.50 (2 seeds)/seed 1278 (original)/outcomes.tar")
+    dict_r = torch.load("./results/211008 submitted version/results_ssd_final/alpha=0.33 (5 seeds)/seed 1267 (original)/outcomes.tar")
+    outcomes_l = dict_l["obj_full"]
+    outcomes_r = dict_r["obj_full"]
+    utils_ssd.get_plt_final_aggregate(outcomes_l, outcomes_r, is_3000=False)
+
+    Parameters
+    ----------
+    outcomes_l
+        Outcomes which will be shown in the left figure
+    outcomes_r
+        Outcomes which will be shown in the right figure
+    is_3000 : boolean
+        True if we want to draw the outcome per 3000 episodes
+    """
+    # mpl.rcParams['hatch.linewidth'] = 2
+    period = 1
+    def get_status(inputs):
+        means = np.mean(inputs, axis=0)
+        stds = np.std(inputs, axis=0)
+        mov_avg_len = 20
+        means_mov_avg, stds_mov_avg = [np.zeros(means.size) for _ in range(2)]
+        for j in range(means.size):
+            if j + 1 < mov_avg_len:
+                means_part = means[:j + 1]
+                stds_part = stds[:j + 1]
+            else:
+                means_part = means[j - mov_avg_len + 1:j + 1]
+                stds_part = stds[j - mov_avg_len + 1:j + 1]
+            means_mov_avg[j] = np.mean(means_part)
+            stds_mov_avg[j] = np.mean(stds_part)
+            # means_mov_avg[j] = means[j - mov_avg_len + 1:j + 1] if j + 1 >= mov_avg_len else means[:j + 1]
+            # stds_mov_avg[j] = stds[j - mov_avg_len + 1:j + 1] if j + 1 >= mov_avg_len else stds[:j + 1]
+        # means = means_mov_avg
+        # stds = stds_mov_avg
+        means = means[::period]
+        stds = stds[::period]
+        return means, stds
+
+    # x = np.arange(7500)
+    x = np.arange(0, 7500, period)
+    x_lim = [0, 7500]
+    y_lim = [0.65, 1.05]
+
+    plt.figure(figsize=(15, 8))
+
+    outcomes_l = outcomes_l[3]
+    outcomes_r = outcomes_r[3]
+
+    means_l, stds_l = get_status(outcomes_l)
+    means_l = savgol_filter(means_l, 101, 3)
+    stds_l = savgol_filter(stds_l, 101, 3)
+    plt.plot(x, means_l, label="Mean objective value (SF-based)", color=(0, 0, 0))
+    plt.fill_between(x, means_l - stds_l, means_l + stds_l, color=(0.5, 0.5, 0.5))
+    means_r, stds_r = get_status(outcomes_r)
+    means_r = savgol_filter(means_r, 101, 3)
+    stds_r = savgol_filter(stds_r, 101, 3)
+    plt.plot(x, means_r, label="Mean objective value (Shou & Di)", alpha=0.5, color=(0, 0, 0), linestyle='--')
+    plt.fill_between(x, means_r - stds_r, means_r + stds_r, alpha=0.5, color=(0.75, 0.75, 0.75), hatch='/')
+
+    plt.xlabel("Episodes", fontsize=24)
+    plt.ylabel("Value", fontsize=24)
+    plt.xlim(x_lim)
+    plt.ylim(y_lim)
     plt.legend(loc='lower right', fontsize=20)
     plt.tick_params(axis='both', labelsize=20)
     plt.grid()
