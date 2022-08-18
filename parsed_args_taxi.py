@@ -156,7 +156,7 @@ args.mode_lr_decay = False
 args.update_freq = 1
 args.update_freq_target = 10
 # args.tau = 1
-args.mode_reuse_networks = True
+args.mode_reuse_networks = False
 # args.file_path = "./results/results_taxi_final/alpha=0.30/7499.tar"
 
 """ Setting for the draw and the save. """

@@ -406,6 +406,7 @@ class HarvestEnvModified(MapEnvModified):
         new_apple_spawn = 'new_apple_spawn=' + '{num}'.format(num=self.num_new_apples)
         texts = [step, new_apple_spawn]
 
+        # fig = plt.figure(dpi=600)  # 220812
         fig = plt.figure()
         spec = gridspec.GridSpec(nrows=1, ncols=2, width_ratios=[2, 1])
         fig_graph = fig.add_subplot(spec[0])

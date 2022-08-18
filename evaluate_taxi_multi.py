@@ -6,35 +6,29 @@ from parsed_args_taxi import args
 from utils import utils_all, funcs_taxi
 
 """
-This code is extended version of evaluate_taxi.py for multi-environments and multi-policies. 
-You should set alphas_env and paths_pol_dict.
-Set alpha which you want to test (i.e., you set w').
-paths_pol_dict contains paths of trained policies.
-It will save evaluated results. 
-"""
+This file is for getting evaluation results given alphas and policies. 
+(This code is extended version of evaluate_taxi.py for multi-environments and multi-policies.)
+It requires "alphas_env", list that contains alphas of environments, 
+and "paths_pol_dict", dict that contains the directory of the file. 
+It run "num_tests" times to get results for each alpha of environment and alpha of policy.
+Set alphas_env and paths_pol_dict in line 25.
 
-# HERE #####
-alphas_env = [0, 0.3, 0.43, 0.50, 0.54, 0.62, 0.85, 1]
+ex. 
+alphas_env = [0.00, 0.50, 1.00]
+
 paths_pol_dict = {
-    0.00: "./results/211008 submitted version/results_taxi_final/alpha=0.00/7499.tar",
-    # 0.13: "./results_taxi/setting_15/saved/7499.tar",
-    0.30: "./results/211008 submitted version/results_taxi_final/alpha=0.30/7499.tar",
-    0.43: "./results_taxi/setting_21_220518_1757/saved/7499.tar",
-    # 0.45: "./results_taxi/setting_17/saved/7499.tar",
-    # 0.47: "./results_taxi/setting_14/saved/7499.tar",
-    # 0.53: "./results_taxi/setting_10/saved/7499.tar",
-    # 0.50: "./results_taxi/setting_18/saved/7499.tar",
-    0.50: "./results_taxi/setting_20_220518_1741/saved/7499.tar",
-    # 0.54: "./results_taxi/setting_7/saved/7499.tar",
-    0.54: "./results_taxi/setting_22_220519_1158/saved/7499.tar",
-    0.62: "./results_taxi/setting_19_220518_1723/saved/7499.tar",
-    # 0.73: "./results_taxi/setting_23_220519_1242/saved/7499.tar",
-    # 0.64: "./results_taxi/setting_16/saved/7499.tar",
-    # 0.81: "./results_taxi/setting_12/saved/7499.tar",
-    0.85: "./results_taxi/setting_11/saved/7499.tar",
-    1.00: "./results/211008 submitted version/results_taxi_final/alpha=1.00/7499.tar",
+    0.00: "./folder_name/7499.tar",
+    0.50: "./folder_name/7499.tar",
+    1.00: "./folder_name/7499.tar",
 }
-############
+"""
+alphas_env = [0.00, 0.50, 1.00]
+
+paths_pol_dict = {
+    0.00: "./folder_name/7499.tar",
+    0.50: "./folder_name/7499.tar",
+    1.00: "./folder_name/7499.tar",
+}
 
 args.setting_name = "setting_evaluation"
 paths_pol = list(paths_pol_dict.values())

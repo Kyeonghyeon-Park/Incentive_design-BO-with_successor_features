@@ -50,6 +50,30 @@ def sqrt_beta(t=6, d=1, delta=0.5):
     return value
 
 
+def get_proportion_main(num_samples, sensitivity=0.25, is_increasing=False):
+    """
+    Get the proportion of main(original or true) UCB.
+
+    Parameters
+    ----------
+    num_samples: int
+        Number of policies(or samples).
+    sensitivity: float
+        The high sensitivity gives a high proportion of main UCB for same number of samples.
+    is_increasing: bool
+        False if the proportion is constant.
+
+    Returns
+    -------
+    proportion
+    """
+    if is_increasing:
+        proportion = 1 / (1 + np.exp(-sensitivity * num_samples))
+    else:
+        proportion = 0.5
+    return proportion
+
+
 class BayesianOptimizationModified(BayesianOptimization):
     """
     Update self._gp to easily change alpha and length_scale_bounds of GaussianProcessRegressor.
@@ -207,6 +231,7 @@ def get_opt_and_acq(observations, pbounds=None, **kwargs):
 def plot_gp_utility(optimizer, utility, x, gp_lim=None, acq_lim=None, next_point_suggestion=None):
     """
     Plot posterior and values of acquisition function.
+    220805 axis update.
 
     Parameters
     ----------
@@ -257,8 +282,10 @@ def plot_gp_utility(optimizer, utility, x, gp_lim=None, acq_lim=None, next_point
         acq.set_xlim(acq_lim[0])
         acq.set_ylim(acq_lim[1])
 
-    axis.set_xlabel(r'$\alpha$', fontdict={'size': 24})
-    axis.set_ylabel(r'$f$', fontdict={'size': 24})
+    # axis.set_xlabel(r'$\alpha$', fontdict={'size': 24})  # 220805
+    # axis.set_ylabel(r'$f$', fontdict={'size': 24})  # 220805
+    axis.set_xlabel(r'$\alpha$', fontdict={'size': 28})  # 220805
+    axis.set_ylabel(r'$\mathcal{F}$', fontdict={'size': 28})  # 220805
 
     acq.plot(x, utility, label='Acquisition function', color='k')
     acq.plot(x[np.argmax(utility)], np.max(utility), '*', markersize=15,

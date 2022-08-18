@@ -4,6 +4,7 @@ import time
 
 import numpy as np
 import torch
+import torch.nn as nn
 
 
 def get_current_time_tag():
@@ -49,6 +50,20 @@ def set_random_seed(rand_seed):
     random.seed(rand_seed)
     np.random.seed(rand_seed)
     torch.manual_seed(rand_seed)
+
+
+def init_weights(m):
+    """
+    Define the initialization function for the layers.
+
+    Parameters
+    ----------
+    m
+        Type of the layer.
+    """
+    if type(m) == nn.Linear:
+        torch.nn.init.kaiming_normal_(m.weight)
+        m.bias.data.fill_(0)
 
 
 def load_networks(networks, args, dict_trained):

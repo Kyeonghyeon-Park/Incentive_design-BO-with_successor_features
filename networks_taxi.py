@@ -7,21 +7,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
+from utils.utils_all import init_weights
 from utils.utils_taxi import get_one_hot_obs
-
-
-def init_weights(m):
-    """
-    Define the initialization function for the layers.
-
-    Parameters
-    ----------
-    m
-        Type of the layer.
-    """
-    if type(m) == nn.Linear:
-        torch.nn.init.kaiming_normal_(m.weight)
-        m.bias.data.fill_(0)
 
 
 def get_masked_categorical(action_probs, masks):
@@ -251,7 +238,6 @@ class Psi(nn.Module):
     """
     Psi network based on MLP structure.
     """
-
     def __init__(self, obs_size, act_size, m_act_size, fea_size, hidden_dims):
         """
         Create a new psi (successor feature) network.

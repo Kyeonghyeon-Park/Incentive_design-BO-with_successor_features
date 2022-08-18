@@ -1,5 +1,6 @@
 import os
 
+import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
@@ -310,6 +311,7 @@ def get_plt_final_aggregate_grayscale(outcomes_l, outcomes_r, is_3000=False):
     This function uses the evaluation results.
     If you want to draw the outcome per 3000 episodes, you have to set is_3000=True.
     Unlike the previous function(get_plt_final), this figure put two outcomes into one figure.
+    220805 axis update.
 
     Examples
     ----------
@@ -335,6 +337,9 @@ def get_plt_final_aggregate_grayscale(outcomes_l, outcomes_r, is_3000=False):
     def get_status(inputs):
         means = np.mean(inputs, axis=1)
         stds = np.std(inputs, axis=1)
+        # coeff = 1.96 / np.sqrt(np.shape(inputs)[1])
+        # print(np.sqrt(np.shape(inputs)[1]))
+        # return means, coeff * stds
         return means, stds
 
     if is_3000:
@@ -350,8 +355,8 @@ def get_plt_final_aggregate_grayscale(outcomes_l, outcomes_r, is_3000=False):
     # y_lim = [None, 265]  # Convergence of the lower-level
     y_lim = [0, 375]  # Efficiency of the transfer: visual comparison
 
-    plt.figure(figsize=(15, 8))
-
+    plt.figure(dpi=600, figsize=(15, 8))
+    # matplotlib.rcParams['font.family'] = "Times"
     means_l, stds_l = get_status(outcomes_l)
     plt.plot(x, means_l, label="Mean objective value (SF-based)", color=(0, 0, 0))
     plt.fill_between(x, means_l - stds_l, means_l + stds_l, color=(0.5, 0.5, 0.5))
@@ -359,8 +364,9 @@ def get_plt_final_aggregate_grayscale(outcomes_l, outcomes_r, is_3000=False):
     plt.plot(x, means_r, label="Mean objective value (Shou & Di)", alpha=0.5, color=(0, 0, 0), linestyle='--')
     plt.fill_between(x, means_r - stds_r, means_r + stds_r, alpha=0.5, color=(0.75, 0.75, 0.75), hatch='/')
 
-    plt.xlabel("Episodes", fontsize=24)
-    plt.ylabel("Value", fontsize=24)
+    plt.xlabel("Episodes", fontsize=24, fontname='Times')
+    # plt.ylabel("Value", fontsize=24)  # 220805
+    plt.ylabel(r"$\mathcal{F}$", fontsize=24)  # 220805
     plt.xlim(x_lim)
     plt.ylim(y_lim)
     plt.legend(loc='lower right', fontsize=20)

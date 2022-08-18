@@ -42,6 +42,26 @@ DEFAULT_COLOURS = {
     b"8": np.array([250, 204, 255], dtype=np.uint8),  # Pink
     b"9": np.array([238, 223, 16], dtype=np.uint8),  # Yellow
 }
+# 220812 grey scale colors.
+# DEFAULT_COLOURS = {
+#     b" ": np.array([255, 255, 255], dtype=np.uint8),  # White background
+#     b"0": np.array([255, 255, 255], dtype=np.uint8),  # White background beyond map walls
+#     b"": np.array([0, 0, 0], dtype=np.uint8),  # Black board walls
+#     b"@": np.array([0, 0, 0], dtype=np.uint8),  # Black board walls
+#     b"A": np.array([180, 180, 180], dtype=np.uint8),  # Light grey apples
+#     b"F": np.array([255, 255, 0], dtype=np.uint8),  # Yellow firing beam
+#     b"P": np.array([159, 67, 255], dtype=np.uint8),  # Generic agent (any player), purple
+#     # Colours for agents. R value is a unique identifier
+#     b"1": np.array([60, 60, 60], dtype=np.uint8),  # Pure blue
+#     b"2": np.array([60, 60, 60], dtype=np.uint8),  # Sky blue
+#     b"3": np.array([60, 60, 60], dtype=np.uint8),  # Magenta
+#     b"4": np.array([60, 60, 60], dtype=np.uint8),  # Red
+#     b"5": np.array([254, 151, 0], dtype=np.uint8),  # Orange
+#     b"6": np.array([100, 255, 255], dtype=np.uint8),  # Cyan
+#     b"7": np.array([99, 99, 255], dtype=np.uint8),  # Lavender
+#     b"8": np.array([250, 204, 255], dtype=np.uint8),  # Pink
+#     b"9": np.array([238, 223, 16], dtype=np.uint8),  # Yellow
+# }
 
 # the axes look like this when printed out
 # WARNING: increasing array position in the direction of down

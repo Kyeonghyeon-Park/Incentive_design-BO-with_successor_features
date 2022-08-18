@@ -581,6 +581,7 @@ def get_plt_final_grayscale_only_obj(outcomes_l, outcomes_r, is_3000=False):
     This function uses the evaluation results.
     If you want to draw the outcome per 3000 episodes, you have to set is_3000=True.
     Unlike the previous function(get_plt_final), this figure put two outcomes into one figure.
+    220805: axis update.
 
     Examples
     ----------
@@ -632,7 +633,7 @@ def get_plt_final_grayscale_only_obj(outcomes_l, outcomes_r, is_3000=False):
     x_lim = [0, 7500]
     y_lim = [0.65, 1.05]
 
-    plt.figure(figsize=(15, 8))
+    plt.figure(dpi=600, figsize=(15, 8))
 
     outcomes_l = outcomes_l[3]
     outcomes_r = outcomes_r[3]
@@ -649,7 +650,9 @@ def get_plt_final_grayscale_only_obj(outcomes_l, outcomes_r, is_3000=False):
     plt.fill_between(x, means_r - stds_r, means_r + stds_r, alpha=0.5, color=(0.75, 0.75, 0.75), hatch='/')
 
     plt.xlabel("Episodes", fontsize=24)
-    plt.ylabel("Value", fontsize=24)
+    # plt.ylabel("Value", fontsize=24)  # 220805
+    plt.ylabel(r"$\mathcal{F}$", fontsize=24)  # 220805
+
     plt.xlim(x_lim)
     plt.ylim(y_lim)
     plt.legend(loc='lower right', fontsize=20)

@@ -4,44 +4,18 @@ import torch
 
 from utils import utils_bo
 """
-220426 Test for mixed utility. 
-It uses saved results which comes from evaluate_taxi_multi.py. 
-
-220518 Test for mixed utility with increasing proportion_main.
+This file is for getting BO results given observations. 
+This file uses evaluation results, from evaluate_xxx_multi.py, to calculate misUCB. 
+If you want to use original UCB, you can set:
+proportion_main = 1 in line 27.
+You should set line 18 that loads evaluation results.
 """
-
-
-def get_proportion_main(num_samples, sensitivity=0.25, is_increasing=False):
-    """
-    Get the proportion of main(original or true) UCB.
-
-    Parameters
-    ----------
-    num_samples: int
-        Number of policies(or samples).
-    sensitivity: float
-        The high sensitivity gives a high proportion of main UCB for same number of samples.
-    is_increasing: bool
-        False if the proportion is constant.
-
-    Returns
-    -------
-    proportion
-    """
-    if is_increasing:
-        proportion = 1 / (1 + np.exp(-sensitivity * num_samples))
-    else:
-        proportion = 0.5
-    return proportion
-
-
 # x_axis points.
 num_x_pts = 10000
 x = np.linspace(0, 1, num_x_pts).reshape(-1, 1)
 
 # Load data.
-# data = torch.load("../evaluation_results_taxi.tar")
-data = torch.load("../results/220518 objs/8_alpha=0,0.3,0.43,0.50,0.54,0.62,0.73,0.85,1.tar")
+data = torch.load("../evaluation_results_taxi.tar")
 alphas_env, alphas_pol, objs = data.values()
 
 # Set some variables.
@@ -49,9 +23,8 @@ num_pol = len(alphas_pol)
 utilities = np.zeros([num_pol + 1, num_x_pts])
 weights = np.ones([num_pol + 1, num_x_pts])
 alpha_range = 1
-proportion_main = get_proportion_main(num_pol, is_increasing=True)
-# proportion_main = get_proportion_main(num_pol, is_increasing=False)
-# proportion_main = 1
+proportion_main = utils_bo.get_proportion_main(num_pol, is_increasing=True)
+# proportion_main = 1  # original UCB
 
 # Original GP.
 observations = {}
@@ -68,12 +41,10 @@ optimizer_main, acquisition_function_main = utils_bo.get_opt_and_acq(observation
 x_obs, y_obs = optimizer_main.get_obs()
 utility = acquisition_function_main.utility(x, optimizer_main._gp, 0)
 utilities[0] = utility
-# utils_bo.plot_gp_simple(optimizer_main, utility, x)
 
 # GP for each policy.
 for i in range(num_pol):
     alpha_pol = alphas_pol[i]
-    # weights[i+1] = 1 - distance.cdist([[alpha_pol]], x, 'euclidean') / alpha_range
     weights[i + 1] = np.exp(-1.5 * distance.cdist([[alpha_pol]], x, 'euclidean'))
     observations = {}
     for j in range(num_pol):
@@ -87,10 +58,13 @@ for i in range(num_pol):
     x_obs, y_obs = optimizer.get_obs()
     utility = acquisition_function.utility(x, optimizer._gp, 0)
     utilities[i + 1] = utility
-    # utils_bo.plot_gp_simple(optimizer, utility, x)
 
 # Mixed utility.
 weights[0, :] = weights[0, :] * proportion_main
 weights[1:, :] = np.divide(weights[1:, :], np.sum(weights[1:, :], axis=0)) * (1 - proportion_main)
 mixed_utility = np.sum(np.multiply(utilities, weights), axis=0)
-utils_bo.plot_gp_utility(optimizer_main, mixed_utility, x)
+utils_bo.plot_gp_utility(optimizer_main,
+                         mixed_utility,
+                         x,
+                         gp_lim=[(0, 1), (0.81, 0.91)],
+                         )

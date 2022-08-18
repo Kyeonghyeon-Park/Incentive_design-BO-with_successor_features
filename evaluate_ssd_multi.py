@@ -8,56 +8,31 @@ import numpy as np
 import torch
 
 from networks_ssd import Networks
-from parsed_args_ssd import args
 from sequential_social_dilemma_games.social_dilemmas.envs.env_creator import get_env_creator
 from utils import utils_all
 """
-220526 코딩 목적
-해당 폴더 내에 있는 tar 파일들을 불러와 evaluation results를 얻기 위함. 
-figure까지 그리기?
-It will run roll_out function "num_tests" times to get all(and average) results. 
+This file is for getting evaluation results given alphas and policies. 
+It requires "alphas_env", list that contains alphas of environments, 
+and "paths_pol_dir_dict", dict that contains the directory of the file or the directory of files. 
+It run "num_tests" times to get results for each alpha of environment and alpha of policy.
+Set alphas_env and paths_pol_dir_dict in line 72.
 
-This code is for getting test results using trained networks.
-It not only calculate objective values of trained networks, 
-but calculate KL divergences using final(or last) trained networks.
-To calculate sum of KL divergences along the trajectory, it run the episode with "episode length".
-In addition, it run this process "num_tests" times to get all(and average) results of sum of KL divergences.
-Lastly, it saves results in the "folder_name" folder. 
+ex. 
+alphas_env = [0.00, 0.50, 1.00]
 
-To run this code, you should set check line 115.
-"""
-# HERE #####
-# For misUCB
-# alphas_env = [0.00, 0.05, 0.08, 0.14, 0.23, 0.26, 0.29, 0.33, 0.56, 0.79, 1.00]
-# paths_pol_dir_dict = {
-#     0.00: "./results_misucb_ucb_temp/3_misUCB_alpha=0.00_using_alpha=0.26/000029999.tar",
-#     0.05: "",
-#     0.08: "./results_misucb_ucb_temp/5_misUCB_alpha=0.08_using_alpha=0.14/000029999.tar",
-#     0.14: "./results_misucb_ucb_temp/4_misUCB_alpha=0.14_using_alpha=0.26/000029999.tar",
-#     0.23: "./results_misucb_ucb_temp/7_misUCB_alpha=0.23_using_alpha=0.26/000029999.tar",
-#     0.26: "./results_misucb_ucb_temp/2_misUCB_alpha=0.26_using_alpha=0.33/000029999.tar",
-#     0.29: "./results_misucb_ucb_temp/9_misUCB_alpha=0.29_using_alpha=0.26/000029999.tar",
-#     0.33: "./results_misucb_ucb_temp/0_init_prior_alpha=0.33/000029999.tar",
-#     0.56: "./results_misucb_ucb_temp/6_misUCB_alpha=0.56_using_alpha=0.33/000029999.tar",
-#     0.79: "./results_misucb_ucb_temp/8_misUCB_alpha=0.79_using_alpha=1.00/000029999.tar",
-#     1.00: "./results_misucb_ucb_temp/1_init_eval_alpha=1.00_using_alpha=0.33/000029999.tar",
-# }
-
-# For UCB
-alphas_env = [0.00, 0.05, 0.10, 0.21, 0.26, 0.28, 0.33, 0.40, 0.69, 1.00]
 paths_pol_dir_dict = {
-    0.00: "./results_misucb_ucb_temp/3_misUCB_alpha=0.00_using_alpha=0.26/000029999.tar",
-    0.05: "./results_misucb_ucb_temp/8_UCB_alpha=0.05_using_alpha=0.00/000029999.tar",
-    0.10: "./results_misucb_ucb_temp/6_UCB_alpha=0.10_using_alpha=0.00/000029999.tar",
-    0.21: "./results_misucb_ucb_temp/3_UCB_alpha=0.21_using_alpha=0.33/000029999.tar",
-    0.26: "",
-    0.28: "./results_misucb_ucb_temp/7_UCB_alpha=0.28_using_alpha=0.33/000029999.tar",
-    0.33: "./results_misucb_ucb_temp/0_init_prior_alpha=0.33/000029999.tar",
-    0.40: "./results_misucb_ucb_temp/2_UCB_alpha=0.40_using_alpha=0.33/000029999.tar",
-    0.69: "./results_misucb_ucb_temp/5_UCB_alpha=0.69_using_alpha=0.40/000029999.tar",
-    1.00: "./results_misucb_ucb_temp/1_init_eval_alpha=1.00_using_alpha=0.33/000029999.tar",
+    0.00: "./folder_name/00002999.tar",
+    0.50: "./folder_name/00002999.tar",
+    1.00: "./folder_name/00002999.tar",
 }
-############
+
+If you want to do evaluations using all networks in the folder,
+paths_pol_dir_dict = {
+    0.00: "./folder_name/*.tar",
+    0.50: "./folder_name/*.tar",
+    1.00: "./folder_name/*.tar",
+}
+"""
 
 
 def roll_out_simple(networks, env, init_obs, epi_length):
@@ -94,6 +69,14 @@ def roll_out_simple(networks, env, init_obs, epi_length):
     return None, init_obs, collective_reward, collective_feature
 
 
+alphas_env = [0.00, 0.50, 1.00]
+
+paths_pol_dir_dict = {
+    0.00: "./folder_name/00002999.tar",
+    0.50: "./folder_name/00002999.tar",
+    1.00: "./folder_name/00002999.tar",
+}
+
 paths_pol_dir = list(paths_pol_dir_dict.values())
 alphas_pol = list(paths_pol_dir_dict.keys())
 num_env = len(alphas_env)
@@ -102,7 +85,7 @@ num_tests = 100
 
 utils_all.set_random_seed(1236)
 
-paths_pol = [glob.glob(paths_pol_dir[i]) for i in range(num_pol)]
+paths_pol = [sorted(glob.glob(paths_pol_dir[i])) for i in range(num_pol)]
 x_axis_pol = [[int(Path(path).stem) for path in paths] for paths in paths_pol]
 
 time_start = time.time()
@@ -158,7 +141,8 @@ for i in range(num_env):
         outcomes_env[alphas_pol[j]] = outcomes_env_pol
     outcomes_all[alphas_env[i]] = outcomes_env
 
-print(f"Time : {time.time() - time_start:.2f}")
+print(f"Total time : {time.time() - time_start:.2f}")
+print(f"Finished time : "+time.strftime('%y%m%d_%H%M', time.localtime(time.time())))
 
 torch.save(outcomes_all, "evaluation_results_ssd.tar")
 

@@ -7,21 +7,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
+from utils.utils_all import init_weights
 from utils.utils_ssd import make_vars
-
-
-def init_weights(m):
-    """
-    Define the initialization function for the layers
-
-    Parameters
-    ----------
-    m
-        Type of the layer
-    """
-    if type(m) == nn.Linear:
-        torch.nn.init.kaiming_normal_(m.weight)
-        m.bias.data.fill_(0)
 
 
 def make_layer_dims(observation_size, action_size, feature_size, hidden_dims, mode='actor'):
@@ -37,15 +24,15 @@ def make_layer_dims(observation_size, action_size, feature_size, hidden_dims, mo
     action_size: int
     feature_size: int
     hidden_dims: List
-        List of hidden layers' size
+        List of hidden layers' size.
     mode: str
-        'actor' or 'critic' or 'psi'
+        'actor' or 'critic' or 'psi'.
 
     Returns
     -------
     layer_dims: list
         List of list
-        Each element is the dimension of layers ([input_dim, output_dim])
+        Each element is the dimension of layers ([input_dim, output_dim]).
     """
     layer_dims = []
     if mode == 'actor':
@@ -88,7 +75,6 @@ class Actor(nn.Module):
     """
     Actor network based on MLP structure.
     """
-
     def __init__(self, obs_size, act_size, fea_size, hidden_dims):
         """
         Create a new actor network.
@@ -98,10 +84,10 @@ class Actor(nn.Module):
 
         Parameters
         ----------
-        obs_size
-        act_size
-        fea_size
-        hidden_dims : list
+        obs_size: int
+        act_size: int
+        fea_size: int
+        hidden_dims: list
             Dimensions of hidden layers.
             ex. if hidden_dims = [128, 64, 32],
                 layer_dims = [[observation_size, 128], [128, 64], [64, 32], [32, action_size]].
@@ -130,17 +116,17 @@ class Actor(nn.Module):
 
         Parameters
         ----------
-        x : torch.Tensor
-            Input for the actor network (observation)
-            The shape should be (N, input_size)
+        x: torch.Tensor
+            Input for the actor network (observation).
+            The shape should be (N, input_size).
             input_size is observation_size which is np.prod(observation_space.shape).
             ex. observation_size = 15 * 15.
 
         Returns
         -------
-        x : torch.Tensor
-            Return the action probability using softmax (action)
-            The shape will be (N, output_size: action_size)
+        x: torch.Tensor
+            Return the action probability using softmax (action).
+            The shape will be (N, output_size: action_size).
         """
         for i in range(self.num_layers):
             x = self.layers[i](x)
@@ -156,7 +142,6 @@ class Critic(nn.Module):
     """
     Critic network based on MLP structure.
     """
-
     def __init__(self, obs_size, act_size, fea_size, hidden_dims):
         """
         Create a new critic network.
@@ -165,9 +150,9 @@ class Critic(nn.Module):
 
         Parameters
         ----------
-        obs_size
-        act_size
-        fea_size
+        obs_size: int
+        act_size: int
+        fea_size: int
         hidden_dims : list
             Dimensions of hidden layers.
             ex. if hidden_dims = [128, 64, 32],
@@ -230,7 +215,6 @@ class Psi(nn.Module):
     """
     Psi network based on MLP structure.
     """
-
     def __init__(self, obs_size, act_size, fea_size, hidden_dims):
         """
         Create a new psi (successor feature) network.
@@ -322,6 +306,13 @@ class Networks(object):
         self.critic_opt, self.critic_skd = self.get_opt_and_skd("critic")
 
     def get_observation_size(self, env):
+        """
+        Return observation_size which depends on the mode_one_hot_obs.
+
+        Returns
+        -------
+        observation_size: numpy.ndarray
+        """
         if self.args.mode_one_hot_obs:
             observation_size = np.prod(env.observation_space.shape) * self.observation_num_classes
         else:
@@ -329,6 +320,13 @@ class Networks(object):
         return observation_size
 
     def get_w(self):
+        """
+        Return w which depends on the environment.
+
+        Returns
+        -------
+        w: torch.Tensor
+        """
         if "cleanup" in self.args.env:
             w = torch.tensor([1 - self.args.lv_penalty, self.args.lv_incentive], dtype=torch.float)
         elif "harvest" in self.args.env:
@@ -338,6 +336,19 @@ class Networks(object):
         return w
 
     def get_network(self, mode):
+        """
+        Build network and target network.
+
+        Parameters
+        ----------
+        mode: str
+            It should be 'actor', 'psi', or 'critic'.
+
+        Returns
+        -------
+        network: None or Actor or Psi or Critic
+        network_target: None or Actor or Psi or Critic
+        """
         network, network_target = [None] * 2
         if self.args.mode_ac and mode == "actor":
             network = Actor(self.observation_size, self.action_size, self.feature_size, self.args.h_dims_a)
@@ -354,6 +365,19 @@ class Networks(object):
         return network, network_target
 
     def get_opt_and_skd(self, mode):
+        """
+        Get the optimizer and the learning rate scheduler.
+
+        Parameters
+        ----------
+        mode: str
+            It should be 'actor', 'psi', or 'critic'.
+
+        Returns
+        -------
+        opt: None or optim.Adam
+        skd: None or optim.lr_scheduler.StepLR
+        """
         opt, skd = [None] * 2
         if self.args.mode_ac and mode == "actor":
             opt = optim.Adam(self.actor.parameters(), lr=self.args.lr_a)
@@ -366,6 +390,9 @@ class Networks(object):
         return opt, skd
 
     def reuse_networks(self):
+        """
+        Update network parameters if we reuse previous networks.
+        """
         if self.args.mode_reuse_networks:
             prev_dict = torch.load(self.args.file_path)
             if self.args.mode_ac:
@@ -574,6 +601,22 @@ class Networks(object):
         return tensors
 
     def calculate_losses(self, tensors):
+        """
+        Calculate losses.
+
+        Parameters
+        ----------
+        tensors: dict
+            Dict which contains tensors of samples.
+
+        Returns
+        -------
+        actor_loss: None or torch.Tensor
+            ex. tensor(-0.2188, grad_fn=<MeanBackward0>)
+        psi_loss: None or torch.Tensor
+            ex. tensor([20.1826,  3.6522], grad_fn=<MeanBackward1>)
+        critic_loss: None or torch.Tensor
+        """
         actor_loss, psi_loss, critic_loss = [None] * 3
         if self.args.mode_ac:
             actor_loss = self.calculate_actor_loss(tensors)
@@ -585,6 +628,18 @@ class Networks(object):
         return actor_loss, psi_loss, critic_loss
 
     def calculate_actor_loss(self, tensors):
+        """
+        Calculate an actor loss.
+
+        Parameters
+        ----------
+        tensors: dict
+            Dict which contains tensors of samples.
+        Returns
+        -------
+        actor_loss: torch.Tensor
+            ex. tensor(-0.2188, grad_fn=<MeanBackward0>)
+        """
         obs = tensors['obs']  # Shape : (N, observation_size)
         act = tensors['act']  # Shape : (N, )
         m_act = tensors['m_act']  # Shape : (N, action_size)
@@ -614,6 +669,19 @@ class Networks(object):
         return actor_loss
 
     def calculate_psi_loss(self, tensors):
+        """
+        Calculate a psi loss.
+
+        Parameters
+        ----------
+        tensors: dict
+            Dict which contains tensors of samples.
+        Returns
+        -------
+        psi_loss: torch.Tensor
+            Size: (2, ).
+            ex. tensor([20.1826,  3.6522], grad_fn=<MeanBackward1>)
+        """
         obs = tensors['obs']
         act = tensors['act']  # Shape : (N, )
         m_act = tensors['m_act']
@@ -642,6 +710,17 @@ class Networks(object):
         return psi_loss
 
     def calculate_critic_loss(self, tensors):
+        """
+        Calculate a critic loss.
+
+        Parameters
+        ----------
+        tensors: dict
+            Dict which contains tensors of samples.
+        Returns
+        -------
+        critic_loss: torch.Tensor
+        """
         obs = tensors['obs']
         act = tensors['act']
         rew = tensors['rew']
@@ -669,6 +748,14 @@ class Networks(object):
         return critic_loss
 
     def update_networks(self, samples):
+        """
+        Update networks(actor, critic, psi) using samples.
+
+        Parameters
+        ----------
+        samples: list
+            List of N samples.
+        """
         obs, act, rew, m_act, n_obs, fea = self.preprocess(samples)
         tensors = self.to_tensors(obs=obs, act=act, rew=rew, m_act=m_act, n_obs=n_obs, fea=fea)
         actor_loss, psi_loss, critic_loss = self.calculate_losses(tensors)
@@ -690,10 +777,21 @@ class Networks(object):
             self.critic_skd.step() if self.args.mode_lr_decay else None
 
     def update_target_network(self, network, target_network):
+        """
+        Update target network using network's parameters.
+
+        Parameters
+        ----------
+        network: Actor or Psi or Critic
+        target_network: Actor or Psi or Critic
+        """
         for param, target_param in zip(network.parameters(), target_network.parameters()):
             target_param.data.copy_(param.data * self.args.tau + target_param.data * (1.0 - self.args.tau))
 
     def update_target_networks(self):
+        """
+        Update target networks (Actor, Psi, Critic).
+        """
         if self.args.mode_ac:
             self.update_target_network(self.actor, self.actor_target)
         if self.args.mode_psi:

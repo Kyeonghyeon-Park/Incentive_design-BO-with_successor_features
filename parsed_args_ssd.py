@@ -95,7 +95,7 @@ args.description = 'SSD environment.'
 args.setting_name = 'setting_0'+utils_all.get_current_time_tag()
 
 """ Setting for the environment. """
-args.env = 'harvest_modified_v2'
+args.env = 'harvest_modified'
 args.num_agents = 4
 
 """ Setting for the reward designer's problem. """

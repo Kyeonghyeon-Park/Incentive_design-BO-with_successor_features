@@ -1,21 +1,22 @@
 import numpy as np
 from utils import utils_bo
+"""
+This file is for getting BO results given observations. 
+The form of observations should be:
+observations = {alpha: f(alpha)}.
 
-
+ex.
+observations = {
+    0.00: 10,
+    0.50: 15,
+    1.00: 10
+}
+"""
 # Observations.
 observations = {
-    0.00: 0.8287,
-    0.30: 0.8570,
-    0.48: 0.8985,
-    0.53: 0.9041,
-    0.54: 0.9004,
-    0.56: 0.9042,
-    0.58: 0.9026,
-    0.59: 0.8986,
-    0.70: 0.8854,
-    0.87: 0.8730,
-    0.93: 0.8710,
-    1.00: 0.8631,
+    0.00: 10,
+    0.50: 15,
+    1.00: 10
 }
 
 # Get optimizer(GP) and acquisition function.
@@ -32,6 +33,6 @@ x = np.linspace(0, 1, 10000).reshape(-1, 1)
 utils_bo.plot_gp_acq(optimizer,
                      acquisition_function,
                      x,
-                     # gp_lim=[(0, 1), (0.81, 0.92)],
+                     gp_lim=[(0, 1), (0.81, 0.91)],
                      # acq_lim=[(0, 1), (0.83, 0.935)],
                      )
