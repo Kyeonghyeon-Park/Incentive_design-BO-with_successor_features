@@ -160,6 +160,7 @@ def draw_or_save_plt(col_rews, col_rews_test, objs, objs_test, i=0, mode='draw',
         plt.savefig(filename)
     else:
         raise ValueError
+    plt.close()
 
 
 def get_plt_final(outcomes_l, outcomes_r, is_3000=False):
@@ -632,7 +633,7 @@ def get_plt_test_axis_fixed(outcomes):
     plt.plot(x_axis, mean, label='Mean of the designer objective', color=(0, 1, 0))
     plt.fill_between(x_axis, mean - std, mean + std, color=(0.85, 1, 0.85))
     # plt.scatter(x_axis, outs, label='Collective rewards')
-    plt.ylim([50, 110])
+    plt.ylim([50, 250])
     plt.xlabel('Episodes (100 steps per episode)', fontsize=20)
     plt.ylabel("The designer's objective per episode", fontsize=20)
     plt.title("The designer's objective (test)", fontdict={'fontsize': 24})
