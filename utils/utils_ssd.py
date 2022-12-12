@@ -585,9 +585,10 @@ def get_plt_test(outcomes):
     plt.show()
 
 
-def get_plt_test_axis_fixed(outcomes):
+def get_plt_test_axis_fixed(outcomes, filename: str = None):
     """
     Show plt of test results.
+    If filename is not None, the figure name will be filename.png.
 
     Examples
     ----------
@@ -597,6 +598,26 @@ def get_plt_test_axis_fixed(outcomes):
 
     outcomes = torch.load('evaluation_results_ssd.tar')
     utils_ssd.get_plt_test_axis_fixed(outcomes[0.0][0.0])
+
+    Examples
+    ----------
+    import torch
+
+    from utils import utils_ssd
+
+    outcomes_names = [
+        'evaluation_results_ssd_221209_1345',
+        'evaluation_results_ssd_221209_1349',
+        'evaluation_results_ssd_221209_1354',
+        'evaluation_results_ssd_221209_1355',
+        'evaluation_results_ssd_221209_1653',
+        'evaluation_results_ssd_221209_1654',
+        'evaluation_results_ssd_221209_1657',
+    ]
+
+    for outcomes_name in outcomes_names:
+        outcomes = torch.load(outcomes_name+'.tar')
+        utils_ssd.get_plt_test_axis_fixed(outcomes[0.56][0.56], outcomes_name)
 
     Parameters
     ----------
@@ -640,5 +661,9 @@ def get_plt_test_axis_fixed(outcomes):
     plt.legend(loc='lower right', fontsize=14)
     plt.grid()
 
-    plt.savefig('evaluation_results_ssd_axis_fixed.png')
+    if filename is None:
+        plt.savefig('evaluation_results_ssd_axis_fixed.png')
+    else:
+        plt.savefig(filename+'.png')
     plt.show()
+    plt.close()
