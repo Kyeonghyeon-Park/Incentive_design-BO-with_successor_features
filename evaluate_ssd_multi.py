@@ -69,13 +69,26 @@ def roll_out_simple(networks, env, init_obs, epi_length):
     return None, init_obs, collective_reward, collective_feature
 
 
-alphas_env = [0.00, 0.50, 1.00]
+# alphas_env = [0.00, 0.50, 1.00]
+#
+# paths_pol_dir_dict = {
+#     0.00: "./folder_name/00002999.tar",
+#     0.50: "./folder_name/00002999.tar",
+#     1.00: "./folder_name/00002999.tar",
+# }
+
+# alphas_env = [0.00]
+#
+# paths_pol_dir_dict = {
+#     0.00: "./results_misucb_ucb_temp/3_misUCB_alpha=0.00_using_alpha=0.26/000029999.tar"
+# }
+
+alphas_env = [0.40]
 
 paths_pol_dir_dict = {
-    0.00: "./folder_name/00002999.tar",
-    0.50: "./folder_name/00002999.tar",
-    1.00: "./folder_name/00002999.tar",
+    0.40: "./results_ssd_IJCAI/alpha=0.40 (2 (of 7) seeds, 7 evaluations needed)/seed 1240 (converge x)/*.tar"
 }
+
 
 paths_pol_dir = list(paths_pol_dir_dict.values())
 alphas_pol = list(paths_pol_dir_dict.keys())
@@ -89,7 +102,7 @@ paths_pol = [sorted(glob.glob(paths_pol_dir[i])) for i in range(num_pol)]
 x_axis_pol = [[int(Path(path).stem) for path in paths] for paths in paths_pol]
 
 time_start = time.time()
-
+print(f"Evaluation start time: {time.strftime('%y%m%d_%H%M', time.localtime(time_start))}")
 # Outcomes
 outcomes_all = {}
 
@@ -144,5 +157,6 @@ for i in range(num_env):
 print(f"Total time : {time.time() - time_start:.2f}")
 print(f"Finished time : "+time.strftime('%y%m%d_%H%M', time.localtime(time.time())))
 
-torch.save(outcomes_all, "evaluation_results_ssd.tar")
+start_time_tag = "_"+time.strftime('%y%m%d_%H%M', time.localtime(time_start))
+torch.save(outcomes_all, "evaluation_results_ssd"+start_time_tag+".tar")
 
