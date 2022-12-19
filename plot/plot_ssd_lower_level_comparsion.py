@@ -41,7 +41,25 @@ dict_r_list = [
     # "../results_ssd_IJCAI/alpha=0.40 (3 (of 9) seeds)/seed 1242/evaluation_results_ssd.tar",
 ]
 -------------------------------
+# alpha value.
+alpha = 0.56
 
+# Transfer.
+dict_l_list = [
+    # "../results_ssd_IJCAI/alpha=0.56 using alpha=0.33 (6 seeds)/seed 1234/evaluation_results_ssd.tar",
+    "../results_ssd_IJCAI/alpha=0.56 using alpha=0.33 (6 seeds)/seed 1235/evaluation_results_ssd.tar",
+    "../results_ssd_IJCAI/alpha=0.56 using alpha=0.33 (6 seeds)/seed 1236/evaluation_results_ssd.tar",
+    "../results_ssd_IJCAI/alpha=0.56 using alpha=0.33 (6 seeds)/seed 1237/evaluation_results_ssd.tar",
+    # "../results_ssd_IJCAI/alpha=0.56 using alpha=0.33 (6 seeds)/seed 1238/evaluation_results_ssd.tar",
+    "../results_ssd_IJCAI/alpha=0.56 using alpha=0.33 (6 seeds)/seed 1267/evaluation_results_ssd.tar",
+]
+
+# Non-transfer.
+dict_r_list = [
+    "../results_ssd_IJCAI/alpha=0.56 (1 (of 5) seeds, 2 evaluations needed)/seed 1234 (converge x)/evaluation_results_ssd.tar",
+    "../results_ssd_IJCAI/alpha=0.56 (1 (of 5) seeds, 2 evaluations needed)/seed 1235 (converge x)/evaluation_results_ssd.tar",
+    "../results_ssd_IJCAI/alpha=0.56 (1 (of 5) seeds, 2 evaluations needed)/seed 1236 (converge to 180)/evaluation_results_ssd.tar",
+]
 -------------------------------
 # # alpha value.
 # alpha = 1.00
