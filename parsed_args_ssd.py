@@ -91,16 +91,16 @@ add_default_args(parser)
 args = parser.parse_args()
 
 """ Setting for the description. """
-args.description = 'SSD environment.'
-args.setting_name = 'setting_0'+utils_all.get_current_time_tag()
+args.description = 'SSD. alpha=0.17 using alpha=0.33.'
+args.setting_name = 'alpha=0.17_using_alpha=0.33'+utils_all.get_current_time_tag()
 
 """ Setting for the environment. """
 args.env = 'harvest_modified'
 args.num_agents = 4
 
 """ Setting for the reward designer's problem. """
-args.lv_penalty = 0.00
-args.lv_incentive = 0.00
+args.lv_penalty = 0.17
+args.lv_incentive = 0.17
 
 """ Setting for the networks. """
 # args.mode_ac = True
@@ -131,14 +131,16 @@ args.update_freq = 1
 args.update_freq_target = 1
 # args.tau = 0.01
 # args.mode_one_hot_obs = True
-args.mode_reuse_networks = False
-args.file_path = './some_paths/000029999.tar'
+args.mode_reuse_networks = True
+args.file_path = './results_ssd_IJCAI/lists of policies/0.33/000029999.tar'
+# args.file_path = './results_ssd_IJCAI/alpha=0.40 (3 (of 9) seeds)/seed 1239 (converge to 150)/000029999.tar'
+# args.file_path = './results_ssd_AAAI/3_misUCB_alpha=0.00_using_alpha=0.26_220628_1711/saved/000029999.tar'
 
 """ Setting for the draw and the save. """
 # args.fps = 3
 args.draw_freq = 100000000  # not drawing figure during the training
 args.save_freq = 1000
-args.mode_draw = True
+args.mode_draw = False
 
 """ Validate the setting. """
 utils_all.validate_setting(args)

@@ -16,6 +16,7 @@ It requires "alphas_env", list that contains alphas of environments,
 and "paths_pol_dir_dict", dict that contains the directory of the file or the directory of files. 
 It run "num_tests" times to get results for each alpha of environment and alpha of policy.
 Set alphas_env and paths_pol_dir_dict in line 72.
+221217) .tar file name은 그때까지 진행한 num_episodes가 되어야 함. 
 
 ex. 
 alphas_env = [0.00, 0.50, 1.00]
@@ -69,6 +70,8 @@ def roll_out_simple(networks, env, init_obs, epi_length):
     return None, init_obs, collective_reward, collective_feature
 
 
+'''
+# Examples
 # alphas_env = [0.00, 0.50, 1.00]
 #
 # paths_pol_dir_dict = {
@@ -82,14 +85,40 @@ def roll_out_simple(networks, env, init_obs, epi_length):
 # paths_pol_dir_dict = {
 #     0.00: "./results_misucb_ucb_temp/3_misUCB_alpha=0.00_using_alpha=0.26/000029999.tar"
 # }
-
-alphas_env = [0.40]
-
+'''
+########################################################
+'''
+misUCB evaluation results for alpha=0.40.
+'''
+# misUCB
+# alphas_env = [0.33, 0.40, 1.00]
+########################################################
+'''
+misUCB evaluation results for alpha=0.56.
+'''
+# misUCB
+# alphas_env = [0.00, 0.56]
+########################################################
+'''
+Policies (이건 full dict 만들고 필요 없는 건 주석 처리)
+'''
+# paths_pol_dir_dict = {
+#     # 0.00: "./results_ssd_IJCAI/lists of policies/0.00/000029999.tar",
+#     0.33: "./results_ssd_IJCAI/lists of policies/0.33/000029999.tar",
+#     0.40: "./results_ssd_IJCAI/lists of policies/0.40/000029999.tar",
+#     # 0.47: "./results_ssd_IJCAI/lists of policies/0.47/000029999.tar",
+#     # 0.56: "./results_ssd_IJCAI/lists of policies/0.56/000029999.tar",
+#     1.00: "./results_ssd_IJCAI/lists of policies/1.00/000029999.tar",
+# }
+########################################################
+'''
+Code for 31 tar files.
+'''
+alphas_env = [0.13]
 paths_pol_dir_dict = {
-    0.40: "./results_ssd_IJCAI/alpha=0.40 (2 (of 7) seeds, 7 evaluations needed)/seed 1240 (converge x)/*.tar"
+    0.13: "./results_ssd_IJCAI/alpha=0.13 using alpha=0.00 (1 seed, 1 evaluation needed)/seed 1234/*.tar",
 }
-
-
+########################################################
 paths_pol_dir = list(paths_pol_dir_dict.values())
 alphas_pol = list(paths_pol_dir_dict.keys())
 num_env = len(alphas_env)
@@ -111,6 +140,7 @@ for i in range(num_env):
     for j in range(num_pol):
         path_pol = paths_pol[j]
         num_net = len(path_pol)  # number of networks
+        assert num_net != 0, f'There is no matched file for \'{paths_pol_dir[j]}\'.'
 
         # Outcomes
         rew, pen, inc, obj = [np.zeros([num_tests, num_net]) for _ in range(4)]
@@ -118,6 +148,7 @@ for i in range(num_env):
             # Build args.
             dict_pol = torch.load(path_pol[k])
             args_pol = dict_pol['args']
+            args_pol.mode_reuse_networks = False  # 2212127 추가
             args = copy.deepcopy(dict_pol['args'])
             args.setting_name = "setting_evaluation"
             args.lv_penalty = alphas_env[i]
@@ -159,4 +190,3 @@ print(f"Finished time : "+time.strftime('%y%m%d_%H%M', time.localtime(time.time(
 
 start_time_tag = "_"+time.strftime('%y%m%d_%H%M', time.localtime(time_start))
 torch.save(outcomes_all, "evaluation_results_ssd"+start_time_tag+".tar")
-

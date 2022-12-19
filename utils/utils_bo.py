@@ -327,6 +327,8 @@ def plot_gp_acq(optimizer, acquisition_function, x, gp_lim=None, acq_lim=None):
         List of xlim and ylim for the acquisition graph.
         ex. acq_lim=[(0, 1), (0.83, 0.935)]
     """
-    next_point_suggestion = optimizer.suggest(acquisition_function)
+    # TODO: check float issues.
+    # next_point_suggestion = optimizer.suggest(acquisition_function)
+    next_point_suggestion = None
     utility = acquisition_function.utility(x, optimizer._gp, 0)
     plot_gp_utility(optimizer, utility, x, gp_lim=gp_lim, acq_lim=acq_lim, next_point_suggestion=next_point_suggestion)

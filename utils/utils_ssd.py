@@ -377,6 +377,113 @@ def get_plt_final_aggregate_grayscale(outcomes_l, outcomes_r, is_3000=False):
     plt.show()
 
 
+def get_plt_final_aggregate_grayscale_v2(outcomes_l, outcomes_r):
+    """
+    221212
+    Get the figure of two final outcomes.
+    This function uses the evaluation results.
+
+
+    Parameters
+    ----------
+    outcomes_l
+        Outcomes which will be shown in the left figure.
+    outcomes_r
+        Outcomes which will be shown in the right figure.
+    """
+    def get_status(inputs):
+        means = np.mean(inputs, axis=1)
+        stds = np.std(inputs, axis=1)
+        # coeff = 1.96 / np.sqrt(np.shape(inputs)[1])
+        # print(np.sqrt(np.shape(inputs)[1]))
+        # return means, coeff * stds
+        return means, stds
+
+    x = 1000 * np.arange(31)
+    x_lim = [0, 30000]
+
+
+    # y_lim = [None, None]
+    # y_lim = [None, 265]  # Convergence of the lower-level
+    y_lim = [0, 375]  # Efficiency of the transfer: visual comparison
+    # y_lim = [0, 100]  # Efficiency of the transfer: visual comparison
+
+
+    plt.figure(dpi=600, figsize=(15, 8))
+    # matplotlib.rcParams['font.family'] = "Times"
+    means_l, stds_l = get_status(outcomes_l)
+    plt.plot(x, means_l, label="Mean objective value (SF-based)", color=(0, 0, 0))
+    plt.fill_between(x, means_l - stds_l, means_l + stds_l, color=(0.5, 0.5, 0.5))
+    means_r, stds_r = get_status(outcomes_r)
+    plt.plot(x, means_r, label="Mean objective value (Shou & Di)", alpha=0.5, color=(0, 0, 0), linestyle='--')
+    plt.fill_between(x, means_r - stds_r, means_r + stds_r, alpha=0.5, color=(0.75, 0.75, 0.75), hatch='/')
+
+    plt.xlabel("Episodes", fontsize=24, fontname='Times')
+    # plt.ylabel("Value", fontsize=24)  # 220805
+    plt.ylabel(r"$\mathcal{F}$", fontsize=24)  # 220805
+    plt.xlim(x_lim)
+    plt.ylim(y_lim)
+    plt.legend(loc='lower right', fontsize=20)
+    plt.tick_params(axis='both', labelsize=20)
+    plt.grid()
+
+    plt.show()
+
+
+def get_plt_final_aggregate_grayscale_v3(outcomes_l, outcomes_r):
+    """
+    221213
+    Exclude 0 episode outcome.
+
+
+    Parameters
+    ----------
+    outcomes_l
+        Outcomes which will be shown in the left figure.
+    outcomes_r
+        Outcomes which will be shown in the right figure.
+    """
+    def get_status(inputs):
+        means = np.mean(inputs, axis=1)
+        stds = np.std(inputs, axis=1)
+        # coeff = 1.96 / np.sqrt(np.shape(inputs)[1])
+        # print(np.sqrt(np.shape(inputs)[1]))
+        # return means, coeff * stds
+        return means, stds
+
+    x = 1000 * np.arange(1, 31)
+    x_lim = [1000, 30000]
+
+    # y_lim = [None, None]
+    # y_lim = [None, 265]  # Convergence of the lower-level
+    y_lim = [0, 375]  # Efficiency of the transfer: visual comparison
+    # y_lim = [0, 100]  # Efficiency of the transfer: visual comparison
+
+    outcomes_l = outcomes_l[1:, :]
+    outcomes_r = outcomes_r[1:, :]
+
+    plt.figure(dpi=600, figsize=(15, 8))
+    # matplotlib.rcParams['font.family'] = "Times"
+    means_l, stds_l = get_status(outcomes_l)
+    plt.plot(x, means_l, label="Mean objective value (SF-based)", color=(0, 0, 0))
+    plt.fill_between(x, means_l - stds_l, means_l + stds_l, color=(0.5, 0.5, 0.5))
+    means_r, stds_r = get_status(outcomes_r)
+    plt.plot(x, means_r, label="Mean objective value (Shou & Di)", alpha=0.5, color=(0, 0, 0), linestyle='--')
+    plt.fill_between(x, means_r - stds_r, means_r + stds_r, alpha=0.5, color=(0.75, 0.75, 0.75), hatch='/')
+
+    plt.xlabel("Episodes", fontsize=24, fontname='Times')
+    # plt.ylabel("Value", fontsize=24)  # 220805
+    plt.ylabel(r"$\mathcal{F}$", fontsize=24)  # 220805
+    plt.xlim(x_lim)
+    plt.ylim(y_lim)
+    plt.legend(loc='lower right', fontsize=20)
+    # plt.legend(loc='upper right', fontsize=20)
+    plt.tick_params(axis='both', labelsize=20)
+    plt.grid()
+
+    plt.show()
+
+
 def get_plt_cumulative_SKLD(skl_l, skl_r, is_3000=False):
     """
     Get the figure of two cumulative SKLDs (sum of KL divergences).
