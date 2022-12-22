@@ -1,21 +1,59 @@
 import numpy as np
 from utils import utils_bo
 
+
+START_ALPHA = 0.40
+ACQUISITION_FUNCTION = 'UCB'
+
+if START_ALPHA not in [0.05, 0.33, 0.40, 0.56] or ACQUISITION_FUNCTION not in ['UCB', 'misUCB']:
+    raise ValueError
+
+alpha_lists = []
+if START_ALPHA == 0.05:
+    if ACQUISITION_FUNCTION == 'UCB':
+        alpha_lists = [0.05, 0.12, 1.00]
+    else:
+        alpha_lists = [0.05, 0.12, 1.00]
+elif START_ALPHA == 0.33:
+    if ACQUISITION_FUNCTION == 'UCB':
+        alpha_lists = []
+    else:
+        alpha_lists = []
+elif START_ALPHA == 0.40:
+    if ACQUISITION_FUNCTION == 'UCB':
+        alpha_lists = [0.00, 0.08, 0.10, 0.13, 0.14, 0.20, 0.40, 0.47, 1.00]
+    else:
+        alpha_lists = [0.17, 0.33, 0.40, 1.00]
+elif START_ALPHA == 0.56:
+    if ACQUISITION_FUNCTION == 'UCB':
+        alpha_lists = [0.00, 0.07, 0.21, 0.56, 1.00]
+    else:
+        alpha_lists = [0.00, 0.07, 0.56]
+
 # Selected observations.
-observations = {
+observations_full = {
     0.00: 190.88,
-    # 0.05: 195.78,
+    0.05: 195.78,
+    0.07: 191.98,
+    0.08: 198.23,
+    0.10: 197.37,
     0.13: 201.87,
-    # 0.28: 211.09,
-    # 0.33: 197.12,
+    0.14: 190.67,
+    0.20: 197.54,
+    0.21: 196.15,
+    0.28: 211.09,
+    0.33: 197.12,
     0.40: 154.86,
     0.47: 145.41,
-    # 0.56: 132.83,
-    # 0.86: 28.07,
+    0.56: 134.17,
+    0.86: 28.07,
     1.00: 64.18,
 }
 
+# Selected observations.
+observations = {key: observations_full[key] for key in alpha_lists}
 
+# Prev.
 # UCB
 # observations = {
 #     0.00: 190.88,
@@ -54,6 +92,7 @@ optimizer, acquisition_function = utils_bo.get_opt_and_acq(observations,
                                                            random_state=20,
                                                            length_scale_bounds=(5e-2, 1e5),
                                                            alpha=5e-3,
+                                                           # alpha=1e-5,
                                                            )
 
 x = np.linspace(0, 1, 10000).reshape(-1, 1)
