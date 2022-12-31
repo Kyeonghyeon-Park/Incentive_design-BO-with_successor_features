@@ -28,7 +28,7 @@ x = np.linspace(0, 1, num_x_pts).reshape(-1, 1)
 
 # Load data.
 # data = torch.load("../evaluation_results_ssd.tar")
-data = torch.load("../2_0.33,0.40,1.00.tar")
+data = torch.load("../14_0.00,0.05,0.10,0.13,0.16,0.18,0.21,0.24,0.28,0.29,0.33,0.40,0.56,0.68,1.00_num_tests=50.tar")
 
 alphas_env = list(data.keys())
 alphas_pol = list(data[alphas_env[0]].keys())

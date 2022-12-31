@@ -4,11 +4,11 @@ from utils import utils_ssd
 
 
 outcomes_names = [
-    '../evaluation_results_ssd_221225_2033',
+    '../evaluation_results_ssd_221230_1119',
     # '../evaluation_results_ssd_221218_0116',
 ]
 
-ALPHA = 0.25
+ALPHA = 0.65
 
 for outcomes_name in outcomes_names:
     print(f'File name: {outcomes_name}')

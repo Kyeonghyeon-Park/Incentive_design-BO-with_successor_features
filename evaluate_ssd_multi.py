@@ -88,42 +88,59 @@ def roll_out_simple(networks, env, init_obs, epi_length):
 '''
 ########################################################
 '''
+misUCB evaluation results for alpha=0.05.
+'''
+# misUCB
+alphas_env = [0.00, 0.05, 0.10, 0.13, 0.16, 0.18, 0.21, 0.24, 0.28, 0.29, 0.33, 0.40, 0.56, 0.68, 1.00]
+########################################################
+'''
 misUCB evaluation results for alpha=0.40.
 '''
 # misUCB
-# alphas_env = [0.33, 0.40, 1.00]
+# alphas_env = [0.00, 0.16, 0.33, 0.40, 0.68, 1.00]
 ########################################################
 '''
 misUCB evaluation results for alpha=0.56.
 '''
 # misUCB
-# alphas_env = [0.00, 0.56]
+# alphas_env = [0.00, 0.07, 0.14, 0.20, 0.25, 0.28, 0.30, 0.40, 0.56, 0.75, 0.86, 1.00]
 ########################################################
 '''
 Policies (이건 full dict 만들고 필요 없는 건 주석 처리)
 '''
-# paths_pol_dir_dict = {
-#     # 0.00: "./results_ssd_IJCAI/lists of policies/0.00/000029999.tar",
-#     0.33: "./results_ssd_IJCAI/lists of policies/0.33/000029999.tar",
-#     0.40: "./results_ssd_IJCAI/lists of policies/0.40/000029999.tar",
-#     # 0.47: "./results_ssd_IJCAI/lists of policies/0.47/000029999.tar",
-#     # 0.56: "./results_ssd_IJCAI/lists of policies/0.56/000029999.tar",
-#     1.00: "./results_ssd_IJCAI/lists of policies/1.00/000029999.tar",
-# }
+paths_pol_dir_dict = {
+    0.00: "./results_ssd_IJCAI/lists of policies/0.00/000029999.tar",
+    0.05: "./results_ssd_IJCAI/lists of policies/0.05/000029999.tar",
+    0.10: "./results_ssd_IJCAI/lists of policies/0.10/000029999.tar",
+    0.13: "./results_ssd_IJCAI/lists of policies/0.13/000029999.tar",
+    0.16: "./results_ssd_IJCAI/lists of policies/0.16/000029999.tar",
+    0.18: "./results_ssd_IJCAI/lists of policies/0.18/000029999.tar",
+    0.21: "./results_ssd_IJCAI/lists of policies/0.21/000029999.tar",
+    0.24: "./results_ssd_IJCAI/lists of policies/0.24/000029999.tar",
+    0.28: "./results_ssd_IJCAI/lists of policies/0.28/000029999.tar",
+    0.29: "./results_ssd_IJCAI/lists of policies/0.29/000029999.tar",
+    0.33: "./results_ssd_IJCAI/lists of policies/0.33/000029999.tar",
+    0.40: "./results_ssd_IJCAI/lists of policies/0.40/000029999.tar",
+    # 0.47: "./results_ssd_IJCAI/lists of policies/0.47/000029999.tar",
+    0.56: "./results_ssd_IJCAI/lists of policies/0.56/000029999.tar",
+    0.68: "./results_ssd_IJCAI/lists of policies/0.68/000029999.tar",
+    1.00: "./results_ssd_IJCAI/lists of policies/1.00/000029999.tar",
+}
 ########################################################
 '''
 Code for 31 tar files.
 '''
-alphas_env = [0.13]
-paths_pol_dir_dict = {
-    0.13: "./results_ssd_IJCAI/alpha=0.13 using alpha=0.00 (1 seed, 1 evaluation needed)/seed 1234/*.tar",
-}
+# alphas_env = [0.65]
+# paths_pol_dir_dict = {
+#     # 0.27: "./results_ssd_IJCAI/alpha=0.25 using alpha=0.28 (1 seed)/seed 1234/*.tar",
+#     0.65: "./results_ssd_IJCAI/alpha=0.65 using alpha=0.56 (2 seeds, 2 evaluations needed)/seed 1235/000029999.tar",
+# }
 ########################################################
 paths_pol_dir = list(paths_pol_dir_dict.values())
 alphas_pol = list(paths_pol_dir_dict.keys())
 num_env = len(alphas_env)
 num_pol = len(alphas_pol)
-num_tests = 100
+num_tests = 50
 
 utils_all.set_random_seed(1236)
 

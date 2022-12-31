@@ -84,9 +84,12 @@ axis_max = np.max(f) + 0.01
 # ax.set_ylabel(r'y-axis: $\pi_{\mathbf{w}}$', fontdict={'size': 20})  # 220816
 # ax.set_zlabel(r'z-axis: $\tilde{\mathcal{F}}(\mathbf{w}, \pi)$', fontdict={'size': 20})  # 220816
 # plt.rcParams['font.family'] = 'Helvetica'
-ax.set_xlabel(r'$x$-axis: $\mathbf{w}_e$ (for env.)', fontdict={'size': 20}, fontname='Helvetica')  # 220816
-ax.set_ylabel(r'$y$-axis: $\mathbf{w}_p$ (for policy $\pi_{\mathbf{w}_p}$)', fontdict={'size': 20}, fontname='Helvetica')  # 220816
-ax.set_zlabel(r'$z$-axis: $\tilde{\mathcal{F}}(\mathbf{w}_e, \pi_{\mathbf{w}_p})$', fontdict={'size': 20}, fontname='Helvetica')  # 220816
+# ax.set_xlabel(r'$x$-axis: $\mathbf{w}_e$ (for env.)', fontdict={'size': 20}, fontname='Helvetica')  # 220816
+# ax.set_ylabel(r'$y$-axis: $\mathbf{w}_p$ (for policy $\pi_{\mathbf{w}_p}$)', fontdict={'size': 20}, fontname='Helvetica')  # 220816
+# ax.set_zlabel(r'$z$-axis: $\tilde{\mathcal{F}}(\mathbf{w}_e, \pi_{\mathbf{w}_p})$', fontdict={'size': 20}, fontname='Helvetica')  # 220816
+ax.set_xlabel(r'$x$-axis: $\mathbf{w}_e$ (for env.)', fontdict={'size': 20}, fontname='Times')  # 221230
+ax.set_ylabel(r'$y$-axis: $\mathbf{w}_p$ (for policy $\pi_{\mathbf{w}_p}$)', fontdict={'size': 20}, fontname='Times')  # 221230
+ax.set_zlabel(r'$z$-axis: $\tilde{\mathcal{F}}(\mathbf{w}_e, \pi_{\mathbf{w}_p})$', fontdict={'size': 20}, fontname='Times')  # 221230
 ax.set_xlim([0, 1])
 ax.set_ylim([0, 1])
 ax.set_zlim([axis_min, axis_max])

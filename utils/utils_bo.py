@@ -228,10 +228,11 @@ def get_opt_and_acq(observations, pbounds=None, **kwargs):
     return optimizer, acquisition_function
 
 
-def plot_gp_utility(optimizer, utility, x, gp_lim=None, acq_lim=None, next_point_suggestion=None):
+def plot_gp_utility(optimizer, utility, x, gp_lim=None, acq_lim=None, next_point_suggestion=None, point_labels=None):
     """
     Plot posterior and values of acquisition function.
     220805 axis update.
+    221230 add indexes of alphas and change fonts.
 
     Parameters
     ----------
@@ -250,6 +251,10 @@ def plot_gp_utility(optimizer, utility, x, gp_lim=None, acq_lim=None, next_point
         If next_point_suggestion is coming from acquisition function, it should be dict.
         Otherwise, it will be None.
         ex. next_point_suggestion = {'alpha': 0.5313201435572625}
+    point_labels: None or List
+        List of indexes (or labels) for alphas.
+        ex. alphas = x_obs.flatten()
+            labels = point_labels
     """
     plot_time = time.time()
 
@@ -270,6 +275,9 @@ def plot_gp_utility(optimizer, utility, x, gp_lim=None, acq_lim=None, next_point
 
     # Plot.
     axis.plot(x_obs.flatten(), y_obs, 'D', markersize=8, label='Observations', color='k')
+    if point_labels is not None:  # 221230
+        for idx in range(y_obs.size):
+            axis.text(x_obs.flatten()[idx], y_obs[idx], point_labels[idx], size=20)
     axis.plot(x, mu, linestyle=(0, (5, 5)), color='k', label='Prediction')
     axis.fill(np.concatenate([x, x[::-1]]),
               np.concatenate([mu - 1.9600 * sigma, (mu + 1.9600 * sigma)[::-1]]),
@@ -284,8 +292,10 @@ def plot_gp_utility(optimizer, utility, x, gp_lim=None, acq_lim=None, next_point
 
     # axis.set_xlabel(r'$\alpha$', fontdict={'size': 24})  # 220805
     # axis.set_ylabel(r'$f$', fontdict={'size': 24})  # 220805
-    axis.set_xlabel(r'$\alpha$', fontdict={'size': 28})  # 220805
-    axis.set_ylabel(r'$\mathcal{F}$', fontdict={'size': 28})  # 220805
+    # axis.set_xlabel(r'$\alpha$', fontdict={'size': 28})  # 220805
+    # axis.set_ylabel(r'$\mathcal{F}$', fontdict={'size': 28})  # 220805
+    axis.set_xlabel(r'$\alpha$', fontdict={'size': 28}, fontname='Times')  # 221230
+    axis.set_ylabel(r'$\mathcal{F}$', fontdict={'size': 28}, fontname='Times')  # 221230
 
     acq.plot(x, utility, label='Acquisition function', color='k')
     acq.plot(x[np.argmax(utility)], np.max(utility), '*', markersize=15,
@@ -293,7 +303,8 @@ def plot_gp_utility(optimizer, utility, x, gp_lim=None, acq_lim=None, next_point
     acq.set_xlabel(r'$\alpha$', fontdict={'size': 24})
     acq.set_ylabel('UCB', fontdict={'size': 24})
 
-    axis.legend(loc='upper right', fontsize=20)
+    # axis.legend(loc='upper right', fontsize=20)
+    axis.legend(loc='upper right', fontsize=20, prop={'family': 'Times', 'size': 24})  # 221230
     axis.tick_params(axis='both', labelsize=20)
     acq.tick_params(axis='both', labelsize=20)
     acq.legend(loc='upper right', fontsize=20)
@@ -307,7 +318,80 @@ def plot_gp_utility(optimizer, utility, x, gp_lim=None, acq_lim=None, next_point
     plt.show()
 
 
-def plot_gp_acq(optimizer, acquisition_function, x, gp_lim=None, acq_lim=None):
+def plot_gp(optimizer, utility, x, gp_lim=None, acq_lim=None, next_point_suggestion=None, point_labels=None):
+    """
+    Plot posterior and values of acquisition function.
+    220805 axis update.
+    221230 add indexes of alphas, remove acq, tight boundary, and change fonts.
+
+    Parameters
+    ----------
+    optimizer: BayesianOptimizationModified
+    utility: numpy.ndarray
+    x: numpy.ndarray
+        x-axis of graph. We need the shape (-1, 1) for x.
+        ex. x = np.linspace(0, 1, 10000).reshape(-1, 1)
+    gp_lim: None or List
+        List of xlim and ylim for the GP graph.
+        ex. gp_lim = [(0, 1), (0.81, 0.92)]
+    acq_lim: None or List
+        List of xlim and ylim for the acquisition graph.
+        ex. acq_lim = [(0, 1), (0.83, 0.935)]
+    next_point_suggestion: None or dict
+        If next_point_suggestion is coming from acquisition function, it should be dict.
+        Otherwise, it will be None.
+        ex. next_point_suggestion = {'alpha': 0.5313201435572625}
+    point_labels: None or List
+        List of indexes (or labels) for alphas.
+        ex. alphas = x_obs.flatten()
+            labels = point_labels
+    """
+    plot_time = time.time()
+
+    # Observations and posterior distributions.
+    x_obs, y_obs = optimizer.get_obs()
+    mu, sigma = optimizer.get_posterior(x)
+
+    # Find a value of alpha to be evaluated.
+    if next_point_suggestion is None:
+        next_point_suggestion = "{'alpha': " + str(x[np.argmax(utility)].item()) + "}"
+    print("Next point suggestion: ", next_point_suggestion)
+
+    # Plot settings.
+    fig = plt.figure(figsize=(18, 8))
+    gs = gridspec.GridSpec(1, 1)
+    axis = plt.subplot(gs[0])
+
+    # Plot.
+    axis.plot(x_obs.flatten(), y_obs, 'D', markersize=8, label='Observations', color='k')
+    if point_labels is not None:  # 221230
+        for idx in range(y_obs.size):
+            axis.text(x_obs.flatten()[idx], y_obs[idx], point_labels[idx], size=20)
+    axis.plot(x, mu, linestyle=(0, (5, 5)), color='k', label='Prediction')
+    axis.fill(np.concatenate([x, x[::-1]]),
+              np.concatenate([mu - 1.9600 * sigma, (mu + 1.9600 * sigma)[::-1]]),
+              alpha=.6, fc='lightgray', ec='None', label='95% C. I.')
+
+    if gp_lim is not None:
+        axis.set_xlim(gp_lim[0])
+        axis.set_ylim(gp_lim[1])
+
+    axis.set_xlabel(r'$\alpha$', fontdict={'size': 28}, fontname='Times')  # 221230
+    axis.set_ylabel(r'$\mathcal{F}$', fontdict={'size': 28}, fontname='Times')  # 221230
+
+    axis.legend(loc='upper right', fontsize=20, prop={'family': 'Times', 'size': 24})  # 221230
+    axis.tick_params(axis='both', labelsize=20)
+
+    time_str = time.strftime('%y%m%d_%H%M_%S', time.localtime(plot_time))
+    PATH = './BO/' + time_str + '/'
+    os.makedirs(PATH, exist_ok=True)
+    file_name = str(len(optimizer.space)) + 'steps_' + time_str + '.png'
+    plt.savefig(PATH + file_name, bbox_inches='tight')
+
+    plt.show()
+
+
+def plot_gp_acq(optimizer, acquisition_function, x, gp_lim=None, acq_lim=None, point_labels=None, gp_only=False):
     """
     Plot posterior and acquisition function.
     If figure shows weird posterior, please change random_state or length_scale_bounds when you build the optimizer.
@@ -326,9 +410,28 @@ def plot_gp_acq(optimizer, acquisition_function, x, gp_lim=None, acq_lim=None):
     acq_lim: None or List
         List of xlim and ylim for the acquisition graph.
         ex. acq_lim=[(0, 1), (0.83, 0.935)]
+    point_labels: None or List
+        List of indexes (or labels) for alphas.
     """
     # TODO: check float issues.
     # next_point_suggestion = optimizer.suggest(acquisition_function)
     next_point_suggestion = None
     utility = acquisition_function.utility(x, optimizer._gp, 0)
-    plot_gp_utility(optimizer, utility, x, gp_lim=gp_lim, acq_lim=acq_lim, next_point_suggestion=next_point_suggestion)
+    if not gp_only:
+        plot_gp_utility(optimizer,
+                        utility,
+                        x,
+                        gp_lim=gp_lim,
+                        acq_lim=acq_lim,
+                        next_point_suggestion=next_point_suggestion,
+                        point_labels=point_labels,
+                        )
+    else:
+        plot_gp(optimizer,
+                utility,
+                x,
+                gp_lim=gp_lim,
+                acq_lim=acq_lim,
+                next_point_suggestion=next_point_suggestion,
+                point_labels=point_labels,
+                )
