@@ -67,6 +67,8 @@ def add_default_args(parser):
                         help="Save frequency of results and networks (unit: episode).")
     parser.add_argument("--mode_draw", type=bool, default=True,
                         help="True if we draw a figure(plot) during the training.")
+    parser.add_argument("--mode_print_policy_and_q", type=bool, default=True,
+                        help="True if we print a action distribution and a Q value during the training.")
 
     # Setting for the KL divergence.
     parser.add_argument("--mode_kl_divergence", type=bool, default=False,
@@ -119,15 +121,15 @@ add_default_args(parser)
 args = parser.parse_args()
 
 """ Setting for the description. """
-args.description = "Taxi environment."
-args.setting_name = "setting_0"+utils_all.get_current_time_tag()
+args.description = "Taxi. alpha=0.43 using alpha=0.50. random seed=1241."
+args.setting_name = "alpha=0.43_using_alpha=0.50_random_seed=1241"+utils_all.get_current_time_tag()
 
 """ Setting for the environment. """
 # args.grid_size = 2
 # args.num_agents = 100
 
 """ Setting for the reward designer's problem. """
-args.lv_penalty = 0.00
+args.lv_penalty = 0.43
 
 """ Setting for the networks. """
 # args.mode_ac = True
@@ -145,8 +147,8 @@ args.lr_p = 0.0005
 args.num_episodes = 7500
 # args.episode_length = 2
 args.epsilon = 0.5
-args.num_tests = 30
-args.random_seed = 1234
+args.num_tests = 20
+args.random_seed = 1241
 
 """ Setting for the learning. """
 args.K = 8
@@ -156,13 +158,15 @@ args.mode_lr_decay = False
 args.update_freq = 1
 args.update_freq_target = 10
 # args.tau = 1
-args.mode_reuse_networks = False
+args.mode_reuse_networks = True
 # args.file_path = "./results/results_taxi_final/alpha=0.30/7499.tar"
+args.file_path = "./results_taxi_IJCAI/lists of policies/0.50/7499.tar"
 
 """ Setting for the draw and the save. """
 args.draw_freq = 50
 args.save_freq = 500
 args.mode_draw = False
+args.mode_print_policy_and_q = False
 
 """ Setting for the KL divergence."""
 args.mode_kl_divergence = False

@@ -1,3 +1,5 @@
+import time
+
 import numpy as np
 import torch
 
@@ -22,12 +24,11 @@ paths_pol_dict = {
     1.00: "./folder_name/7499.tar",
 }
 """
-alphas_env = [0.00, 0.50, 1.00]
+alphas_env = [0.62]
 
 paths_pol_dict = {
-    0.00: "./folder_name/7499.tar",
-    0.50: "./folder_name/7499.tar",
-    1.00: "./folder_name/7499.tar",
+    0.62: "./results_taxi_IJCAI/lists of policies/0.62/7499.tar",
+    # 1.00: "./results_taxi_IJCAI/lists of policies/1.00/7499.tar",
 }
 
 args.setting_name = "setting_evaluation"
@@ -40,6 +41,9 @@ num_tests = 1000
 objs = np.zeros([num_env, num_pol])
 explanations = [[] for i in range(num_env)]
 utils_all.set_random_seed(1236)
+
+time_start = time.time()
+print(f"Evaluation start time: {time.strftime('%y%m%d_%H%M_%S', time.localtime(time_start))}")
 
 for i in range(num_env):
     for j in range(num_pol):
@@ -58,7 +62,9 @@ for i in range(num_env):
         print(f"File path: {path_pol}")
         for k in range(num_tests):
             if ((k + 1) * 10) % num_tests == 0:
-                print(f"Env.: {i + 1}/{num_env}, Pol.: {j + 1}/{num_pol}, Test: {k + 1}/{num_tests}")
+                print(f"Env.: {alphas_env[i]} ({i + 1}/{num_env}), "
+                      f"Pol.: {alphas_pol[j]} ({j + 1}/{num_pol}), "
+                      f"Test: ({k + 1}/{num_tests})")
             samples, outcome = roll_out(networks=networks,
                                         env=env,
                                         decayed_eps=0,
@@ -68,7 +74,16 @@ for i in range(num_env):
         print(f"Obj mean : {obj_mean:.4f}")
         objs[i][j] = obj_mean
 
+print(f"-----------------------------")
+print(f"Start time    : "+time.strftime('%y%m%d_%H%M_%S', time.localtime(time_start)))
+print(f"Finished time : "+time.strftime('%y%m%d_%H%M_%S', time.localtime(time.time())))
+print(f"Total time spent : {time.time() - time_start:.2f}s")
+
+print(f"List of alphas: {alphas_env}")
+print(f"Objective values: ")
 print(objs)
+
+start_time_tag = "_"+time.strftime('%y%m%d_%H%M_%S', time.localtime(time_start))
 
 torch.save(
     {
@@ -76,5 +91,5 @@ torch.save(
         'y': alphas_pol,
         'f': objs,
     },
-    'evaluation_results_taxi.tar'
+    'evaluation_results_taxi'+start_time_tag+'.tar'
 )
