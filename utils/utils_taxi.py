@@ -635,7 +635,7 @@ def get_plt_final_grayscale_only_obj(outcomes_l, outcomes_r, is_3000=False):
 
     plt.figure(dpi=600, figsize=(15, 8))
 
-    outcomes_l = outcomes_l[3]
+    outcomes_l = outcomes_l[3]  # Only select obj among [orr, osc, avg_rew, obj].
     outcomes_r = outcomes_r[3]
 
     means_l, stds_l = get_status(outcomes_l)
@@ -649,16 +649,21 @@ def get_plt_final_grayscale_only_obj(outcomes_l, outcomes_r, is_3000=False):
     plt.plot(x, means_r, label="Mean objective value (Shou & Di)", alpha=0.5, color=(0, 0, 0), linestyle='--')
     plt.fill_between(x, means_r - stds_r, means_r + stds_r, alpha=0.5, color=(0.75, 0.75, 0.75), hatch='/')
 
-    plt.xlabel("Episodes", fontsize=24)
+    # TODO: font 설정 추가
+    # plt.xlabel("Episodes", fontsize=24)  # 230102
+    plt.xlabel("Episodes", fontsize=24, fontname='Times')  # 230102
     # plt.ylabel("Value", fontsize=24)  # 220805
-    plt.ylabel(r"$\mathcal{F}$", fontsize=24)  # 220805
+    # plt.ylabel(r"$\mathcal{F}$", fontsize=24)  # 220805  # 230102
+    plt.ylabel(r"$\mathcal{F}$", fontsize=24, fontname='Times')  # 230102
 
     plt.xlim(x_lim)
     plt.ylim(y_lim)
-    plt.legend(loc='lower right', fontsize=20)
+    # plt.legend(loc='lower right', fontsize=20)  # 230102
+    plt.legend(loc='lower right', fontsize=20, prop={'family': 'Times', 'size': 20})  # 230102
     plt.tick_params(axis='both', labelsize=20)
     plt.grid()
 
+    plt.savefig('../Driver_lower_level.png', bbox_inches='tight')
     plt.show()
 
 
