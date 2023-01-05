@@ -121,15 +121,15 @@ add_default_args(parser)
 args = parser.parse_args()
 
 """ Setting for the description. """
-args.description = "Taxi. alpha=0.43 using alpha=0.50. random seed=1241."
-args.setting_name = "alpha=0.43_using_alpha=0.50_random_seed=1241"+utils_all.get_current_time_tag()
+args.description = "Taxi. alpha=0.30. random seed=1251."
+args.setting_name = "alpha=0.30_random_seed=1251"+utils_all.get_current_time_tag()
 
 """ Setting for the environment. """
 # args.grid_size = 2
 # args.num_agents = 100
 
 """ Setting for the reward designer's problem. """
-args.lv_penalty = 0.43
+args.lv_penalty = 0.30
 
 """ Setting for the networks. """
 # args.mode_ac = True
@@ -148,7 +148,7 @@ args.num_episodes = 7500
 # args.episode_length = 2
 args.epsilon = 0.5
 args.num_tests = 20
-args.random_seed = 1241
+args.random_seed = 1251
 
 """ Setting for the learning. """
 args.K = 8
@@ -158,9 +158,9 @@ args.mode_lr_decay = False
 args.update_freq = 1
 args.update_freq_target = 10
 # args.tau = 1
-args.mode_reuse_networks = True
+args.mode_reuse_networks = False
 # args.file_path = "./results/results_taxi_final/alpha=0.30/7499.tar"
-args.file_path = "./results_taxi_IJCAI/lists of policies/0.50/7499.tar"
+args.file_path = "./results_taxi_IJCAI/lists of policies/0.00/7499.tar"
 
 """ Setting for the draw and the save. """
 args.draw_freq = 50

@@ -370,10 +370,10 @@ def get_plt_final_aggregate_grayscale(outcomes_l, outcomes_r, is_3000=False):
     plt.ylabel(r"$\mathcal{F}$", fontsize=24)  # 220805
     plt.xlim(x_lim)
     plt.ylim(y_lim)
-    plt.legend(loc='lower right', fontsize=20)
+    plt.legend(loc='lower right', fontsize=20, prop={'family': 'Times', 'size': 20})
     plt.tick_params(axis='both', labelsize=20)
     plt.grid()
-
+    plt.savefig('./Harvest_lower_level.png', bbox_inches='tight')
     plt.show()
 
 
@@ -476,11 +476,11 @@ def get_plt_final_aggregate_grayscale_v3(outcomes_l, outcomes_r):
     plt.ylabel(r"$\mathcal{F}$", fontsize=24)  # 220805
     plt.xlim(x_lim)
     plt.ylim(y_lim)
-    plt.legend(loc='lower right', fontsize=20)
+    plt.legend(loc='lower right', fontsize=20, prop={'family': 'Times', 'size': 20})
     # plt.legend(loc='upper right', fontsize=20)
     plt.tick_params(axis='both', labelsize=20)
     plt.grid()
-
+    plt.savefig('../Harvest_lower_level.png', bbox_inches='tight')
     plt.show()
 
 

@@ -27,28 +27,24 @@ paths_pol_dict = {
 '''
 alpha = 0.43
 '''
-alpha_start = 0.43
-# alphas_env = [0.00, 0.26, 0.43, 0.50, 0.70, 1.00]
+# alpha_start = 0.43
+# alphas_env = [0.00, 0.26, 0.43, 0.50, 0.52, 0.57, 0.70, 1.00]
 '''
 alpha = 0.63
 '''
 # alpha_start = 0.63
-# alphas_env = [0.00, 0.63]
+# alphas_env = [0.00, 0.21, 0.35, 0.45, 0.49, 0.54, 0.55, 0.56, 0.57, 0.63, 0.81, 1.00]
 '''
 alpha = 0.93
 '''
-# alpha_start = 0.93
-# alphas_env = [0.00, 0.93]
-
-# paths_pol_dict = {
-#     0.43: "./results_taxi_IJCAI/lists of policies/0.62/7499.tar",
-#     # 1.00: "./results_taxi_IJCAI/lists of policies/1.00/7499.tar",
-# }
+alpha_start = 0.93
+# alphas_env = [0.00, 0.16, 0.28, 0.36, 0.41, 0.49, 0.54, 0.57, 0.62, 0.68, 0.73, 0.79, 0.93, 1.00]
+alphas_env = [0.00, 0.16, 0.26, 0.41, 0.49, 0.51, 0.54, 0.58, 0.62, 0.79, 0.93]
 '''
 Single alpha
 '''
-alpha_start = 0.60
-alphas_env = [alpha_start]
+# alpha_start = 0.41
+# alphas_env = [alpha_start]
 
 paths_pol_dict = {alpha: "./results_taxi_IJCAI/lists of policies/"+"{:.2f}".format(alpha)+"/7499.tar" for alpha in alphas_env}
 filename = '{:.2f}'.format(alpha_start)+'_'+str(len(alphas_env)-1)+'_'+','.join('{:.2f}'.format(alpha) for alpha in alphas_env)+'.tar'

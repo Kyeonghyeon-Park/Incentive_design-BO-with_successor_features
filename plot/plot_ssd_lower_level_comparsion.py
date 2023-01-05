@@ -24,6 +24,21 @@ dict_r_list = [
 ]
 -------------------------------
 # alpha value.
+alpha = 0.33
+
+# Transfer.
+dict_l_list = [
+    "../results/211008 submitted version/results_ssd_final/alpha=0.33 using alpha=0.50 (2 seeds)/seed 1278 (original)/outcomes.tar",
+    "../results/211008 submitted version/results_ssd_final/alpha=0.33 using alpha=0.50 (2 seeds)/seed 1279/outcomes.tar",
+]
+# Non-transfer.
+dict_r_list = [
+    "../results/211008 submitted version/results_ssd_final/alpha=0.33 (5 seeds)/seed 1267 (original)/outcomes.tar",
+    "../results/211008 submitted version/results_ssd_final/alpha=0.33 (5 seeds)/seed 1269/outcomes.tar",
+    "../results/211008 submitted version/results_ssd_final/alpha=0.33 (5 seeds)/seed 1270/outcomes.tar",
+]
+-------------------------------
+# alpha value.
 alpha = 0.40
 
 # Transfer.
@@ -46,11 +61,10 @@ alpha = 0.56
 
 # Transfer.
 dict_l_list = [
-    # "../results_ssd_IJCAI/alpha=0.56 using alpha=0.33 (6 seeds)/seed 1234/evaluation_results_ssd.tar",
+    "../results_ssd_IJCAI/alpha=0.56 using alpha=0.33 (6 seeds)/seed 1234/evaluation_results_ssd.tar",
     "../results_ssd_IJCAI/alpha=0.56 using alpha=0.33 (6 seeds)/seed 1235/evaluation_results_ssd.tar",
-    "../results_ssd_IJCAI/alpha=0.56 using alpha=0.33 (6 seeds)/seed 1236/evaluation_results_ssd.tar",
+    # "../results_ssd_IJCAI/alpha=0.56 using alpha=0.33 (6 seeds)/seed 1236/evaluation_results_ssd.tar",
     "../results_ssd_IJCAI/alpha=0.56 using alpha=0.33 (6 seeds)/seed 1237/evaluation_results_ssd.tar",
-    # "../results_ssd_IJCAI/alpha=0.56 using alpha=0.33 (6 seeds)/seed 1238/evaluation_results_ssd.tar",
     "../results_ssd_IJCAI/alpha=0.56 using alpha=0.33 (6 seeds)/seed 1267/evaluation_results_ssd.tar",
 ]
 
@@ -78,22 +92,18 @@ dict_r_list = [
 # ]
 '''
 # alpha value.
-alpha = 0.56
+alpha = 0.33
 
 # Transfer.
 dict_l_list = [
-    "../results_ssd_IJCAI/alpha=0.56 using alpha=0.33 (6 seeds)/seed 1234/evaluation_results_ssd.tar",
-    "../results_ssd_IJCAI/alpha=0.56 using alpha=0.33 (6 seeds)/seed 1235/evaluation_results_ssd.tar",
-    # "../results_ssd_IJCAI/alpha=0.56 using alpha=0.33 (6 seeds)/seed 1236/evaluation_results_ssd.tar",
-    "../results_ssd_IJCAI/alpha=0.56 using alpha=0.33 (6 seeds)/seed 1237/evaluation_results_ssd.tar",
-    "../results_ssd_IJCAI/alpha=0.56 using alpha=0.33 (6 seeds)/seed 1267/evaluation_results_ssd.tar",
+    "../results/211008 submitted version/results_ssd_final/alpha=0.33 using alpha=0.50 (2 seeds)/seed 1278 (original)/outcomes.tar",
+    "../results/211008 submitted version/results_ssd_final/alpha=0.33 using alpha=0.50 (2 seeds)/seed 1279/outcomes.tar",
 ]
-
 # Non-transfer.
 dict_r_list = [
-    "../results_ssd_IJCAI/alpha=0.56 (1 (of 5) seeds, 2 evaluations needed)/seed 1234 (converge x)/evaluation_results_ssd.tar",
-    "../results_ssd_IJCAI/alpha=0.56 (1 (of 5) seeds, 2 evaluations needed)/seed 1235 (converge x)/evaluation_results_ssd.tar",
-    "../results_ssd_IJCAI/alpha=0.56 (1 (of 5) seeds, 2 evaluations needed)/seed 1236 (converge to 180)/evaluation_results_ssd.tar",
+    "../results/211008 submitted version/results_ssd_final/alpha=0.33 (5 seeds)/seed 1267 (original)/outcomes.tar",
+    "../results/211008 submitted version/results_ssd_final/alpha=0.33 (5 seeds)/seed 1269/outcomes.tar",
+    "../results/211008 submitted version/results_ssd_final/alpha=0.33 (5 seeds)/seed 1270/outcomes.tar",
 ]
 
 # 31 or 30.

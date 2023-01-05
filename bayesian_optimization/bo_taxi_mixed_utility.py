@@ -15,7 +15,8 @@ num_x_pts = 10000
 x = np.linspace(0, 1, num_x_pts).reshape(-1, 1)
 
 # Load data.
-data = torch.load("../evaluation_results_taxi.tar")
+# data = torch.load("../evaluation_results_taxi.tar")
+data = torch.load("../0.93_10_0.00,0.16,0.26,0.41,0.49,0.51,0.54,0.58,0.62,0.79,0.93.tar")
 alphas_env, alphas_pol, objs = data.values()
 
 # Set some variables.

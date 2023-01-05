@@ -575,13 +575,13 @@ def get_plt_final_grayscale(outcomes_l, outcomes_r):
     plt.show()
 
 
-def get_plt_final_grayscale_only_obj(outcomes_l, outcomes_r, is_3000=False):
+def get_plt_final_grayscale_only_obj(outcomes_l, outcomes_r, font_settings=None):
     """
     Get the figure of two final outcomes.
     This function uses the evaluation results.
-    If you want to draw the outcome per 3000 episodes, you have to set is_3000=True.
     Unlike the previous function(get_plt_final), this figure put two outcomes into one figure.
     220805: axis update.
+    230105: update font settings.
 
     Examples
     ----------
@@ -601,8 +601,8 @@ def get_plt_final_grayscale_only_obj(outcomes_l, outcomes_r, is_3000=False):
         Outcomes which will be shown in the left figure
     outcomes_r
         Outcomes which will be shown in the right figure
-    is_3000 : boolean
-        True if we want to draw the outcome per 3000 episodes
+    font_settings: None or dict
+
     """
     # mpl.rcParams['hatch.linewidth'] = 2
     period = 1
@@ -649,20 +649,32 @@ def get_plt_final_grayscale_only_obj(outcomes_l, outcomes_r, is_3000=False):
     plt.plot(x, means_r, label="Mean objective value (Shou & Di)", alpha=0.5, color=(0, 0, 0), linestyle='--')
     plt.fill_between(x, means_r - stds_r, means_r + stds_r, alpha=0.5, color=(0.75, 0.75, 0.75), hatch='/')
 
-    # TODO: font 설정 추가
-    # plt.xlabel("Episodes", fontsize=24)  # 230102
-    plt.xlabel("Episodes", fontsize=24, fontname='Times')  # 230102
-    # plt.ylabel("Value", fontsize=24)  # 220805
-    # plt.ylabel(r"$\mathcal{F}$", fontsize=24)  # 220805  # 230102
-    plt.ylabel(r"$\mathcal{F}$", fontsize=24, fontname='Times')  # 230102
+    axis_size = 24
+    legend_size = 20
+    tick_size = 20
+    if font_settings is not None:
+        if 'axis_size' in font_settings.keys():
+            axis_size = font_settings['axis_size']
+        if 'legend_size' in font_settings.keys():
+            legend_size = font_settings['legend_size']
+        if 'tick_size' in font_settings.keys():
+            tick_size = font_settings['tick_size']
+        if 'font_name' in font_settings.keys():
+            plt.rcParams['font.family'] = font_settings['font_name']
+            plt.xlabel("Episodes", fontsize=axis_size, fontname=font_settings['font_name'])
+            plt.ylabel(r"$\mathcal{F}$", fontsize=axis_size, fontname=font_settings['font_name'])
+
+    else:
+        plt.xlabel("Episodes", fontsize=axis_size)
+        plt.ylabel(r"$\mathcal{F}$", fontsize=axis_size)
 
     plt.xlim(x_lim)
     plt.ylim(y_lim)
-    # plt.legend(loc='lower right', fontsize=20)  # 230102
-    plt.legend(loc='lower right', fontsize=20, prop={'family': 'Times', 'size': 20})  # 230102
-    plt.tick_params(axis='both', labelsize=20)
-    plt.grid()
 
+    plt.legend(loc='lower right', fontsize=legend_size)
+    plt.tick_params(axis='both', labelsize=tick_size)
+
+    plt.grid()
     plt.savefig('../Driver_lower_level.png', bbox_inches='tight')
     plt.show()
 

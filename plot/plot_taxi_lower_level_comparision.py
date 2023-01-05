@@ -3,6 +3,7 @@ import torch
 
 from utils import utils_taxi
 
+
 ''' 
 Code for getting the lower-level transfer figure. 
 num_tests = 1인 tar의 result는 duplicate하여 갯수를 맞춤. 
@@ -13,8 +14,6 @@ outcomes_t = {list: 4} [{ndarray: (num_tests, 7500)},  # orr
                         {ndarray: (num_tests, 7500)},  # obj
                         ]
 '''
-
-
 def tile_rav_mult_idx(a, dims):
     """
     https://stackoverflow.com/questions/26374634/numpy-tile-a-non-integer-number-of-times
@@ -47,99 +46,76 @@ def tile_rav_mult_idx(a, dims):
 
 NUM_TESTS = 20
 
-'''
-Full results
-----------------------------------
-# alpha = 0.43
+alpha = 0.43
 
-# Transfer.
-dict_l_list = [
-    "../results_taxi_IJCAI/alpha=0.43 using alpha=0.50 (5 seeds)/seed 1239/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.43 using alpha=0.50 (5 seeds)/seed 1240/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.43 using alpha=0.50 (5 seeds)/seed 1241/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.43 using alpha=0.50 (5 seeds)/seed 1242/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.43 using alpha=0.50 (5 seeds)/seed 1243/7499.tar",
-]
-# Non-transfer.
-dict_r_list = [
-    "../results_taxi_IJCAI/alpha=0.43 (5 seeds)/seed 1240/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.43 (5 seeds)/seed 1242/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.43 (5 seeds)/seed 1243/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.43 (5 seeds)/seed 1245/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.43 (5 seeds)/seed 1249/7499.tar",
-]
-----------------------------------
-# alpha = 0.63
-
-# Transfer.
-dict_l_list = ["../results/211008 submitted version/results_taxi_final/alpha=0.63 using alpha=0.50 (5 seeds)/seed 1234 (original)/7499.tar",
-               "../results/211008 submitted version/results_taxi_final/alpha=0.63 using alpha=0.50 (5 seeds)/seed 1235/7499.tar",
-               "../results/211008 submitted version/results_taxi_final/alpha=0.63 using alpha=0.50 (5 seeds)/seed 1236/7499.tar",
-               "../results/211008 submitted version/results_taxi_final/alpha=0.63 using alpha=0.50 (5 seeds)/seed 1237/7499.tar",
-               "../results/211008 submitted version/results_taxi_final/alpha=0.63 using alpha=0.50 (5 seeds)/seed 1238/7499.tar",
-               ]
-# Non-transfer.
-dict_r_list = ["../results/211008 submitted version/results_taxi_final/alpha=0.63 (5 seeds)/seed 1234 (original)/7499.tar",
-               "../results/211008 submitted version/results_taxi_final/alpha=0.63 (5 seeds)/seed 1235/7499.tar",
-               "../results/211008 submitted version/results_taxi_final/alpha=0.63 (5 seeds)/seed 1236/7499.tar",
-               "../results/211008 submitted version/results_taxi_final/alpha=0.63 (5 seeds)/seed 1237/7499.tar",
-               "../results/211008 submitted version/results_taxi_final/alpha=0.63 (5 seeds)/seed 1238/7499.tar",
-               ]
-----------------------------------
-# alpha = 0.70
-
-# Transfer.
-dict_l_list = [
-    "../results_taxi_IJCAI/alpha=0.70 using alpha=0.87 (5 seeds)/seed 1239/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.70 using alpha=0.87 (5 seeds)/seed 1240/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.70 using alpha=0.87 (5 seeds)/seed 1241/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.70 using alpha=0.87 (5 seeds)/seed 1242/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.70 using alpha=0.87 (5 seeds)/seed 1243/7499.tar",
-]
-# Non-transfer.
-dict_r_list = [
-    "../results_taxi_IJCAI/alpha=0.70 (5 seeds)/seed 1239/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.70 (5 seeds)/seed 1240/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.70 (5 seeds)/seed 1242/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.70 (5 seeds)/seed 1243/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.70 (5 seeds)/seed 1245/7499.tar",
-]
-----------------------------------
-# alpha = 0.93
-
-# Transfer.
-dict_l_list = [
-    "../results_taxi_IJCAI/alpha=0.93 using alpha=1.00 (5 seeds)/seed 1238/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.93 using alpha=1.00 (5 seeds)/seed 1239/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.93 using alpha=1.00 (5 seeds)/seed 1240/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.93 using alpha=1.00 (5 seeds)/seed 1241/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.93 using alpha=1.00 (5 seeds)/seed 1242/7499.tar",
-]
-# Non-transfer.
-dict_r_list = [
-    "../results_taxi_IJCAI/alpha=0.93 (5 seeds)/seed 1234/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.93 (5 seeds)/seed 1235/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.93 (5 seeds)/seed 1236/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.93 (5 seeds)/seed 1237/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.93 (5 seeds)/seed 1242/7499.tar",
-]
-'''
-# Transfer.
-dict_l_list = [
-    "../results_taxi_IJCAI/alpha=0.70 using alpha=0.87 (5 seeds)/seed 1239/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.70 using alpha=0.87 (5 seeds)/seed 1240/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.70 using alpha=0.87 (5 seeds)/seed 1241/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.70 using alpha=0.87 (5 seeds)/seed 1242/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.70 using alpha=0.87 (5 seeds)/seed 1243/7499.tar",
-]
-# Non-transfer.
-dict_r_list = [
-    "../results_taxi_IJCAI/alpha=0.70 (5 seeds)/seed 1239/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.70 (5 seeds)/seed 1240/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.70 (5 seeds)/seed 1242/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.70 (5 seeds)/seed 1243/7499.tar",
-    "../results_taxi_IJCAI/alpha=0.70 (5 seeds)/seed 1245/7499.tar",
-]
+if alpha == 0.43:
+    # Transfer.
+    dict_l_list = [
+        "../results_taxi_IJCAI/alpha=0.43 using alpha=0.50 (5 seeds)/seed 1239/7499.tar",
+        "../results_taxi_IJCAI/alpha=0.43 using alpha=0.50 (5 seeds)/seed 1240/7499.tar",
+        "../results_taxi_IJCAI/alpha=0.43 using alpha=0.50 (5 seeds)/seed 1241/7499.tar",
+        "../results_taxi_IJCAI/alpha=0.43 using alpha=0.50 (5 seeds)/seed 1242/7499.tar",
+        "../results_taxi_IJCAI/alpha=0.43 using alpha=0.50 (5 seeds)/seed 1243/7499.tar",
+    ]
+    # Non-transfer.
+    dict_r_list = [
+        "../results_taxi_IJCAI/alpha=0.43 (5 seeds)/seed 1240/7499.tar",
+        "../results_taxi_IJCAI/alpha=0.43 (5 seeds)/seed 1242/7499.tar",
+        "../results_taxi_IJCAI/alpha=0.43 (5 seeds)/seed 1243/7499.tar",
+        "../results_taxi_IJCAI/alpha=0.43 (5 seeds)/seed 1245/7499.tar",
+        "../results_taxi_IJCAI/alpha=0.43 (5 seeds)/seed 1249/7499.tar",
+    ]
+elif alpha == 0.63:
+    # Transfer.
+    dict_l_list = [
+        "../results/211008 submitted version/results_taxi_final/alpha=0.63 using alpha=0.50 (5 seeds)/seed 1234 (original)/7499.tar",
+        "../results/211008 submitted version/results_taxi_final/alpha=0.63 using alpha=0.50 (5 seeds)/seed 1235/7499.tar",
+        "../results/211008 submitted version/results_taxi_final/alpha=0.63 using alpha=0.50 (5 seeds)/seed 1236/7499.tar",
+        "../results/211008 submitted version/results_taxi_final/alpha=0.63 using alpha=0.50 (5 seeds)/seed 1237/7499.tar",
+        "../results/211008 submitted version/results_taxi_final/alpha=0.63 using alpha=0.50 (5 seeds)/seed 1238/7499.tar",
+        ]
+    # Non-transfer.
+    dict_r_list = [
+        "../results/211008 submitted version/results_taxi_final/alpha=0.63 (5 seeds)/seed 1234 (original)/7499.tar",
+        "../results/211008 submitted version/results_taxi_final/alpha=0.63 (5 seeds)/seed 1235/7499.tar",
+        "../results/211008 submitted version/results_taxi_final/alpha=0.63 (5 seeds)/seed 1236/7499.tar",
+        "../results/211008 submitted version/results_taxi_final/alpha=0.63 (5 seeds)/seed 1237/7499.tar",
+        "../results/211008 submitted version/results_taxi_final/alpha=0.63 (5 seeds)/seed 1238/7499.tar",
+        ]
+elif alpha == 0.70:
+    # Transfer.
+    dict_l_list = [
+        "../results_taxi_IJCAI/alpha=0.70 using alpha=0.87 (5 seeds)/seed 1239/7499.tar",
+        "../results_taxi_IJCAI/alpha=0.70 using alpha=0.87 (5 seeds)/seed 1240/7499.tar",
+        "../results_taxi_IJCAI/alpha=0.70 using alpha=0.87 (5 seeds)/seed 1241/7499.tar",
+        "../results_taxi_IJCAI/alpha=0.70 using alpha=0.87 (5 seeds)/seed 1242/7499.tar",
+        "../results_taxi_IJCAI/alpha=0.70 using alpha=0.87 (5 seeds)/seed 1243/7499.tar",
+    ]
+    # Non-transfer.
+    dict_r_list = [
+        "../results_taxi_IJCAI/alpha=0.70 (5 seeds)/seed 1239/7499.tar",
+        "../results_taxi_IJCAI/alpha=0.70 (5 seeds)/seed 1240/7499.tar",
+        "../results_taxi_IJCAI/alpha=0.70 (5 seeds)/seed 1242/7499.tar",
+        "../results_taxi_IJCAI/alpha=0.70 (5 seeds)/seed 1243/7499.tar",
+        "../results_taxi_IJCAI/alpha=0.70 (5 seeds)/seed 1245/7499.tar",
+    ]
+elif alpha == 0.93:
+    # Transfer.
+    dict_l_list = [
+        "../results_taxi_IJCAI/alpha=0.93 using alpha=1.00 (5 seeds)/seed 1238/7499.tar",
+        "../results_taxi_IJCAI/alpha=0.93 using alpha=1.00 (5 seeds)/seed 1239/7499.tar",
+        "../results_taxi_IJCAI/alpha=0.93 using alpha=1.00 (5 seeds)/seed 1240/7499.tar",
+        "../results_taxi_IJCAI/alpha=0.93 using alpha=1.00 (5 seeds)/seed 1241/7499.tar",
+        "../results_taxi_IJCAI/alpha=0.93 using alpha=1.00 (5 seeds)/seed 1242/7499.tar",
+    ]
+    # Non-transfer.
+    dict_r_list = [
+        "../results_taxi_IJCAI/alpha=0.93 (5 seeds)/seed 1234/7499.tar",
+        "../results_taxi_IJCAI/alpha=0.93 (5 seeds)/seed 1235/7499.tar",
+        "../results_taxi_IJCAI/alpha=0.93 (5 seeds)/seed 1236/7499.tar",
+        "../results_taxi_IJCAI/alpha=0.93 (5 seeds)/seed 1237/7499.tar",
+        "../results_taxi_IJCAI/alpha=0.93 (5 seeds)/seed 1242/7499.tar",
+    ]
 
 outcomes_l = [np.empty([0, 7500]),
               np.empty([0, 7500]),
@@ -166,4 +142,11 @@ for r in range(5):
         outcomes_r_one_seed[i] = tile_rav_mult_idx(outcomes_r_one_seed[i], [NUM_TESTS, 7500])
         outcomes_r[i] = np.concatenate((outcomes_r[i], outcomes_r_one_seed[i]), axis=0)
 
-utils_taxi.get_plt_final_grayscale_only_obj(outcomes_l, outcomes_r)
+font_settings = {
+    'font_name': 'Times',
+    'axis_size': 40,  # 24 for the single graph.
+    'legend_size': 40,  # 20 for the single graph.
+    'tick_size': 40,  # 20 for the single graph.
+}
+
+utils_taxi.get_plt_final_grayscale_only_obj(outcomes_l, outcomes_r, font_settings=font_settings)
