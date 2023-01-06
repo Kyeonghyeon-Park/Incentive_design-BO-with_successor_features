@@ -182,6 +182,14 @@ optimizer, acquisition_function = utils_bo.get_opt_and_acq(observations,
                                                            )
 
 # Plot.
+font_settings = {
+    'font_name': 'Times',
+    'axis_size': 30,  # 24 for the single graph.
+    'legend_size': 30,  # 20 for the single graph.
+    'tick_size': 30,  # 20 for the single graph.
+    'point_label_size': 30,  # 20 for the single graph.
+}
+
 x = np.linspace(0, 1, 10000).reshape(-1, 1)
 utils_bo.plot_gp_acq(optimizer,
                      acquisition_function,
@@ -190,6 +198,7 @@ utils_bo.plot_gp_acq(optimizer,
                      acq_lim=[(0, 1), (None, None)],
                      point_labels=alpha_labels,
                      gp_only=True,
+                     font_settings=font_settings,
                      )
 
 # acq.set_ylim((np.min(utility) - 10, np.max(utility) + 10))
