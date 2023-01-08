@@ -8,7 +8,7 @@ you should write alpha_dicts which the key is the value of alpha and the value i
 Orders of alphas are used to write the orders to the graph.
 '''
 
-START_ALPHA = 0.05
+START_ALPHA = 0.56
 ACQUISITION_FUNCTION = 'misUCB'
 
 if START_ALPHA not in [0.05, 0.33, 0.40, 0.56] or ACQUISITION_FUNCTION not in ['UCB', 'misUCB']:
@@ -205,6 +205,15 @@ optimizer, acquisition_function = utils_bo.get_opt_and_acq(observations,
                                                            )
 
 # Plot.
+font_settings = {
+    'font_name': 'Times',
+    'axis_size': 30,  # 24 for the single graph.
+    'legend_size': 30,  # 20 for the single graph.
+    'legend_loc': 'upper right',
+    'tick_size': 30,  # 20 for the single graph.
+    'point_label_size': 30,  # 20 for the single graph.
+}
+
 x = np.linspace(0, 1, 10000).reshape(-1, 1)
 utils_bo.plot_gp_acq(optimizer,
                      acquisition_function,
@@ -213,6 +222,7 @@ utils_bo.plot_gp_acq(optimizer,
                      acq_lim=[(0, 1), (None, None)],
                      point_labels=alpha_labels,
                      gp_only=True,
+                     font_settings=font_settings,
                      )
 
 # acq.set_ylim((np.min(utility) - 10, np.max(utility) + 10))

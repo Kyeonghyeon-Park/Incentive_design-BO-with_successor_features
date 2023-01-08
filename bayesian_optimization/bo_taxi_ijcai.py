@@ -186,6 +186,7 @@ font_settings = {
     'font_name': 'Times',
     'axis_size': 30,  # 24 for the single graph.
     'legend_size': 30,  # 20 for the single graph.
+    'legend_loc': 'lower right',
     'tick_size': 30,  # 20 for the single graph.
     'point_label_size': 30,  # 20 for the single graph.
 }

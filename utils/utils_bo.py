@@ -366,6 +366,7 @@ def plot_gp(optimizer, utility, x, gp_lim=None, acq_lim=None, next_point_suggest
     # Font settings.
     axis_size = 24
     legend_size = 20
+    legend_loc = 'upper right'
     tick_size = 20
     point_label_size = 20
     font_name = None
@@ -377,6 +378,8 @@ def plot_gp(optimizer, utility, x, gp_lim=None, acq_lim=None, next_point_suggest
             axis_size = font_settings['axis_size']
         if 'legend_size' in font_settings.keys():
             legend_size = font_settings['legend_size']
+        if 'legend_loc' in font_settings.keys():
+            legend_loc = font_settings['legend_loc']
         if 'tick_size' in font_settings.keys():
             tick_size = font_settings['tick_size']
         if 'point_label_size' in font_settings.keys():
@@ -385,12 +388,6 @@ def plot_gp(optimizer, utility, x, gp_lim=None, acq_lim=None, next_point_suggest
             font_name = font_settings['font_name']
             plt.rcParams['font.family'] = font_name
             is_font = True
-            # plt.xlabel("Episodes", fontsize=axis_size, fontname=font_name)
-            # plt.ylabel(r"$\mathcal{F}$", fontsize=axis_size, fontname=font_name)
-
-    # else:
-    #     plt.xlabel("Episodes", fontsize=axis_size)
-    #     plt.ylabel(r"$\mathcal{F}$", fontsize=axis_size)
 
     # Plot.
     axis.plot(x_obs.flatten(), y_obs, 'D', markersize=8, label='Observations', color='k')
@@ -411,7 +408,7 @@ def plot_gp(optimizer, utility, x, gp_lim=None, acq_lim=None, next_point_suggest
         axis.set_xlabel(r'$\alpha$', fontsize=axis_size)
         axis.set_ylabel(r'$\mathcal{F}$', fontsize=axis_size)
 
-    axis.legend(loc='upper right', fontsize=legend_size)
+    axis.legend(loc=legend_loc, fontsize=legend_size)
     axis.tick_params(axis='both', labelsize=tick_size)
 
     time_str = time.strftime('%y%m%d_%H%M_%S', time.localtime(plot_time))
