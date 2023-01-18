@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 
-from utils_plot import remove_axis_margins
+from plot.utils_plot import remove_axis_margins
 
 """
 This file requires surface data(or evaluation result) which name is "evaluate_result.tar".

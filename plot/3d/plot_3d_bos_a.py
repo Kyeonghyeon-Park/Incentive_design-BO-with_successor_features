@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from utils import utils_bo
-from utils_plot import remove_axis_margins, fill_between_3d
+from plot.utils_plot import remove_axis_margins, fill_between_3d
 
 """
 220725 BO code update에 따른 update. 

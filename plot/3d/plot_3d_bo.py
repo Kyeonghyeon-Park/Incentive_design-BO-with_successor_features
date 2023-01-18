@@ -4,8 +4,10 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from utils import utils_bo
-from utils_plot import remove_axis_margins, fill_between_3d
-
+from plot.utils_plot import remove_axis_margins, fill_between_3d
+"""
+Draw the gradient in addition to BO graph.
+"""
 # Remove axes margins in 3D plot.
 remove_axis_margins()
 
@@ -22,8 +24,10 @@ observations = {0.00: 0.8287,
 # To use functions in utils_bo, we need the shape (-1, 1) for x.
 optimizer, acquisition_function = utils_bo.get_opt_and_acq(observations)
 x = np.linspace(0, 1, 10000).reshape(-1, 1)
-x_obs, f_obs = utils_bo.get_obs(optimizer)
-mu, sigma = utils_bo.get_posterior(optimizer, x_obs, f_obs, x)
+x_obs, f_obs = optimizer.get_obs()
+mu, sigma = optimizer.get_posterior(x)
+# x_obs, f_obs = utils_bo.get_obs(optimizer)
+# mu, sigma = utils_bo.get_posterior(optimizer, x_obs, f_obs, x)
 
 # Build a figure.
 # ax 상세 내용 https://matplotlib.org/stable/api/_as_gen/mpl_toolkits.mplot3d.axes3d.Axes3D.html
