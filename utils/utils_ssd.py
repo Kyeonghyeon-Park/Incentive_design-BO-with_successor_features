@@ -480,11 +480,7 @@ def get_plt_final_aggregate_grayscale_v3(outcomes_l, outcomes_r, font_settings=N
 
     x = 1000 * np.arange(1, 31)
     x_lim = [1000, 30000]
-
-    # y_lim = [None, None]
-    # y_lim = [None, 265]  # Convergence of the lower-level
-    y_lim = [0, 375]  # Efficiency of the transfer: visual comparison
-    # y_lim = [0, 100]  # Efficiency of the transfer: visual comparison
+    y_lim = [0, 375]
 
     outcomes_l = outcomes_l[1:, :]
     outcomes_r = outcomes_r[1:, :]
@@ -523,14 +519,6 @@ def get_plt_final_aggregate_grayscale_v3(outcomes_l, outcomes_r, font_settings=N
     plt.legend(loc='lower right', fontsize=legend_size)
     plt.tick_params(axis='both', labelsize=tick_size)
 
-    # plt.xlabel("Episodes", fontsize=24, fontname='Times')
-    # plt.ylabel("Value", fontsize=24)  # 220805
-    # plt.ylabel(r"$\mathcal{F}$", fontsize=24)  # 220805
-    # plt.xlim(x_lim)
-    # plt.ylim(y_lim)
-    # plt.legend(loc='lower right', fontsize=20, prop={'family': 'Times', 'size': 20})
-    # plt.legend(loc='upper right', fontsize=20)
-    # plt.tick_params(axis='both', labelsize=20)
     plt.grid()
     plt.savefig('../Harvest_lower_level.png', bbox_inches='tight')
     plt.show()

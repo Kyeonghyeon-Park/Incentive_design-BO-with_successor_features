@@ -1,5 +1,9 @@
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 from mpl_toolkits.mplot3d.axis3d import Axis
+import numpy as np
+import torch
+
+from utils.utils_all import tile_ravel_multi_index
 
 def remove_axis_margins():
     """
