@@ -91,16 +91,16 @@ add_default_args(parser)
 args = parser.parse_args()
 
 """ Setting for the description. """
-args.description = 'SSD. alpha=0.65 using alpha=0.56. random seed=1235.'
-args.setting_name = 'alpha=0.65_using_alpha=0.56_random_seed=1235'+utils_all.get_current_time_tag()
+args.description = 'SSD. alpha=0.05 using alpha=1.00. random seed=1234.'
+args.setting_name = 'alpha=0.05_using_alpha=1.00_random_seed=1234'+utils_all.get_current_time_tag()
 
 """ Setting for the environment. """
 args.env = 'harvest_modified'
 args.num_agents = 4
 
 """ Setting for the reward designer's problem. """
-args.lv_penalty = 0.65
-args.lv_incentive = 0.65
+args.lv_penalty = 0.05
+args.lv_incentive = 0.05
 
 """ Setting for the networks. """
 # args.mode_ac = True
@@ -121,7 +121,7 @@ args.epsilon = 0.95
 args.epsilon_decay_ver = 'linear'
 # args.boltz_beta = 1.0
 # args.mode_test = False
-args.random_seed = 1235
+args.random_seed = 1234
 
 """ Setting for the learning. """
 args.K = 400
@@ -132,7 +132,7 @@ args.update_freq_target = 1
 # args.tau = 0.01
 # args.mode_one_hot_obs = True
 args.mode_reuse_networks = True
-args.file_path = './results_ssd_IJCAI/lists of policies/0.56/000029999.tar'
+args.file_path = './results_ssd_IJCAI/lists of policies/1.00/000029999.tar'
 # args.file_path = './results_ssd_IJCAI/alpha=0.40 (3 (of 9) seeds)/seed 1239 (converge to 150)/000029999.tar'
 # args.file_path = './results_ssd_AAAI/3_misUCB_alpha=0.00_using_alpha=0.26_220628_1711/saved/000029999.tar'
 

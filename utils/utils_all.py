@@ -144,3 +144,33 @@ def get_networks_params(args, networks):
         critic_opt_params = networks.critic_opt.state_dict()
 
     return actor_params, actor_opt_params, critic_params, critic_opt_params, psi_params, psi_opt_params
+
+
+def tile_ravel_multi_index(a, dims):
+    """
+    https://stackoverflow.com/questions/26374634/numpy-tile-a-non-integer-number-of-times
+
+    Examples
+    --------
+    a = np.array([[1, 2, 3],
+                  [4, 5, 6]])
+    b = tile_rav_mult_idx(a, [3, 4])
+    c = tile_rav_mult_idx(a, [1, 4])
+    ->
+    b = np.array([[1, 2, 3, 1],
+                  [4, 5, 6, 4],
+                  [1, 2, 3, 1]])
+    c = np.array([[1, 2, 3, 1]])
+
+    Parameters
+    ----------
+    a: numpy.ndarray
+    dims: list
+
+    Returns
+    -------
+    a_tiled: numpy.ndarray
+    """
+    a_tiled = a.flat[np.ravel_multi_index(np.indices(dims), a.shape, mode='wrap')]
+
+    return a_tiled

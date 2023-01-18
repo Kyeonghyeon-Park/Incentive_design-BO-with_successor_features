@@ -679,6 +679,100 @@ def get_plt_final_grayscale_only_obj(outcomes_l, outcomes_r, font_settings=None)
     plt.show()
 
 
+def get_plt_final_grayscale_only_obj_three_outcomes(outcomes_1, outcomes_2, outcomes_3, font_settings=None):
+    """
+
+    Parameters
+    ----------
+    outcomes_1
+    outcomes_2
+    outcomes_3
+    font_settings: None or dict
+    """
+    period = 1
+    def get_status(inputs):
+        means = np.mean(inputs, axis=0)
+        stds = np.std(inputs, axis=0)
+        mov_avg_len = 20
+        means_mov_avg, stds_mov_avg = [np.zeros(means.size) for _ in range(2)]
+        for j in range(means.size):
+            if j + 1 < mov_avg_len:
+                means_part = means[:j + 1]
+                stds_part = stds[:j + 1]
+            else:
+                means_part = means[j - mov_avg_len + 1:j + 1]
+                stds_part = stds[j - mov_avg_len + 1:j + 1]
+            means_mov_avg[j] = np.mean(means_part)
+            stds_mov_avg[j] = np.mean(stds_part)
+            # means_mov_avg[j] = means[j - mov_avg_len + 1:j + 1] if j + 1 >= mov_avg_len else means[:j + 1]
+            # stds_mov_avg[j] = stds[j - mov_avg_len + 1:j + 1] if j + 1 >= mov_avg_len else stds[:j + 1]
+        # means = means_mov_avg
+        # stds = stds_mov_avg
+        means = means[::period]
+        stds = stds[::period]
+        return means, stds
+
+    x = np.arange(0, 7500, period)
+    x_lim = [0, 7500]
+    y_lim = [0.65, 1.05]
+
+    plt.figure(dpi=600, figsize=(15, 8))
+
+    outcomes_1 = outcomes_1[3]  # Only select obj among [orr, osc, avg_rew, obj].
+    outcomes_2 = outcomes_2[3]
+    outcomes_3 = outcomes_3[3]
+
+    # outcomes_l = outcomes_l[3]  # Only select obj among [orr, osc, avg_rew, obj].
+    # outcomes_r = outcomes_r[3]
+
+    means_1, stds_1 = get_status(outcomes_1)
+    means_1 = savgol_filter(means_1, 101, 3)
+    stds_1 = savgol_filter(stds_1, 101, 3)
+    plt.plot(x, means_1, label=r"SF-MFAC (w/ $\alpha$=1.00)", color=(0, 0, 0))
+    plt.fill_between(x, means_1 - stds_1, means_1 + stds_1, color=(0.5, 0.5, 0.5))
+
+    means_2, stds_2 = get_status(outcomes_2)
+    means_2 = savgol_filter(means_2, 101, 3)
+    stds_2 = savgol_filter(stds_2, 101, 3)
+    plt.plot(x, means_2, label=r"SF-MFAC (w/ $\alpha$=0.00)", color=(0, 0, 0), linestyle='-.')
+    plt.fill_between(x, means_2 - stds_2, means_2 + stds_2, alpha=0.85, color=(0.625, 0.625, 0.625), hatch='\\')
+
+    means_3, stds_3 = get_status(outcomes_3)
+    means_3 = savgol_filter(means_3, 101, 3)
+    stds_3 = savgol_filter(stds_3, 101, 3)
+    plt.plot(x, means_3, label="MFAC", alpha=0.5, color=(0, 0, 0), linestyle='--')
+    plt.fill_between(x, means_3 - stds_3, means_3 + stds_3, alpha=0.5, color=(0.75, 0.75, 0.75), hatch='/')
+
+    axis_size = 24
+    legend_size = 20
+    tick_size = 20
+    if font_settings is not None:
+        if 'axis_size' in font_settings.keys():
+            axis_size = font_settings['axis_size']
+        if 'legend_size' in font_settings.keys():
+            legend_size = font_settings['legend_size']
+        if 'tick_size' in font_settings.keys():
+            tick_size = font_settings['tick_size']
+        if 'font_name' in font_settings.keys():
+            plt.rcParams['font.family'] = font_settings['font_name']
+            plt.xlabel("Episodes", fontsize=axis_size, fontname=font_settings['font_name'])
+            plt.ylabel(r"$\mathcal{F}$", fontsize=axis_size, fontname=font_settings['font_name'])
+
+    else:
+        plt.xlabel("Episodes", fontsize=axis_size)
+        plt.ylabel(r"$\mathcal{F}$", fontsize=axis_size)
+
+    plt.xlim(x_lim)
+    plt.ylim(y_lim)
+
+    plt.legend(loc='lower right', fontsize=legend_size)
+    plt.tick_params(axis='both', labelsize=tick_size)
+
+    plt.grid()
+    plt.savefig('../Driver_lower_level.png', bbox_inches='tight')
+    plt.show()
+
+
 def get_plt_cumulative_skld_multiseeds(skld_trans_list, skld_ntrans_list, is_normalized=False):
     """
     Get the figure of two cumulative SKLDs(sum of KL divergences) for multiple random seeds.

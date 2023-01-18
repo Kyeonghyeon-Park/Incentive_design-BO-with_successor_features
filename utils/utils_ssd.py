@@ -536,6 +536,76 @@ def get_plt_final_aggregate_grayscale_v3(outcomes_l, outcomes_r, font_settings=N
     plt.show()
 
 
+def get_plt_final_aggregate_grayscale_three_outcomes(outcomes_1, outcomes_2, outcomes_3, font_settings=None):
+    """
+    Draw three outcomes.
+
+    Parameters
+    ----------
+    outcomes_1
+    outcomes_2
+    outcomes_3
+    font_settings: None or dict
+    """
+    def get_status(inputs):
+        means = np.mean(inputs, axis=1)
+        stds = np.std(inputs, axis=1)
+        return means, stds
+
+    x = 1000 * np.arange(1, 31)
+    x_lim = [1000, 30000]
+
+    y_lim = [0, 375]
+
+    outcomes_1 = outcomes_1[1:, :]
+    outcomes_2 = outcomes_2[1:, :]
+    outcomes_3 = outcomes_3[1:, :]
+
+    plt.figure(dpi=600, figsize=(15, 8))
+
+    means_1, stds_1 = get_status(outcomes_1)
+    plt.plot(x, means_1, label=r"SF-MFAC (w/ $\alpha$=0.00)", color=(0, 0, 0))
+    plt.fill_between(x, means_1 - stds_1, means_1 + stds_1, color=(0.5, 0.5, 0.5))
+
+    means_2, stds_2 = get_status(outcomes_2)
+    plt.plot(x, means_2, label=r"SF-MFAC (w/ $\alpha$=1.00)", color=(0, 0, 0), linestyle='-.')
+    plt.fill_between(x, means_2 - stds_2, means_2 + stds_2, alpha=0.85, color=(0.625, 0.625, 0.625), hatch='\\')
+
+    means_3, stds_3 = get_status(outcomes_3)
+    plt.plot(x, means_3, label="MFAC", alpha=0.5, color=(0, 0, 0), linestyle='--')
+    plt.fill_between(x, means_3 - stds_3, means_3 + stds_3, alpha=0.5, color=(0.75, 0.75, 0.75), hatch='/')
+
+    axis_size = 24
+    legend_size = 20
+    tick_size = 20
+    if font_settings is not None:
+        if 'axis_size' in font_settings.keys():
+            axis_size = font_settings['axis_size']
+        if 'legend_size' in font_settings.keys():
+            legend_size = font_settings['legend_size']
+        if 'tick_size' in font_settings.keys():
+            tick_size = font_settings['tick_size']
+        if 'font_name' in font_settings.keys():
+            plt.rcParams['font.family'] = font_settings['font_name']
+            plt.xlabel("Episodes", fontsize=axis_size, fontname=font_settings['font_name'])
+            plt.ylabel(r"$\mathcal{F}$", fontsize=axis_size, fontname=font_settings['font_name'])
+
+    else:
+        plt.xlabel("Episodes", fontsize=axis_size)
+        plt.ylabel(r"$\mathcal{F}$", fontsize=axis_size)
+
+    plt.xlim(x_lim)
+    plt.ylim(y_lim)
+
+    plt.legend(loc='lower right', fontsize=legend_size)
+    plt.tick_params(axis='both', labelsize=tick_size)
+
+    plt.grid()
+    plt.savefig('../Harvest_lower_level.png', bbox_inches='tight')
+    plt.show()
+
+
+
 def get_plt_cumulative_SKLD(skl_l, skl_r, is_3000=False):
     """
     Get the figure of two cumulative SKLDs (sum of KL divergences).
